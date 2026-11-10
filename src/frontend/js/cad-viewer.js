@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════════════════
    Realistic 3D Thermal Rod & CAD/ANSYS Engine (Task B)
-   High-Fidelity Solid 3D Thermal Rod with Animated Heat Flow,
-   Exact Back-Face Culling, Streamline Particles & Flux Vectors
+   High-Precision Solid 3D Thermal Rod with Razor-Sharp Feature Edges,
+   Animated Surface Heat Flow Streamlines & Fourier Flux Vectors
    ═══════════════════════════════════════════════════════════════ */
 
 "use strict";
@@ -10,19 +10,20 @@ const CadViewer = (() => {
   let canvas, ctx;
   let stlTriangles = [];
   let ansysNodes = [];
-  let displayMode = "both";       // "both", "contour", "cloud", "stl"
-  let contourStyle = "smooth";    // "smooth", "bands"
-  let rodShape = "cylinder";      // "cylinder", "square"
-  let showHeatFlow = true;        // Animated 3D Heat Flow Streamlines
-  let showFluxVectors = true;     // Heat Flux Vector Field Arrows
-  let showWireframe = true;
-  let showProbes = true;
-  let showShadow = true;
+  let displayMode = "rod";         // "rod", "with_nodes", "cloud", "stl", "overlay"
+  let contourStyle = "smooth";     // "smooth", "bands"
+  let rodShape = "square";         // "square" (Default, crisp edges), "cylinder"
+  let showEdges = true;            // Razor-Sharp Feature Edge Outlines
+  let showHeatFlow = true;         // Animated Surface Streamlines
+  let showFluxVectors = true;      // Heat Flux Vectors & Thermal Divide
+  let showWireframe = true;        // FEA Mesh Grid Lines
+  let showProbes = true;           // Min/Max Hot Spot Callouts
+  let showShadow = true;           // Ambient Ground Shadow
 
-  // Camera & view transforms (default isometric angle showing 3 faces)
-  let rotX = 0.38;    // Pitch angle
-  let rotY = -0.62;   // Yaw angle
-  let zoom = 320;     // Scale
+  // Camera & view transforms (Isometric 3D view showing Top, Front, and End-Cap)
+  let rotX = 0.40;    // Pitch
+  let rotY = -0.58;   // Yaw
+  let zoom = 330;     // Scale
   let panX = 0;
   let panY = 15;
 
@@ -37,19 +38,27 @@ const CadViewer = (() => {
   let hoveredNode = null;
   let nodeTooltip, nodeTooltipBody;
 
-  // Geometry dimensions for rod: L = 1.0m, A = 1e-4 m²
+  // Geometry dimensions for uniform rod: L = 1.0 m, A = 1e-4 m²
   const ROD_L = 1.0;
-  const ROD_RADIUS = 0.026;       // Visual aspect ratio tuned for CAD clarity
-  const ROD_W = 0.05;             // Square width
-  const ROD_H = 0.05;             // Square height
-  const NUM_SEGMENTS = 50;        // Longitudinal discretization
-  const CYL_SLICES = 28;          // Angular discretization for cylinder
+  const ROD_W = 0.05;              // Cross-section width
+  const ROD_H = 0.05;              // Cross-section height
+  const ROD_RADIUS = 0.028;        // Equivalent cylinder radius
+  const NUM_SEGMENTS = 40;         // Longitudinal FEA elements
+  const CYL_SLICES = 32;           // Cylinder angular discretization
 
   // Animation state
   let animFrameId = null;
   let animTime = 0;
-  const flowParticles = [];
-  const NUM_PARTICLES = 50;
+
+  // Surface streamline pulses (gliding along rod surfaces)
+  const streamlines = [
+    { face: "top", offsetZ: 0.0, pulseOffset: 0.0 },
+    { face: "top", offsetZ: -0.015, pulseOffset: 0.33 },
+    { face: "top", offsetZ: 0.015, pulseOffset: 0.66 },
+    { face: "front", offsetY: 0.0, pulseOffset: 0.2 },
+    { face: "front", offsetY: 0.015, pulseOffset: 0.5 },
+    { face: "front", offsetY: -0.015, pulseOffset: 0.8 }
+  ];
 
   function init(canvasEl) {
     canvas = canvasEl || document.getElementById("cad3DCanvas");
@@ -58,8 +67,6 @@ const CadViewer = (() => {
 
     nodeTooltip = document.getElementById("nodeTooltip");
     nodeTooltipBody = document.getElementById("nodeTooltipBody");
-
-    initParticles();
 
     resize();
     window.addEventListener("resize", resize);
@@ -73,73 +80,10 @@ const CadViewer = (() => {
     startAnimation();
   }
 
-  /* ─────────────────────────────────────────────
-     Thermal Heat Flow Particle Initialization
-     Governed by Fourier's Conduction Law: q_x = -k * dT/dx
-     Divide line at x = 0.42m (dT/dx = 0, q_x = 0)
-     ───────────────────────────────────────────── */
-  function initParticles() {
-    flowParticles.length = 0;
-    for (let i = 0; i < NUM_PARTICLES; i++) {
-      spawnParticle(true);
-    }
-  }
-
-  function spawnParticle(randomInitialX = false) {
-    // 40% flow left towards x=0 (T=100C), 60% flow right towards x=1.0 (T=20C)
-    const goLeft = Math.random() < 0.40;
-    const theta = Math.random() * Math.PI * 2;
-    const speedScale = 0.0035 + Math.random() * 0.003;
-    
-    let x;
-    if (randomInitialX) {
-      x = goLeft ? (0.02 + Math.random() * 0.40) : (0.42 + Math.random() * 0.56);
-    } else {
-      // Spawn right at the thermal generation peak / divide (x = 0.42m)
-      x = 0.42 + (Math.random() - 0.5) * 0.04;
-    }
-
-    const p = {
-      x: x,
-      theta: theta,
-      goLeft: goLeft,
-      speedScale: speedScale,
-      tail: [],
-      maxTail: 5 + Math.floor(Math.random() * 6),
-      life: 0.8 + Math.random() * 0.4
-    };
-    flowParticles.push(p);
-  }
-
-  function updateParticles() {
-    for (let i = flowParticles.length - 1; i >= 0; i--) {
-      const p = flowParticles[i];
-      // Fourier heat flux: |q_x| = |-10 * (420 - 1000*x)|
-      const dT_dx = 420.0 - 1000.0 * p.x;
-      const fluxMag = Math.abs(-10.0 * dT_dx);
-      // Speed accelerates with flux magnitude (slow at peak, fast at boundaries)
-      const speed = Math.max(0.0015, (fluxMag / 5800.0) * 0.008 + 0.001) * (p.goLeft ? -1 : 1);
-      
-      p.x += speed;
-
-      // Check boundary conditions or lifetime expiration
-      if (p.x <= 0.005 || p.x >= 0.995) {
-        flowParticles.splice(i, 1);
-        spawnParticle(false);
-      }
-    }
-    while (flowParticles.length < NUM_PARTICLES) {
-      spawnParticle(false);
-    }
-  }
-
   function startAnimation() {
     if (animFrameId) cancelAnimationFrame(animFrameId);
     function loop(t) {
       animTime = t * 0.001;
-      if (showHeatFlow) {
-        updateParticles();
-      }
       render();
       animFrameId = requestAnimationFrame(loop);
     }
@@ -198,9 +142,9 @@ const CadViewer = (() => {
   }
 
   function fitToView() {
-    rotX = 0.38;
-    rotY = -0.62;
-    zoom = 320;
+    rotX = 0.40;
+    rotY = -0.58;
+    zoom = 330;
     panX = 0;
     panY = 15;
   }
@@ -230,10 +174,12 @@ const CadViewer = (() => {
     return { x: sx, y: sy, depth: z2, fov };
   }
 
-  // Exact 2D screen winding for Back-Face Culling
-  // Returns > 0 if front-facing (CCW), <= 0 if facing away
-  function screenWinding(p1, p2, p3) {
-    return (p2.x - p1.x) * (p3.y - p1.y) - (p2.y - p1.y) * (p3.x - p1.x);
+  // Camera-space normal projection for strict Back-Face Culling
+  function isNormalFacingCamera(nx, ny, nz) {
+    const x1 = nx * Math.cos(rotY) + nz * Math.sin(rotY);
+    const z1 = -nx * Math.sin(rotY) + nz * Math.cos(rotY);
+    const z2 = ny * Math.sin(rotX) + z1 * Math.cos(rotX);
+    return z2 < -0.01; // Points toward viewer in camera space
   }
 
   /* ─────────────────────────────────────────────
@@ -288,7 +234,7 @@ const CadViewer = (() => {
       }
       return closest.T;
     }
-    // 1D FEA Poisson equation: T(x) = 100 - 80*x + 500*x*(1 - x)
+    // Analytical 1D FEA: T(x) = 100 - 80*x + 500*x*(1 - x)
     return 100.0 - 80.0 * x + 500.0 * x * (1.0 - x);
   }
 
@@ -304,9 +250,9 @@ const CadViewer = (() => {
     ctx.save();
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    // Dark engineering viewport background with subtle center glow
-    const bgGrad = ctx.createRadialGradient(w / 2, h / 2, 90, w / 2, h / 2, w * 0.75);
-    bgGrad.addColorStop(0, "#1a1a20");
+    // Dark engineering viewport background with subtle vignette
+    const bgGrad = ctx.createRadialGradient(w / 2, h / 2, 80, w / 2, h / 2, w * 0.75);
+    bgGrad.addColorStop(0, "#181820");
     bgGrad.addColorStop(1, "#0a0a0d");
     ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, w, h);
@@ -314,8 +260,8 @@ const CadViewer = (() => {
     const cx = w / 2;
     const cy = h / 2;
 
-    // Directional light vector in world coordinates
-    const lightDir = { x: 0.4, y: 0.8, z: 0.45 };
+    // Directional lighting vector
+    const lightDir = { x: 0.45, y: 0.85, z: 0.4 };
     const lLen = Math.hypot(lightDir.x, lightDir.y, lightDir.z);
     lightDir.x /= lLen; lightDir.y /= lLen; lightDir.z /= lLen;
 
@@ -327,51 +273,60 @@ const CadViewer = (() => {
     // 2. Metric Floor Grid
     drawGroundGrid(cx, cy);
 
-    // Depth-sorted draw list
+    // Depth-sorted drawables
     const drawables = [];
 
-    // 3. Generate Solid 3D Thermal Rod with Back-Face Culling
-    if (displayMode === "both" || displayMode === "contour") {
-      if (rodShape === "cylinder") {
-        generateSolidCylinder(cx, cy, lightDir, drawables);
-      } else {
+    // 3. Render Solid 3D Thermal Rod (Solid Opaque with Crisp Edges)
+    if (displayMode === "rod" || displayMode === "with_nodes" || displayMode === "overlay") {
+      if (rodShape === "square") {
         generateSolidSquareRod(cx, cy, lightDir, drawables);
+      } else {
+        generateSolidCylinder(cx, cy, lightDir, drawables);
       }
     }
 
-    // 4. Custom STL Geometry
-    if ((displayMode === "stl" || displayMode === "both") && stlTriangles.length > 0) {
+    // 4. CAD STL Mesh (when in STL or overlay mode)
+    if ((displayMode === "stl" || displayMode === "overlay") && stlTriangles.length > 0) {
       generateStlMesh(cx, cy, lightDir, drawables);
     }
 
-    // 5. Nodal Spheres (Occlusion Aware)
-    if ((displayMode === "both" || displayMode === "cloud") && ansysNodes.length > 0) {
+    // 5. Nodal Spheres (when in point cloud or with_nodes mode)
+    if ((displayMode === "with_nodes" || displayMode === "cloud") && ansysNodes.length > 0) {
       generateNodalSpheres(cx, cy, drawables);
     }
 
-    // Sort drawables from farthest to closest (Painter's algorithm)
+    // Sort all drawables from farthest to nearest (Painter's algorithm)
     drawables.sort((a, b) => b.depth - a.depth);
     drawables.forEach(item => item.draw());
 
-    // 6. Draw 3D Heat Flow Streamlines & Moving Thermal Particles
-    if (showHeatFlow && (displayMode === "both" || displayMode === "contour")) {
-      drawHeatFlowStreamlines(cx, cy);
+    // 6. Draw Razor-Sharp Feature Edges Over Solid Geometry
+    if (showEdges && (displayMode === "rod" || displayMode === "with_nodes" || displayMode === "overlay")) {
+      if (rodShape === "square") {
+        drawSquareRodEdges(cx, cy);
+      } else {
+        drawCylinderEdges(cx, cy);
+      }
     }
 
-    // 7. Draw Heat Flux Vector Field Arrows & Thermal Divide Marker
-    if (showFluxVectors && (displayMode === "both" || displayMode === "contour")) {
+    // 7. Draw Surface Heat Flow Streamlines (Sleek, continuous, non-cluttering)
+    if (showHeatFlow && (displayMode === "rod" || displayMode === "with_nodes" || displayMode === "overlay")) {
+      drawSurfaceStreamlines(cx, cy);
+    }
+
+    // 8. Draw Heat Flux Vectors & Thermal Divide Ring
+    if (showFluxVectors && (displayMode === "rod" || displayMode === "with_nodes" || displayMode === "overlay")) {
       drawHeatFluxVectorsAndDivide(cx, cy);
     }
 
-    // 8. ANSYS Probe Callouts (Non-overlapping, inside bounds)
-    if (showProbes && (displayMode === "both" || displayMode === "contour" || displayMode === "cloud")) {
+    // 9. ANSYS Hot & Cold Spot Probe Callouts (Guaranteed In-Bounds)
+    if (showProbes && displayMode !== "stl") {
       drawThermalProbes(cx, cy, w, h);
     }
 
-    // 9. 3D Orientation Triad
+    // 10. 3D Orientation Triad
     drawOrientationTriad(w, h);
 
-    // 10. Engineering Viewport HUD stats
+    // 11. Engineering Viewport HUD Stats
     drawViewportHUD(w, h);
 
     ctx.restore();
@@ -395,8 +350,8 @@ const CadViewer = (() => {
       (p1.y + p2.y + p3.y + p4.y) / 4,
       zoom * 0.95
     );
-    shadowGrad.addColorStop(0, "rgba(0, 0, 0, 0.65)");
-    shadowGrad.addColorStop(0.65, "rgba(0, 0, 0, 0.2)");
+    shadowGrad.addColorStop(0, "rgba(0, 0, 0, 0.6)");
+    shadowGrad.addColorStop(0.65, "rgba(0, 0, 0, 0.18)");
     shadowGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
 
     ctx.fillStyle = shadowGrad;
@@ -420,14 +375,14 @@ const CadViewer = (() => {
       const p1 = project(gx, floorY, -0.22, cx, cy);
       const p2 = project(gx, floorY, 0.22, cx, cy);
 
-      ctx.strokeStyle = gx === 0 || gx === 1.0 ? "rgba(255, 255, 255, 0.18)" : "rgba(255, 255, 255, 0.06)";
+      ctx.strokeStyle = gx === 0 || gx === 1.0 ? "rgba(255, 255, 255, 0.18)" : "rgba(255, 255, 255, 0.05)";
       ctx.beginPath();
       ctx.moveTo(p1.x, p1.y);
       ctx.lineTo(p2.x, p2.y);
       ctx.stroke();
 
       ctx.font = "10px sans-serif";
-      ctx.fillStyle = "rgba(255, 255, 255, 0.4)";
+      ctx.fillStyle = "rgba(255, 255, 255, 0.35)";
       ctx.fillText(`${gx.toFixed(2)} m`, p2.x - 12, p2.y + 12);
     }
 
@@ -443,169 +398,19 @@ const CadViewer = (() => {
   }
 
   /* ─────────────────────────────────────────────
-     Solid Cylindrical Rod Generator (ANSYS Exact)
-     Continuous Smooth 3D Extrusion with Lambertian Shading
-     and Back-Face Culling
-     ───────────────────────────────────────────── */
-  function generateSolidCylinder(cx, cy, lightDir, drawables) {
-    const dx = ROD_L / NUM_SEGMENTS;
-    const r = ROD_RADIUS;
-    const dTheta = (Math.PI * 2) / CYL_SLICES;
-
-    // 1. Left End Cap Disk (x = 0)
-    const pCapL = project(0, 0, 0, cx, cy);
-    const pCapLRef1 = project(0, r, 0, cx, cy);
-    const pCapLRef2 = project(0, 0, r, cx, cy);
-    const windingCapL = screenWinding(pCapL, pCapLRef1, pCapLRef2);
-    if (windingCapL > 0) { // Facing camera
-      const t0 = tempAtX(0);
-      const nT0 = (t0 - minTemp) / (maxTemp - minTemp || 1);
-      const normL = { x: -1, y: 0, z: 0 };
-      const dotL = Math.max(0, normL.x * lightDir.x);
-      const shadeL = 0.4 + 0.6 * dotL;
-      const colL = getLitColorString(getTemperatureRGB(nT0), shadeL);
-
-      drawables.push({
-        depth: pCapL.depth,
-        draw: () => {
-          ctx.fillStyle = colL;
-          ctx.beginPath();
-          for (let s = 0; s <= CYL_SLICES; s++) {
-            const th = s * dTheta;
-            const pt = project(0, r * Math.sin(th), r * Math.cos(th), cx, cy);
-            if (s === 0) ctx.moveTo(pt.x, pt.y);
-            else ctx.lineTo(pt.x, pt.y);
-          }
-          ctx.closePath();
-          ctx.fill();
-          if (showWireframe) {
-            ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
-            ctx.lineWidth = 0.75;
-            ctx.stroke();
-          }
-        }
-      });
-    }
-
-    // 2. Right End Cap Disk (x = L)
-    const pCapR = project(ROD_L, 0, 0, cx, cy);
-    const pCapRRef1 = project(ROD_L, 0, r, cx, cy);
-    const pCapRRef2 = project(ROD_L, r, 0, cx, cy);
-    const windingCapR = screenWinding(pCapR, pCapRRef1, pCapRRef2);
-    if (windingCapR > 0) { // Facing camera
-      const tL = tempAtX(ROD_L);
-      const nTL = (tL - minTemp) / (maxTemp - minTemp || 1);
-      const normR = { x: 1, y: 0, z: 0 };
-      const dotR = Math.max(0, normR.x * lightDir.x);
-      const shadeR = 0.4 + 0.6 * dotR;
-      const colR = getLitColorString(getTemperatureRGB(nTL), shadeR);
-
-      drawables.push({
-        depth: pCapR.depth,
-        draw: () => {
-          ctx.fillStyle = colR;
-          ctx.beginPath();
-          for (let s = 0; s <= CYL_SLICES; s++) {
-            const th = s * dTheta;
-            const pt = project(ROD_L, r * Math.sin(th), r * Math.cos(th), cx, cy);
-            if (s === 0) ctx.moveTo(pt.x, pt.y);
-            else ctx.lineTo(pt.x, pt.y);
-          }
-          ctx.closePath();
-          ctx.fill();
-          if (showWireframe) {
-            ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
-            ctx.lineWidth = 0.75;
-            ctx.stroke();
-          }
-        }
-      });
-    }
-
-    // 3. Cylinder Surface Quads along Length & Angle
-    for (let i = 0; i < NUM_SEGMENTS; i++) {
-      const xA = i * dx;
-      const xB = (i + 1) * dx;
-      const tA = tempAtX(xA);
-      const tB = tempAtX(xB);
-      const nTA = (tA - minTemp) / (maxTemp - minTemp || 1);
-      const nTB = (tB - minTemp) / (maxTemp - minTemp || 1);
-      const rgbA = getTemperatureRGB(nTA);
-      const rgbB = getTemperatureRGB(nTB);
-
-      for (let s = 0; s < CYL_SLICES; s++) {
-        const th1 = s * dTheta;
-        const th2 = (s + 1) * dTheta;
-        const thMid = (th1 + th2) / 2;
-
-        const y1 = r * Math.sin(th1), z1 = r * Math.cos(th1);
-        const y2 = r * Math.sin(th2), z2 = r * Math.cos(th2);
-
-        // Projected quad corners
-        const p1 = project(xA, y1, z1, cx, cy);
-        const p2 = project(xB, y1, z1, cx, cy);
-        const p3 = project(xB, y2, z2, cx, cy);
-        const p4 = project(xA, y2, z2, cx, cy);
-
-        // Strict Back-Face Culling
-        const winding = screenWinding(p1, p2, p3);
-        if (winding <= 0) continue; // Culled!
-
-        // Cylindrical Normal Vector
-        const ny = Math.sin(thMid);
-        const nz = Math.cos(thMid);
-        const dot = Math.max(0, ny * lightDir.y + nz * lightDir.z);
-        // Specular highlight on top curve
-        const spec = Math.pow(Math.max(0, ny * lightDir.y + nz * lightDir.z), 16) * 0.35;
-        const shade = Math.min(1.4, 0.35 + 0.65 * dot + spec);
-
-        const avgDepth = (p1.depth + p2.depth + p3.depth + p4.depth) / 4;
-
-        drawables.push({
-          depth: avgDepth,
-          draw: () => {
-            const colA = getLitColorString(rgbA, shade);
-            const colB = getLitColorString(rgbB, shade);
-
-            const grad = ctx.createLinearGradient(p1.x, p1.y, p2.x, p2.y);
-            grad.addColorStop(0, colA);
-            grad.addColorStop(1, colB);
-
-            ctx.fillStyle = grad;
-            ctx.beginPath();
-            ctx.moveTo(p1.x, p1.y);
-            ctx.lineTo(p2.x, p2.y);
-            ctx.lineTo(p3.x, p3.y);
-            ctx.lineTo(p4.x, p4.y);
-            ctx.closePath();
-            ctx.fill();
-
-            if (showWireframe && (i % 5 === 0 || s % 7 === 0)) {
-              ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
-              ctx.lineWidth = 0.5;
-              ctx.stroke();
-            }
-          }
-        });
-      }
-    }
-  }
-
-  /* ─────────────────────────────────────────────
      Solid Square Rod Generator (Hex Bar)
-     Exact 6-Face Back-Face Culling (Zero Translucency Bleed)
+     Crisp Opaque Shading with Element Contours
      ───────────────────────────────────────────── */
   function generateSolidSquareRod(cx, cy, lightDir, drawables) {
     const dx = ROD_L / NUM_SEGMENTS;
     const halfW = ROD_W / 2;
     const halfH = ROD_H / 2;
 
-    // Face Normals
     const normals = {
       left:   { x: -1, y: 0, z: 0 },
       right:  { x: 1,  y: 0, z: 0 },
       top:    { x: 0,  y: 1, z: 0 },
-      bottom: { x: 0, y: -1, z: 0 },
+      bottom: { x: 0,  y: -1, z: 0 },
       front:  { x: 0,  y: 0, z: 1 },
       back:   { x: 0,  y: 0, z: -1 }
     };
@@ -623,48 +428,55 @@ const CadViewer = (() => {
     const rightShade = getShade(normals.right) * 0.75;
 
     // 1. Left End Cap (x = 0)
-    const pL1 = project(0, -halfH, -halfW, cx, cy);
-    const pL2 = project(0, -halfH, halfW, cx, cy);
-    const pL3 = project(0, halfH, halfW, cx, cy);
-    const pL4 = project(0, halfH, -halfW, cx, cy);
-    if (screenWinding(pL1, pL2, pL3) > 0) {
+    if (isNormalFacingCamera(normals.left.x, normals.left.y, normals.left.z)) {
+      const p1 = project(0, -halfH, -halfW, cx, cy);
+      const p2 = project(0, -halfH, halfW, cx, cy);
+      const p3 = project(0, halfH, halfW, cx, cy);
+      const p4 = project(0, halfH, -halfW, cx, cy);
       const t0 = tempAtX(0);
-      const colL = getLitColorString(getTemperatureRGB((t0 - minTemp) / (maxTemp - minTemp || 1)), leftShade);
+      const col = getLitColorString(getTemperatureRGB((t0 - minTemp) / (maxTemp - minTemp || 1)), leftShade);
+
       drawables.push({
-        depth: (pL1.depth + pL2.depth + pL3.depth + pL4.depth) / 4,
+        depth: (p1.depth + p2.depth + p3.depth + p4.depth) / 4,
         draw: () => {
-          ctx.fillStyle = colL;
+          ctx.fillStyle = col;
           ctx.beginPath();
-          ctx.moveTo(pL1.x, pL1.y); ctx.lineTo(pL2.x, pL2.y);
-          ctx.lineTo(pL3.x, pL3.y); ctx.lineTo(pL4.x, pL4.y);
-          ctx.closePath(); ctx.fill();
-          if (showWireframe) { ctx.strokeStyle = "rgba(255,255,255,0.25)"; ctx.stroke(); }
+          ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y);
+          ctx.lineTo(p3.x, p3.y); ctx.lineTo(p4.x, p4.y);
+          ctx.closePath();
+          ctx.fill();
         }
       });
     }
 
     // 2. Right End Cap (x = L)
-    const pR1 = project(ROD_L, -halfH, halfW, cx, cy);
-    const pR2 = project(ROD_L, -halfH, -halfW, cx, cy);
-    const pR3 = project(ROD_L, halfH, -halfW, cx, cy);
-    const pR4 = project(ROD_L, halfH, halfW, cx, cy);
-    if (screenWinding(pR1, pR2, pR3) > 0) {
+    if (isNormalFacingCamera(normals.right.x, normals.right.y, normals.right.z)) {
+      const p1 = project(ROD_L, -halfH, halfW, cx, cy);
+      const p2 = project(ROD_L, -halfH, -halfW, cx, cy);
+      const p3 = project(ROD_L, halfH, -halfW, cx, cy);
+      const p4 = project(ROD_L, halfH, halfW, cx, cy);
       const tL = tempAtX(ROD_L);
-      const colR = getLitColorString(getTemperatureRGB((tL - minTemp) / (maxTemp - minTemp || 1)), rightShade);
+      const col = getLitColorString(getTemperatureRGB((tL - minTemp) / (maxTemp - minTemp || 1)), rightShade);
+
       drawables.push({
-        depth: (pR1.depth + pR2.depth + pR3.depth + pR4.depth) / 4,
+        depth: (p1.depth + p2.depth + p3.depth + p4.depth) / 4,
         draw: () => {
-          ctx.fillStyle = colR;
+          ctx.fillStyle = col;
           ctx.beginPath();
-          ctx.moveTo(pR1.x, pR1.y); ctx.lineTo(pR2.x, pR2.y);
-          ctx.lineTo(pR3.x, pR3.y); ctx.lineTo(pR4.x, pR4.y);
-          ctx.closePath(); ctx.fill();
-          if (showWireframe) { ctx.strokeStyle = "rgba(255,255,255,0.25)"; ctx.stroke(); }
+          ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y);
+          ctx.lineTo(p3.x, p3.y); ctx.lineTo(p4.x, p4.y);
+          ctx.closePath();
+          ctx.fill();
         }
       });
     }
 
-    // 3. Longitudinal Segments
+    // 3. Longitudinal Face Segments (Strict Culling)
+    const showTop = isNormalFacingCamera(normals.top.x, normals.top.y, normals.top.z);
+    const showFront = isNormalFacingCamera(normals.front.x, normals.front.y, normals.front.z);
+    const showBottom = isNormalFacingCamera(normals.bottom.x, normals.bottom.y, normals.bottom.z);
+    const showBack = isNormalFacingCamera(normals.back.x, normals.back.y, normals.back.z);
+
     for (let i = 0; i < NUM_SEGMENTS; i++) {
       const xA = i * dx;
       const xB = (i + 1) * dx;
@@ -676,13 +488,15 @@ const CadViewer = (() => {
       const rgbB = getTemperatureRGB(nTB);
 
       // Top Face (y = halfH)
-      const t1 = project(xA, halfH, -halfW, cx, cy);
-      const t2 = project(xA, halfH, halfW, cx, cy);
-      const t3 = project(xB, halfH, halfW, cx, cy);
-      const t4 = project(xB, halfH, -halfW, cx, cy);
-      if (screenWinding(t1, t2, t3) > 0) {
+      if (showTop) {
+        const t1 = project(xA, halfH, -halfW, cx, cy);
+        const t2 = project(xA, halfH, halfW, cx, cy);
+        const t3 = project(xB, halfH, halfW, cx, cy);
+        const t4 = project(xB, halfH, -halfW, cx, cy);
+        const d = (t1.depth + t2.depth + t3.depth + t4.depth) / 4;
+
         drawables.push({
-          depth: (t1.depth + t2.depth + t3.depth + t4.depth) / 4,
+          depth: d,
           draw: () => {
             const grad = ctx.createLinearGradient(t1.x, t1.y, t4.x, t4.y);
             grad.addColorStop(0, getLitColorString(rgbA, topShade));
@@ -691,9 +505,11 @@ const CadViewer = (() => {
             ctx.beginPath();
             ctx.moveTo(t1.x, t1.y); ctx.lineTo(t2.x, t2.y);
             ctx.lineTo(t3.x, t3.y); ctx.lineTo(t4.x, t4.y);
-            ctx.closePath(); ctx.fill();
+            ctx.closePath();
+            ctx.fill();
+
             if (showWireframe) {
-              ctx.strokeStyle = "rgba(255,255,255,0.1)";
+              ctx.strokeStyle = "rgba(0, 0, 0, 0.22)";
               ctx.lineWidth = 0.5;
               ctx.stroke();
             }
@@ -702,13 +518,15 @@ const CadViewer = (() => {
       }
 
       // Front Face (z = halfW)
-      const f1 = project(xA, -halfH, halfW, cx, cy);
-      const f2 = project(xB, -halfH, halfW, cx, cy);
-      const f3 = project(xB, halfH, halfW, cx, cy);
-      const f4 = project(xA, halfH, halfW, cx, cy);
-      if (screenWinding(f1, f2, f3) > 0) {
+      if (showFront) {
+        const f1 = project(xA, -halfH, halfW, cx, cy);
+        const f2 = project(xB, -halfH, halfW, cx, cy);
+        const f3 = project(xB, halfH, halfW, cx, cy);
+        const f4 = project(xA, halfH, halfW, cx, cy);
+        const d = (f1.depth + f2.depth + f3.depth + f4.depth) / 4;
+
         drawables.push({
-          depth: (f1.depth + f2.depth + f3.depth + f4.depth) / 4,
+          depth: d,
           draw: () => {
             const grad = ctx.createLinearGradient(f1.x, f1.y, f2.x, f2.y);
             grad.addColorStop(0, getLitColorString(rgbA, frontShade));
@@ -717,9 +535,11 @@ const CadViewer = (() => {
             ctx.beginPath();
             ctx.moveTo(f1.x, f1.y); ctx.lineTo(f2.x, f2.y);
             ctx.lineTo(f3.x, f3.y); ctx.lineTo(f4.x, f4.y);
-            ctx.closePath(); ctx.fill();
+            ctx.closePath();
+            ctx.fill();
+
             if (showWireframe) {
-              ctx.strokeStyle = "rgba(255,255,255,0.1)";
+              ctx.strokeStyle = "rgba(0, 0, 0, 0.22)";
               ctx.lineWidth = 0.5;
               ctx.stroke();
             }
@@ -728,13 +548,15 @@ const CadViewer = (() => {
       }
 
       // Bottom Face (y = -halfH)
-      const b1 = project(xA, -halfH, halfW, cx, cy);
-      const b2 = project(xA, -halfH, -halfW, cx, cy);
-      const b3 = project(xB, -halfH, -halfW, cx, cy);
-      const b4 = project(xB, -halfH, halfW, cx, cy);
-      if (screenWinding(b1, b2, b3) > 0) {
+      if (showBottom) {
+        const b1 = project(xA, -halfH, halfW, cx, cy);
+        const b2 = project(xA, -halfH, -halfW, cx, cy);
+        const b3 = project(xB, -halfH, -halfW, cx, cy);
+        const b4 = project(xB, -halfH, halfW, cx, cy);
+        const d = (b1.depth + b2.depth + b3.depth + b4.depth) / 4;
+
         drawables.push({
-          depth: (b1.depth + b2.depth + b3.depth + b4.depth) / 4,
+          depth: d,
           draw: () => {
             const grad = ctx.createLinearGradient(b1.x, b1.y, b4.x, b4.y);
             grad.addColorStop(0, getLitColorString(rgbA, bottomShade));
@@ -743,19 +565,22 @@ const CadViewer = (() => {
             ctx.beginPath();
             ctx.moveTo(b1.x, b1.y); ctx.lineTo(b2.x, b2.y);
             ctx.lineTo(b3.x, b3.y); ctx.lineTo(b4.x, b4.y);
-            ctx.closePath(); ctx.fill();
+            ctx.closePath();
+            ctx.fill();
           }
         });
       }
 
       // Back Face (z = -halfW)
-      const k1 = project(xB, -halfH, -halfW, cx, cy);
-      const k2 = project(xA, -halfH, -halfW, cx, cy);
-      const k3 = project(xA, halfH, -halfW, cx, cy);
-      const k4 = project(xB, halfH, -halfW, cx, cy);
-      if (screenWinding(k1, k2, k3) > 0) {
+      if (showBack) {
+        const k1 = project(xB, -halfH, -halfW, cx, cy);
+        const k2 = project(xA, -halfH, -halfW, cx, cy);
+        const k3 = project(xA, halfH, -halfW, cx, cy);
+        const k4 = project(xB, halfH, -halfW, cx, cy);
+        const d = (k1.depth + k2.depth + k3.depth + k4.depth) / 4;
+
         drawables.push({
-          depth: (k1.depth + k2.depth + k3.depth + k4.depth) / 4,
+          depth: d,
           draw: () => {
             const grad = ctx.createLinearGradient(k2.x, k2.y, k1.x, k1.y);
             grad.addColorStop(0, getLitColorString(rgbA, backShade));
@@ -764,7 +589,8 @@ const CadViewer = (() => {
             ctx.beginPath();
             ctx.moveTo(k1.x, k1.y); ctx.lineTo(k2.x, k2.y);
             ctx.lineTo(k3.x, k3.y); ctx.lineTo(k4.x, k4.y);
-            ctx.closePath(); ctx.fill();
+            ctx.closePath();
+            ctx.fill();
           }
         });
       }
@@ -772,33 +598,246 @@ const CadViewer = (() => {
   }
 
   /* ─────────────────────────────────────────────
-     STL Mesh Triangles
+     Razor-Sharp Feature Edge Outlines (Square Rod)
+     Draws crisp, high-contrast engineering silhouette lines
+     ───────────────────────────────────────────── */
+  function drawSquareRodEdges(cx, cy) {
+    const halfW = ROD_W / 2;
+    const halfH = ROD_H / 2;
+
+    ctx.strokeStyle = "rgba(0, 0, 0, 0.75)";
+    ctx.lineWidth = 1.75;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+
+    // 1. Top-Front Ridge (Prominent feature edge)
+    const pTF1 = project(0, halfH, halfW, cx, cy);
+    const pTF2 = project(ROD_L, halfH, halfW, cx, cy);
+    ctx.beginPath();
+    ctx.moveTo(pTF1.x, pTF1.y);
+    ctx.lineTo(pTF2.x, pTF2.y);
+    ctx.stroke();
+
+    // 2. Top-Back Ridge
+    const pTB1 = project(0, halfH, -halfW, cx, cy);
+    const pTB2 = project(ROD_L, halfH, -halfW, cx, cy);
+    ctx.beginPath();
+    ctx.moveTo(pTB1.x, pTB1.y);
+    ctx.lineTo(pTB2.x, pTB2.y);
+    ctx.stroke();
+
+    // 3. Bottom-Front Ridge
+    const pBF1 = project(0, -halfH, halfW, cx, cy);
+    const pBF2 = project(ROD_L, -halfH, halfW, cx, cy);
+    ctx.beginPath();
+    ctx.moveTo(pBF1.x, pBF1.y);
+    ctx.lineTo(pBF2.x, pBF2.y);
+    ctx.stroke();
+
+    // 4. End Cap Perimeter Contours
+    function drawCapPerimeter(xPos) {
+      const c1 = project(xPos, -halfH, -halfW, cx, cy);
+      const c2 = project(xPos, -halfH, halfW, cx, cy);
+      const c3 = project(xPos, halfH, halfW, cx, cy);
+      const c4 = project(xPos, halfH, -halfW, cx, cy);
+
+      ctx.beginPath();
+      ctx.moveTo(c1.x, c1.y);
+      ctx.lineTo(c2.x, c2.y);
+      ctx.lineTo(c3.x, c3.y);
+      ctx.lineTo(c4.x, c4.y);
+      ctx.closePath();
+      ctx.stroke();
+    }
+
+    if (isNormalFacingCamera(-1, 0, 0)) drawCapPerimeter(0);
+    if (isNormalFacingCamera(1, 0, 0)) drawCapPerimeter(ROD_L);
+
+    // Subtle highlighted inner specular ridge
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.moveTo(pTF1.x, pTF1.y - 1);
+    ctx.lineTo(pTF2.x, pTF2.y - 1);
+    ctx.stroke();
+  }
+
+  /* ─────────────────────────────────────────────
+     Solid Cylindrical Rod Generator (Fixed Camera Culling)
+     ───────────────────────────────────────────── */
+  function generateSolidCylinder(cx, cy, lightDir, drawables) {
+    const dx = ROD_L / NUM_SEGMENTS;
+    const r = ROD_RADIUS;
+    const dTheta = (Math.PI * 2) / CYL_SLICES;
+
+    // End caps
+    if (isNormalFacingCamera(-1, 0, 0)) {
+      const pCap = project(0, 0, 0, cx, cy);
+      const t0 = tempAtX(0);
+      const col = getLitColorString(getTemperatureRGB((t0 - minTemp) / (maxTemp - minTemp || 1)), 0.75);
+
+      drawables.push({
+        depth: pCap.depth,
+        draw: () => {
+          ctx.fillStyle = col;
+          ctx.beginPath();
+          for (let s = 0; s <= CYL_SLICES; s++) {
+            const th = s * dTheta;
+            const pt = project(0, r * Math.sin(th), r * Math.cos(th), cx, cy);
+            if (s === 0) ctx.moveTo(pt.x, pt.y);
+            else ctx.lineTo(pt.x, pt.y);
+          }
+          ctx.closePath();
+          ctx.fill();
+        }
+      });
+    }
+
+    if (isNormalFacingCamera(1, 0, 0)) {
+      const pCap = project(ROD_L, 0, 0, cx, cy);
+      const tL = tempAtX(ROD_L);
+      const col = getLitColorString(getTemperatureRGB((tL - minTemp) / (maxTemp - minTemp || 1)), 0.7);
+
+      drawables.push({
+        depth: pCap.depth,
+        draw: () => {
+          ctx.fillStyle = col;
+          ctx.beginPath();
+          for (let s = 0; s <= CYL_SLICES; s++) {
+            const th = s * dTheta;
+            const pt = project(ROD_L, r * Math.sin(th), r * Math.cos(th), cx, cy);
+            if (s === 0) ctx.moveTo(pt.x, pt.y);
+            else ctx.lineTo(pt.x, pt.y);
+          }
+          ctx.closePath();
+          ctx.fill();
+        }
+      });
+    }
+
+    // Cylindrical Strips (3D Camera Space Normal Check)
+    for (let s = 0; s < CYL_SLICES; s++) {
+      const th1 = s * dTheta;
+      const th2 = (s + 1) * dTheta;
+      const thMid = (th1 + th2) / 2;
+
+      const ny = Math.sin(thMid);
+      const nz = Math.cos(thMid);
+      if (!isNormalFacingCamera(0, ny, nz)) continue; // Culled rear half
+
+      const dot = Math.max(0, ny * lightDir.y + nz * lightDir.z);
+      const spec = Math.pow(Math.max(0, ny * lightDir.y + nz * lightDir.z), 12) * 0.35;
+      const shade = Math.min(1.35, 0.35 + 0.65 * dot + spec);
+
+      const y1 = r * Math.sin(th1), z1 = r * Math.cos(th1);
+      const y2 = r * Math.sin(th2), z2 = r * Math.cos(th2);
+
+      for (let i = 0; i < NUM_SEGMENTS; i++) {
+        const xA = i * dx;
+        const xB = (i + 1) * dx;
+        const tA = tempAtX(xA);
+        const tB = tempAtX(xB);
+        const rgbA = getTemperatureRGB((tA - minTemp) / (maxTemp - minTemp || 1));
+        const rgbB = getTemperatureRGB((tB - minTemp) / (maxTemp - minTemp || 1));
+
+        const p1 = project(xA, y1, z1, cx, cy);
+        const p2 = project(xB, y1, z1, cx, cy);
+        const p3 = project(xB, y2, z2, cx, cy);
+        const p4 = project(xA, y2, z2, cx, cy);
+        const d = (p1.depth + p2.depth + p3.depth + p4.depth) / 4;
+
+        drawables.push({
+          depth: d,
+          draw: () => {
+            const grad = ctx.createLinearGradient(p1.x, p1.y, p2.x, p2.y);
+            grad.addColorStop(0, getLitColorString(rgbA, shade));
+            grad.addColorStop(1, getLitColorString(rgbB, shade));
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y);
+            ctx.lineTo(p3.x, p3.y); ctx.lineTo(p4.x, p4.y);
+            ctx.closePath();
+            ctx.fill();
+
+            if (showWireframe && (i % 4 === 0)) {
+              ctx.strokeStyle = "rgba(0, 0, 0, 0.12)";
+              ctx.lineWidth = 0.5;
+              ctx.stroke();
+            }
+          }
+        });
+      }
+    }
+  }
+
+  function drawCylinderEdges(cx, cy) {
+    const r = ROD_RADIUS;
+    ctx.strokeStyle = "rgba(0, 0, 0, 0.75)";
+    ctx.lineWidth = 1.6;
+
+    // Top silhouette horizon
+    const pT1 = project(0, r, 0, cx, cy);
+    const pT2 = project(ROD_L, r, 0, cx, cy);
+    ctx.beginPath();
+    ctx.moveTo(pT1.x, pT1.y);
+    ctx.lineTo(pT2.x, pT2.y);
+    ctx.stroke();
+
+    // Bottom silhouette horizon
+    const pB1 = project(0, -r, 0, cx, cy);
+    const pB2 = project(ROD_L, -r, 0, cx, cy);
+    ctx.beginPath();
+    ctx.moveTo(pB1.x, pB1.y);
+    ctx.lineTo(pB2.x, pB2.y);
+    ctx.stroke();
+
+    // Circular rims
+    function drawRim(xPos) {
+      ctx.beginPath();
+      for (let s = 0; s <= CYL_SLICES; s++) {
+        const th = (s / CYL_SLICES) * Math.PI * 2;
+        const pt = project(xPos, r * Math.sin(th), r * Math.cos(th), cx, cy);
+        if (s === 0) ctx.moveTo(pt.x, pt.y);
+        else ctx.lineTo(pt.x, pt.y);
+      }
+      ctx.closePath();
+      ctx.stroke();
+    }
+    drawRim(0);
+    drawRim(ROD_L);
+  }
+
+  /* ─────────────────────────────────────────────
+     CAD STL Mesh
      ───────────────────────────────────────────── */
   function generateStlMesh(cx, cy, lightDir, drawables) {
     stlTriangles.forEach(t => {
       const p1 = project(t.v1.x, t.v1.y, t.v1.z, cx, cy);
       const p2 = project(t.v2.x, t.v2.y, t.v2.z, cx, cy);
       const p3 = project(t.v3.x, t.v3.y, t.v3.z, cx, cy);
-      const winding = screenWinding(p1, p2, p3);
-      if (winding <= 0) return; // Back-face cull
+
+      // Face normal
+      const e1 = { x: t.v2.x - t.v1.x, y: t.v2.y - t.v1.y, z: t.v2.z - t.v1.z };
+      const e2 = { x: t.v3.x - t.v1.x, y: t.v3.y - t.v1.y, z: t.v3.z - t.v1.z };
+      const nx = e1.y * e2.z - e1.z * e2.y;
+      const ny = e1.z * e2.x - e1.x * e2.z;
+      const nz = e1.x * e2.y - e1.y * e2.x;
+
+      if (!isNormalFacingCamera(nx, ny, nz)) return; // Cull
 
       const avgDepth = (p1.depth + p2.depth + p3.depth) / 3;
       drawables.push({
         depth: avgDepth,
         draw: () => {
-          ctx.fillStyle = "rgba(70, 150, 240, 0.45)";
+          ctx.fillStyle = "rgba(60, 140, 230, 0.4)";
           ctx.beginPath();
-          ctx.moveTo(p1.x, p1.y);
-          ctx.lineTo(p2.x, p2.y);
-          ctx.lineTo(p3.x, p3.y);
-          ctx.closePath();
+          ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y);
+          ctx.lineTo(p3.x, p3.y); ctx.closePath();
           ctx.fill();
 
-          if (showWireframe) {
-            ctx.strokeStyle = "rgba(120, 190, 255, 0.85)";
-            ctx.lineWidth = 1;
-            ctx.stroke();
-          }
+          ctx.strokeStyle = "rgba(100, 180, 255, 0.75)";
+          ctx.lineWidth = 1;
+          ctx.stroke();
         }
       });
     });
@@ -806,15 +845,12 @@ const CadViewer = (() => {
 
   /* ─────────────────────────────────────────────
      Realistic Nodal Spheres (Occlusion Aware)
-     Rear nodes hidden behind solid front surface
      ───────────────────────────────────────────── */
   function generateNodalSpheres(cx, cy, drawables) {
     ansysNodes.forEach(n => {
-      // Test if node is on a forward-facing surface
-      const isFrontEdge = (n.z > 0.02);
-      const isTopEdge = (n.y > 0.02);
-      // Only draw nodes that are on visible edges or if in point cloud mode
-      if (displayMode !== "cloud" && !isFrontEdge && !isTopEdge) return;
+      const isTop = (n.y >= 0.025);
+      const isFront = (n.z >= 0.025);
+      if (displayMode !== "cloud" && !isTop && !isFront) return;
 
       const p = project(n.x, n.y - (rodShape === "square" ? ROD_H / 2 : 0), n.z - (rodShape === "square" ? ROD_W / 2 : 0), cx, cy);
       const isHovered = hoveredNode && hoveredNode.id === n.id;
@@ -823,19 +859,17 @@ const CadViewer = (() => {
 
       const normT = (n.T - minTemp) / (maxTemp - minTemp || 1);
       const rgb = getTemperatureRGB(normT);
-      const radius = (isHovered ? 7.5 : (isMax || isMin ? 6 : 4)) * Math.max(0.6, Math.min(1.4, p.fov));
+      const radius = (isHovered ? 6.5 : (isMax || isMin ? 5.5 : 3.5)) * Math.max(0.6, Math.min(1.4, p.fov));
 
       drawables.push({
-        depth: p.depth - 0.01, // Sits cleanly on the surface
+        depth: p.depth - 0.005,
         draw: () => {
-          // Specular shaded bead
           const grad = ctx.createRadialGradient(
             p.x - radius * 0.35, p.y - radius * 0.35, radius * 0.1,
             p.x, p.y, radius
           );
           grad.addColorStop(0, "rgba(255, 255, 255, 0.95)");
           grad.addColorStop(0.35, `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`);
-          grad.addColorStop(0.85, `rgb(${Math.round(rgb.r * 0.7)}, ${Math.round(rgb.g * 0.7)}, ${Math.round(rgb.b * 0.7)})`);
           grad.addColorStop(1.0, "rgba(10, 10, 15, 0.85)");
 
           ctx.fillStyle = grad;
@@ -845,7 +879,7 @@ const CadViewer = (() => {
 
           if (isHovered || isMax || isMin) {
             ctx.strokeStyle = isMax ? "#ff3333" : (isMin ? "#3399ff" : "#ffffff");
-            ctx.lineWidth = 2;
+            ctx.lineWidth = 1.75;
             ctx.stroke();
           }
         }
@@ -854,144 +888,165 @@ const CadViewer = (() => {
   }
 
   /* ─────────────────────────────────────────────
-     Animated 3D Heat Flow Streamlines & Particles
-     Physical Heat Conduction Flow: q = -k * dT/dx
-     Flows outward from hot spot (x=0.42m) to x=0 and x=1.0m
+     Sleek Surface Heat Flow Streamlines
+     Smooth continuous streamlines following Fourier Flux q = -k*dT/dx
+     Gliding from hot zone (x=0.42m) outward to both ends
      ───────────────────────────────────────────── */
-  function drawHeatFlowStreamlines(cx, cy) {
-    const r = (rodShape === "cylinder" ? ROD_RADIUS : ROD_W / 2) * 1.05;
+  function drawSurfaceStreamlines(cx, cy) {
+    const halfW = ROD_W / 2;
+    const halfH = ROD_H / 2;
+    const xDivide = 0.42;
 
-    flowParticles.forEach(p => {
-      // 3D position on visible curved surface
-      const y = r * Math.sin(p.theta);
-      const z = r * Math.cos(p.theta);
-      
-      // Only draw particles on the front half (facing camera)
-      if (z < -0.005 && rotY < 0) return;
-
-      const pt = project(p.x, y, z, cx, cy);
-      const normT = (tempAtX(p.x) - minTemp) / (maxTemp - minTemp || 1);
-      const rgb = getTemperatureRGB(normT);
-
-      // Add to particle comet tail
-      p.tail.unshift({ x: pt.x, y: pt.y });
-      if (p.tail.length > p.maxTail) p.tail.pop();
-
-      // Draw glowing streamline trail
-      if (p.tail.length >= 2) {
-        ctx.beginPath();
-        ctx.moveTo(p.tail[0].x, p.tail[0].y);
-        for (let j = 1; j < p.tail.length; j++) {
-          ctx.lineTo(p.tail[j].x, p.tail[j].y);
-        }
-        ctx.strokeStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.45)`;
-        ctx.lineWidth = 2 * pt.fov;
-        ctx.stroke();
+    streamlines.forEach(st => {
+      // Streamline tracks along Top face
+      if (st.face === "top" && isNormalFacingCamera(0, 1, 0)) {
+        drawStreamlineRibbon(cx, cy, halfH, st.offsetZ, true, st.pulseOffset);
       }
-
-      // Draw particle head (bright thermal energy pulse)
-      ctx.fillStyle = `rgb(255, 255, 255)`;
-      ctx.beginPath();
-      ctx.arc(pt.x, pt.y, 2.5 * pt.fov, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Outer glow
-      ctx.fillStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.6)`;
-      ctx.beginPath();
-      ctx.arc(pt.x, pt.y, 5 * pt.fov, 0, Math.PI * 2);
-      ctx.fill();
+      // Streamline tracks along Front face
+      else if (st.face === "front" && isNormalFacingCamera(0, 0, 1)) {
+        drawStreamlineRibbon(cx, cy, st.offsetY, halfW, false, st.pulseOffset);
+      }
     });
+
+    function drawStreamlineRibbon(cx, cy, coordY, coordZ, isTop, pulsePhase) {
+      // 1. Subtle baseline streamline path
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.12)";
+      ctx.lineWidth = 1.0;
+      ctx.beginPath();
+      for (let step = 0; step <= 25; step++) {
+        const sx = step / 25;
+        const pt = project(sx, coordY, coordZ, cx, cy);
+        if (step === 0) ctx.moveTo(pt.x, pt.y);
+        else ctx.lineTo(pt.x, pt.y);
+      }
+      ctx.stroke();
+
+      // 2. Animated Heat Flow Pulse Gliding Left (towards x = 0, T = 100°C)
+      const tLeft = (animTime * 0.45 + pulsePhase) % 1.0;
+      const pulseLeftX = xDivide * (1.0 - tLeft); // moves 0.42 -> 0.0
+      const ptL = project(pulseLeftX, coordY, coordZ, cx, cy);
+      const rgbL = getTemperatureRGB((tempAtX(pulseLeftX) - minTemp) / (maxTemp - minTemp || 1));
+
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath();
+      ctx.arc(ptL.x, ptL.y, 2.2 * ptL.fov, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = `rgba(${rgbL.r}, ${rgbL.g}, ${rgbL.b}, 0.65)`;
+      ctx.beginPath();
+      ctx.arc(ptL.x, ptL.y, 4.5 * ptL.fov, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 3. Animated Heat Flow Pulse Gliding Right (towards x = 1.0, T = 20°C)
+      const tRight = (animTime * 0.55 + pulsePhase) % 1.0;
+      const pulseRightX = xDivide + (1.0 - xDivide) * tRight; // moves 0.42 -> 1.0
+      const ptR = project(pulseRightX, coordY, coordZ, cx, cy);
+      const rgbR = getTemperatureRGB((tempAtX(pulseRightX) - minTemp) / (maxTemp - minTemp || 1));
+
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath();
+      ctx.arc(ptR.x, ptR.y, 2.2 * ptR.fov, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = `rgba(${rgbR.r}, ${rgbR.g}, ${rgbR.b}, 0.65)`;
+      ctx.beginPath();
+      ctx.arc(ptR.x, ptR.y, 4.5 * ptR.fov, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
 
   /* ─────────────────────────────────────────────
-     Heat Flux Vector Field Arrows & Thermal Divide Marker
-     Highlights the stagnation plane at x = 0.42m where dT/dx = 0
+     Heat Flux Vectors & Thermal Divide Ring
      ───────────────────────────────────────────── */
   function drawHeatFluxVectorsAndDivide(cx, cy) {
-    const r = (rodShape === "cylinder" ? ROD_RADIUS : ROD_W / 2) * 1.15;
-    const pulse = 0.5 + 0.5 * Math.sin(animTime * 4.5);
-
-    // 1. Thermal Divide Stagnation Ring (x = 0.42m, dT/dx = 0, q = 0)
+    const halfW = ROD_W / 2;
+    const halfH = ROD_H / 2;
     const xDivide = 0.42;
-    ctx.strokeStyle = `rgba(255, 100, 50, ${0.6 + 0.4 * pulse})`;
+    const pulse = 0.5 + 0.5 * Math.sin(animTime * 4.0);
+
+    // 1. Thermal Divide Stagnation Line (q_x = 0, dT/dx = 0)
+    const p1 = project(xDivide, -halfH * 1.05, halfW * 1.05, cx, cy);
+    const p2 = project(xDivide, halfH * 1.05, halfW * 1.05, cx, cy);
+    const p3 = project(xDivide, halfH * 1.05, -halfW * 1.05, cx, cy);
+
+    ctx.strokeStyle = `rgba(255, 110, 50, ${0.7 + 0.3 * pulse})`;
     ctx.lineWidth = 2.2;
     ctx.beginPath();
-    for (let s = 0; s <= 24; s++) {
-      const th = (s / 24) * Math.PI * 2;
-      const pt = project(xDivide, r * Math.sin(th), r * Math.cos(th), cx, cy);
-      if (s === 0) ctx.moveTo(pt.x, pt.y);
-      else ctx.lineTo(pt.x, pt.y);
-    }
-    ctx.closePath();
+    ctx.moveTo(p1.x, p1.y);
+    ctx.lineTo(p2.x, p2.y);
+    ctx.lineTo(p3.x, p3.y);
     ctx.stroke();
 
-    // Divide text label banner hovering above
-    const pDivTop = project(xDivide, r + 0.04, 0, cx, cy);
+    // Divide banner label
+    const pLabel = project(xDivide, halfH + 0.025, 0, cx, cy);
     ctx.font = "bold 9.5px monospace";
     ctx.fillStyle = "rgba(255, 140, 60, 0.95)";
     ctx.textAlign = "center";
-    ctx.fillText("⚡ THERMAL DIVIDE (q_x = 0)", pDivTop.x, pDivTop.y - 12);
+    ctx.fillText("⚡ THERMAL DIVIDE (q_x = 0)", pLabel.x, pLabel.y - 8);
 
-    // 2. 3D Heat Flux Vector Field Arrows along Rod
-    // dT/dx = 420 - 1000*x => q_x = 10000*x - 4200 W/m²
-    const stations = [0.10, 0.25, 0.60, 0.78, 0.92];
+    // 2. 3D Vector Arrows along Top Ridge
+    const stations = [0.12, 0.26, 0.62, 0.80, 0.94];
     stations.forEach(stX => {
       const q_x = 10000.0 * stX - 4200.0;
-      const arrowLenWorld = (q_x / 5800.0) * 0.06; // Arrow length in meters
+      const arrowLenWorld = (q_x / 5800.0) * 0.055;
 
-      const pBase = project(stX, r + 0.015, 0, cx, cy);
-      const pTip  = project(stX + arrowLenWorld, r + 0.015, 0, cx, cy);
+      const pBase = project(stX, halfH + 0.008, halfW, cx, cy);
+      const pTip  = project(stX + arrowLenWorld, halfH + 0.008, halfW, cx, cy);
 
       const normT = (tempAtX(stX) - minTemp) / (maxTemp - minTemp || 1);
       const rgb = getTemperatureRGB(normT);
-      const arrowCol = `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
+      const col = `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
 
-      // Arrow Shaft
-      ctx.strokeStyle = arrowCol;
-      ctx.lineWidth = 1.8;
+      ctx.strokeStyle = col;
+      ctx.lineWidth = 1.75;
       ctx.beginPath();
       ctx.moveTo(pBase.x, pBase.y);
       ctx.lineTo(pTip.x, pTip.y);
       ctx.stroke();
 
-      // Arrow Head
       const angle = Math.atan2(pTip.y - pBase.y, pTip.x - pBase.x);
-      const headLen = 6.5;
-      ctx.fillStyle = arrowCol;
+      const hLen = 6;
+      ctx.fillStyle = col;
       ctx.beginPath();
       ctx.moveTo(pTip.x, pTip.y);
-      ctx.lineTo(pTip.x - headLen * Math.cos(angle - 0.45), pTip.y - headLen * Math.sin(angle - 0.45));
-      ctx.lineTo(pTip.x - headLen * Math.cos(angle + 0.45), pTip.y - headLen * Math.sin(angle + 0.45));
+      ctx.lineTo(pTip.x - hLen * Math.cos(angle - 0.45), pTip.y - hLen * Math.sin(angle - 0.45));
+      ctx.lineTo(pTip.x - hLen * Math.cos(angle + 0.45), pTip.y - hLen * Math.sin(angle + 0.45));
       ctx.closePath();
       ctx.fill();
     });
   }
 
   /* ─────────────────────────────────────────────
-     ANSYS Max & Min Thermal Probe Callouts
-     Smart Position Clamping (Non-overlapping, inside viewport)
+     ANSYS Hot & Cold Spot Probe Callouts
+     Guaranteed In-Bounds Clamping (Never Cut Off, Never Covering Rod)
      ───────────────────────────────────────────── */
   function drawThermalProbes(cx, cy, viewW, viewH) {
     if (!maxTempNode || !minTempNode) return;
 
-    // 1. MAX Temp Probe Callout: offset high above rod to avoid covering peak
-    const pMax = project(maxTempNode.x, maxTempNode.y, maxTempNode.z, cx, cy);
-    drawSmartProbeBanner(pMax.x, pMax.y, `▲ MAX: ${maxTempNode.T.toFixed(1)}°C`, "#e62e00", -55, -55, viewW, viewH);
+    // 1. MAX Temp Probe Callout: placed high above rod
+    const pMax = project(maxTempNode.x, maxTempNode.y - (rodShape === "square" ? ROD_H / 2 : 0), maxTempNode.z - (rodShape === "square" ? ROD_W / 2 : 0), cx, cy);
+    drawSmartProbeBanner(pMax.x, pMax.y, `▲ MAX: ${maxTempNode.T.toFixed(1)}°C`, "#e62e00", -50, -50, viewW, viewH);
 
-    // 2. MIN Temp Probe Callout: offset inward to the left of the tip so it's not clipped
-    const pMin = project(minTempNode.x, minTempNode.y, minTempNode.z, cx, cy);
-    drawSmartProbeBanner(pMin.x, pMin.y, `▼ MIN: ${minTempNode.T.toFixed(1)}°C`, "#1a75ff", -110, -45, viewW, viewH);
+    // 2. MIN Temp Probe Callout: smart adaptive placement
+    const pMin = project(minTempNode.x, minTempNode.y - (rodShape === "square" ? ROD_H / 2 : 0), minTempNode.z - (rodShape === "square" ? ROD_W / 2 : 0), cx, cy);
+    const minOffsetX = (pMin.x > viewW / 2) ? -115 : 25;
+    drawSmartProbeBanner(pMin.x, pMin.y, `▼ MIN: ${minTempNode.T.toFixed(1)}°C`, "#1a75ff", minOffsetX, -40, viewW, viewH);
   }
 
   function drawSmartProbeBanner(targetX, targetY, text, color, offsetX, offsetY, viewW, viewH) {
-    const boxW = 108;
+    const boxW = 106;
     const boxH = 22;
 
-    // Clamped coordinates to stay safely inside viewport borders
-    let boxX = Math.max(14, Math.min(viewW - boxW - 14, targetX + offsetX));
-    let boxY = Math.max(14, Math.min(viewH - boxH - 14, targetY + offsetY));
+    let boxX = targetX + offsetX;
+    let boxY = targetY + offsetY;
 
-    // Angled Leader line
+    // Clamp strictly within viewport canvas margins
+    if (boxX < 14) boxX = 14;
+    if (boxX + boxW > viewW - 14) boxX = viewW - boxW - 14;
+    if (boxY < 14) boxY = 14;
+    if (boxY + boxH > viewH - 14) boxY = viewH - boxH - 14;
+
+    // Angled Leader Line
     ctx.strokeStyle = color;
     ctx.lineWidth = 1.35;
     ctx.beginPath();
@@ -1001,14 +1056,14 @@ const CadViewer = (() => {
     ctx.lineTo(anchorX, anchorY);
     ctx.stroke();
 
-    // Target surface dot
+    // Target Dot
     ctx.fillStyle = color;
     ctx.beginPath();
     ctx.arc(targetX, targetY, 3.5, 0, Math.PI * 2);
     ctx.fill();
 
-    // Banner box with high-contrast dark glass
-    ctx.fillStyle = "rgba(14, 14, 18, 0.94)";
+    // Banner Box
+    ctx.fillStyle = "rgba(14, 14, 18, 0.95)";
     ctx.strokeStyle = color;
     ctx.lineWidth = 1.25;
     ctx.beginPath();
@@ -1071,14 +1126,14 @@ const CadViewer = (() => {
      ───────────────────────────────────────────── */
   function drawViewportHUD(w, h) {
     ctx.font = "11px monospace";
-    ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
+    ctx.fillStyle = "rgba(255, 255, 255, 0.65)";
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
-    const shapeLabel = rodShape === "cylinder" ? "Cylindrical Solid" : "Square Bar";
+    const shapeLabel = rodShape === "square" ? "Solid Prismatic Rod" : "Solid Cylindrical Rod";
     ctx.fillText(`ANSYS FEA 3D Viewport | ${shapeLabel} | L=${ROD_L.toFixed(1)}m | Elements: ${NUM_SEGMENTS}`, 14, 14);
     if (showHeatFlow) {
-      ctx.fillStyle = "rgba(255, 160, 80, 0.85)";
-      ctx.fillText(`🌊 Heat Flow Active: q = -k·(dT/dx) [Fourier Conduction]`, 14, 28);
+      ctx.fillStyle = "rgba(255, 150, 70, 0.9)";
+      ctx.fillText(`🌊 Heat Flow Active: q_x = -k·(dT/dx) [Fourier Conduction]`, 14, 28);
     }
   }
 
@@ -1251,6 +1306,10 @@ const CadViewer = (() => {
     }
   }
 
+  function setEdges(enable) {
+    showEdges = enable;
+  }
+
   function setRodShape(shape) {
     rodShape = shape;
   }
@@ -1288,6 +1347,7 @@ const CadViewer = (() => {
     loadSTLString,
     loadAnsysCSVString,
     fitToView,
+    setEdges,
     setRodShape,
     setHeatFlow,
     setFluxVectors,

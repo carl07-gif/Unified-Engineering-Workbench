@@ -87,15 +87,16 @@
             </button>
             <label class="param-label" style="margin-top:8px;">Rod Geometry Shape</label>
             <select class="param-select" id="geomRodShape">
-              <option value="cylinder" selected>Solid Cylindrical Rod (ANSYS Exact)</option>
-              <option value="square">Solid Square Rod (Hex Bar)</option>
+              <option value="square" selected>Solid 3D Thermal Rod (Crisp Edges)</option>
+              <option value="cylinder">Solid Cylindrical Rod</option>
             </select>
             <label class="param-label">Display Mode</label>
             <select class="param-select" id="geomDisplayMode">
-              <option value="both" selected>Both (3D Thermal Solid + Nodes)</option>
-              <option value="contour">Thermal Solid Surface (ANSYS Contour)</option>
+              <option value="rod" selected>Solid 3D Thermal Rod (Contours + Flow)</option>
+              <option value="with_nodes">Solid Thermal Rod + FEA Nodes</option>
               <option value="cloud">Nodal Point Cloud Only</option>
-              <option value="stl">STL Surface Only</option>
+              <option value="stl">CAD STL Mesh Only</option>
+              <option value="overlay">Combined Rod + STL Bounding Box</option>
             </select>
             <label class="param-label">Contour Style</label>
             <select class="param-select" id="geomContourStyle">
@@ -103,7 +104,10 @@
               <option value="bands">ANSYS 10-Band Contours</option>
             </select>
             <label class="param-checkbox" style="color:var(--color-primary); font-weight:600;">
-              <input type="checkbox" id="chkHeatFlow" checked> 🌊 Animated 3D Heat Flow
+              <input type="checkbox" id="chkEdges" checked> 📐 Razor-Sharp Feature Edges
+            </label>
+            <label class="param-checkbox" style="color:var(--color-primary); font-weight:600;">
+              <input type="checkbox" id="chkHeatFlow" checked> 🌊 Animated Surface Streamlines
             </label>
             <label class="param-checkbox">
               <input type="checkbox" id="chkFluxVectors" checked> ➡️ Heat Flux Vectors & Divide

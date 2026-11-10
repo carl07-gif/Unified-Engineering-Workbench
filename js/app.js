@@ -468,6 +468,11 @@ document.addEventListener("DOMContentLoaded", () => {
     selDisplayMode.addEventListener("change", (e) => CadViewer.setDisplayMode(e.target.value));
   }
 
+  const chkEdges = document.getElementById("chkEdges");
+  if (chkEdges) {
+    chkEdges.addEventListener("change", (e) => CadViewer.setEdges(e.target.checked));
+  }
+
   const chkHeatFlow = document.getElementById("chkHeatFlow");
   if (chkHeatFlow) {
     chkHeatFlow.addEventListener("change", (e) => CadViewer.setHeatFlow(e.target.checked));
