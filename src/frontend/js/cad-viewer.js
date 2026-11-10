@@ -605,9 +605,9 @@ const CadViewer = (() => {
       left:   { x: -1, y: 0, z: 0 },
       right:  { x: 1,  y: 0, z: 0 },
       top:    { x: 0,  y: 1, z: 0 },
-      bottom: { x: 0, -1, z: 0 },
+      bottom: { x: 0, y: -1, z: 0 },
       front:  { x: 0,  y: 0, z: 1 },
-      back:   { x: 0,  y: 0, -1 }
+      back:   { x: 0,  y: 0, z: -1 }
     };
 
     function getShade(n) {
