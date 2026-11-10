@@ -1,7 +1,9 @@
 # Local environment helper
 powershell.cmd
 
-# Build outputs
+# Packaging archives
+*.zip
+*.bundle
 build/
 bin/
 *.obj
