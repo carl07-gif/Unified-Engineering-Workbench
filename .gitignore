@@ -1,0 +1,13 @@
+# Local environment helper
+powershell.cmd
+
+# Build outputs
+build/
+bin/
+*.obj
+*.pdb
+*.tmp
+
+# IDE caches
+.vs/
+*.user
