@@ -85,7 +85,12 @@
             <button class="btn btn--secondary" id="btnResetCamera">
               <i class="ti ti-focus-2"></i>Fit to View / Center
             </button>
-            <label class="param-label" style="margin-top:8px;">Display Mode</label>
+            <label class="param-label" style="margin-top:8px;">Rod Geometry Shape</label>
+            <select class="param-select" id="geomRodShape">
+              <option value="cylinder" selected>Solid Cylindrical Rod (ANSYS Exact)</option>
+              <option value="square">Solid Square Rod (Hex Bar)</option>
+            </select>
+            <label class="param-label">Display Mode</label>
             <select class="param-select" id="geomDisplayMode">
               <option value="both" selected>Both (3D Thermal Solid + Nodes)</option>
               <option value="contour">Thermal Solid Surface (ANSYS Contour)</option>
@@ -97,6 +102,12 @@
               <option value="smooth" selected>Smooth Thermal Gradient</option>
               <option value="bands">ANSYS 10-Band Contours</option>
             </select>
+            <label class="param-checkbox" style="color:var(--color-primary); font-weight:600;">
+              <input type="checkbox" id="chkHeatFlow" checked> 🌊 Animated 3D Heat Flow
+            </label>
+            <label class="param-checkbox">
+              <input type="checkbox" id="chkFluxVectors" checked> ➡️ Heat Flux Vectors & Divide
+            </label>
             <label class="param-checkbox">
               <input type="checkbox" id="chkWireframe" checked> FEA Mesh Grid Lines
             </label>

@@ -458,9 +458,24 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnResetCam = document.getElementById("btnResetCamera");
   if (btnResetCam) btnResetCam.addEventListener("click", () => CadViewer.fitToView());
 
+  const selRodShape = document.getElementById("geomRodShape");
+  if (selRodShape) {
+    selRodShape.addEventListener("change", (e) => CadViewer.setRodShape(e.target.value));
+  }
+
   const selDisplayMode = document.getElementById("geomDisplayMode");
   if (selDisplayMode) {
     selDisplayMode.addEventListener("change", (e) => CadViewer.setDisplayMode(e.target.value));
+  }
+
+  const chkHeatFlow = document.getElementById("chkHeatFlow");
+  if (chkHeatFlow) {
+    chkHeatFlow.addEventListener("change", (e) => CadViewer.setHeatFlow(e.target.checked));
+  }
+
+  const chkFluxVectors = document.getElementById("chkFluxVectors");
+  if (chkFluxVectors) {
+    chkFluxVectors.addEventListener("change", (e) => CadViewer.setFluxVectors(e.target.checked));
   }
 
   const chkWireframe = document.getElementById("chkWireframe");
