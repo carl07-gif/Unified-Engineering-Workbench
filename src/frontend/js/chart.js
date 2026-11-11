@@ -107,30 +107,16 @@ const ChartRenderer = (() => {
     // FEM Polyline (piecewise linear finite element solution)
     const femPts = currentFem.x.map((x, i) => `${px(x).toFixed(1)},${py(currentFem.T[i]).toFixed(1)}`).join(" ");
 
-    // Tasteful, non-crowded nodal markers
+    // Full nodal markers (matching assignment PDF exactly)
     const totalNodes = currentFem.x.length;
-    const stride = totalNodes > 45 ? Math.ceil(totalNodes / 25) : (totalNodes > 25 ? 2 : 1);
     let nodesSvg = "";
-    const dotR = currentN <= 20 ? 3.5 : (currentN <= 40 ? 2.8 : 2.2);
+    const dotR = currentN <= 20 ? 3.5 : (currentN <= 40 ? 2.8 : (currentN <= 80 ? 2.2 : 1.6));
 
-    for (let i = 0; i < totalNodes; i += stride) {
+    for (let i = 0; i < totalNodes; i++) {
       const nx = px(currentFem.x[i]).toFixed(1);
       const ny = py(currentFem.T[i]).toFixed(1);
-      nodesSvg += `<circle cx="${nx}" cy="${ny}" r="${dotR}" fill="#ff7849" stroke="#ffffff" stroke-width="0.8" />`;
+      nodesSvg += `<circle cx="${nx}" cy="${ny}" r="${dotR}" fill="#ff7849" stroke="#ffffff" stroke-width="0.6" />`;
     }
-    // Final node
-    const lastIdx = totalNodes - 1;
-    nodesSvg += `<circle cx="${px(currentFem.x[lastIdx]).toFixed(1)}" cy="${py(currentFem.T[lastIdx]).toFixed(1)}" r="${dotR}" fill="#ff7849" stroke="#ffffff" stroke-width="0.8" />`;
-
-    // Midpoint evaluation markers (highlighting the exact midpoint where max error occurs)
-    const h = currentParams.L / currentN;
-    const theoreticalMaxErr = (currentParams.q * h * h) / (8 * currentParams.k);
-
-    // Peak hot spot marker
-    const xPeak = 0.42;
-    const tPeakExact = FEMSolver.exactSolution(xPeak, currentParams.L, currentParams.k, currentParams.q, currentParams.T0, currentParams.TL);
-    const pxPeak = px(xPeak);
-    const pyPeak = py(tPeakExact);
 
     return `
       <svg viewBox="0 0 ${W} ${H}" width="100%" height="auto" role="img" class="thermal-svg-plot" id="thermalSvgEl">
@@ -140,7 +126,7 @@ const ChartRenderer = (() => {
             <stop offset="100%" stop-color="#0c0c10" />
           </linearGradient>
           <filter id="cyanGlow" x="-20%" y="-20%" width="140%" height="140%">
-            <feDropShadow dx="0" dy="0" stdDeviation="2" flood-color="#00b4d8" flood-opacity="0.4" />
+            <feDropShadow dx="0" dy="0" stdDeviation="1.5" flood-color="#00b4d8" flood-opacity="0.35" />
           </filter>
         </defs>
 
@@ -155,7 +141,7 @@ const ChartRenderer = (() => {
           Position along rod x (m)
         </text>
         <text x="22" y="${plotT + plotH / 2}" font-size="12" font-family="sans-serif" font-weight="600" fill="rgba(255,255,255,0.75)" text-anchor="middle" transform="rotate(-90 22 ${plotT + plotH / 2})">
-          Temperature T (°C)
+          Temperature (°C)
         </text>
 
         <!-- Exact Analytical Polyline (Cyan Glow) -->
@@ -167,32 +153,20 @@ const ChartRenderer = (() => {
         <!-- FEM Nodal Markers -->
         ${nodesSvg}
 
-        <!-- Peak Hot Spot Callout Pin -->
-        <circle cx="${pxPeak.toFixed(1)}" cy="${pyPeak.toFixed(1)}" r="4.5" fill="#ff3333" stroke="#ffffff" stroke-width="1.5" />
-        <line x1="${pxPeak.toFixed(1)}" y1="${pyPeak.toFixed(1)}" x2="${pxPeak.toFixed(1)}" y2="${(pyPeak - 18).toFixed(1)}" stroke="#ff3333" stroke-width="1" />
-        <rect x="${(pxPeak - 48).toFixed(1)}" y="${(pyPeak - 36).toFixed(1)}" width="96" height="18" rx="3" fill="rgba(20,20,26,0.92)" stroke="#ff3333" stroke-width="0.8" />
-        <text x="${pxPeak.toFixed(1)}" y="${(pyPeak - 24).toFixed(1)}" font-size="10" font-family="monospace" font-weight="700" fill="#ffffff" text-anchor="middle">
-          Peak: ${tPeakExact.toFixed(1)}°C (x=0.42m)
-        </text>
+        <!-- Top-Right Legend (Clean, Non-Intersecting, matching Assignment PDF exactly) -->
+        <g transform="translate(${plotR - 225}, 22)">
+          <line x1="0" y1="0" x2="22" y2="0" stroke="#00b4d8" stroke-width="2.5" />
+          <text x="28" y="4" font-size="11" font-family="sans-serif" font-weight="600" fill="rgba(255,255,255,0.75)">Exact Analytical</text>
 
-        <!-- High-Contrast Legend -->
-        <g transform="translate(${plotR - 330}, 26)">
-          <rect x="-8" y="-12" width="336" height="24" rx="4" fill="rgba(18,18,24,0.92)" stroke="rgba(255,255,255,0.12)" stroke-width="0.75" />
-          <line x1="6" y1="0" x2="28" y2="0" stroke="#00b4d8" stroke-width="2.5" />
-          <text x="34" y="3.5" font-size="10.5" font-family="sans-serif" font-weight="600" fill="#ffffff">Exact Analytical</text>
-
-          <line x1="130" y1="0" x2="152" y2="0" stroke="#ff7849" stroke-width="2" stroke-dasharray="3,2" />
-          <circle cx="141" cy="0" r="3" fill="#ff7849" stroke="#fff" stroke-width="0.5" />
-          <text x="158" y="3.5" font-size="10.5" font-family="sans-serif" font-weight="600" fill="#ffffff">FEM (N=${currentN})</text>
-
-          <text x="238" y="3.5" font-size="10" font-family="monospace" fill="#ffb74d">e_max: ${theoreticalMaxErr.toFixed(4)}°C</text>
+          <circle cx="145" cy="0" r="3.5" fill="#ff7849" stroke="#ffffff" stroke-width="0.5" />
+          <text x="154" y="4" font-size="11" font-family="sans-serif" font-weight="600" fill="rgba(255,255,255,0.75)">FEM (N=${currentN})</text>
         </g>
 
-        <!-- Dynamic Crosshair Hairline (driven by JS) -->
-        <g id="chartCrosshairGroup" style="display:none;">
-          <line id="crosshairLine" x1="0" y1="${plotT}" x2="0" y2="${plotB}" stroke="rgba(255,255,255,0.5)" stroke-width="1" stroke-dasharray="3,3" />
-          <circle id="crosshairDotExact" cx="0" cy="0" r="4.5" fill="#00b4d8" stroke="#ffffff" stroke-width="1.2" />
-          <circle id="crosshairDotFem" cx="0" cy="0" r="4.5" fill="#ff7849" stroke="#ffffff" stroke-width="1.2" />
+        <!-- Dynamic Crosshair Hairline (driven by JS, hidden until hover) -->
+        <g id="chartCrosshairGroup" style="display:none; pointer-events:none;">
+          <line id="crosshairLine" x1="0" y1="${plotT}" x2="0" y2="${plotB}" stroke="rgba(255,255,255,0.4)" stroke-width="1" stroke-dasharray="3,3" />
+          <circle id="crosshairDotExact" cx="0" cy="0" r="4" fill="#00b4d8" stroke="#ffffff" stroke-width="1.2" />
+          <circle id="crosshairDotFem" cx="0" cy="0" r="4" fill="#ff7849" stroke="#ffffff" stroke-width="1.2" />
         </g>
       </svg>
     `;
@@ -478,9 +452,11 @@ const ChartRenderer = (() => {
     svg.addEventListener("mousemove", (e) => {
       const rect = svg.getBoundingClientRect();
       const scaleX = 740 / rect.width;
+      const scaleY = 360 / rect.height;
       const svgX = (e.clientX - rect.left) * scaleX;
+      const svgY = (e.clientY - rect.top) * scaleY;
 
-      if (svgX < plotL || svgX > plotR) {
+      if (svgX < plotL || svgX > plotR || svgY < plotT || svgY > plotB) {
         if (crosshairGroup) crosshairGroup.style.display = "none";
         return;
       }

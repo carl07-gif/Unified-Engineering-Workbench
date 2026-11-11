@@ -970,19 +970,12 @@ const CadViewer = (() => {
     const p3 = project(xDivide, halfH * 1.05, -halfW * 1.05, cx, cy);
 
     ctx.strokeStyle = `rgba(255, 110, 50, ${0.7 + 0.3 * pulse})`;
-    ctx.lineWidth = 2.2;
+    ctx.lineWidth = 2.0;
     ctx.beginPath();
     ctx.moveTo(p1.x, p1.y);
     ctx.lineTo(p2.x, p2.y);
     ctx.lineTo(p3.x, p3.y);
     ctx.stroke();
-
-    // Divide banner label
-    const pLabel = project(xDivide, halfH + 0.025, 0, cx, cy);
-    ctx.font = "bold 9.5px monospace";
-    ctx.fillStyle = "rgba(255, 140, 60, 0.95)";
-    ctx.textAlign = "center";
-    ctx.fillText("⚡ THERMAL DIVIDE (q_x = 0)", pLabel.x, pLabel.y - 8);
 
     // 2. 3D Vector Arrows along Top Ridge
     const stations = [0.12, 0.26, 0.62, 0.80, 0.94];
@@ -1023,14 +1016,14 @@ const CadViewer = (() => {
   function drawThermalProbes(cx, cy, viewW, viewH) {
     if (!maxTempNode || !minTempNode) return;
 
-    // 1. MAX Temp Probe Callout: placed high above rod
+    // 1. MAX Temp Probe Callout: placed well above rod with clean angled leader line
     const pMax = project(maxTempNode.x, maxTempNode.y - (rodShape === "square" ? ROD_H / 2 : 0), maxTempNode.z - (rodShape === "square" ? ROD_W / 2 : 0), cx, cy);
-    drawSmartProbeBanner(pMax.x, pMax.y, `▲ MAX: ${maxTempNode.T.toFixed(1)}°C`, "#e62e00", -50, -50, viewW, viewH);
+    drawSmartProbeBanner(pMax.x, pMax.y, `▲ MAX: ${maxTempNode.T.toFixed(1)}°C`, "#e62e00", -50, -85, viewW, viewH);
 
-    // 2. MIN Temp Probe Callout: smart adaptive placement
-    const pMin = project(minTempNode.x, minTempNode.y - (rodShape === "square" ? ROD_H / 2 : 0), minTempNode.z - (rodShape === "square" ? ROD_W / 2 : 0), cx, cy);
-    const minOffsetX = (pMin.x > viewW / 2) ? -115 : 25;
-    drawSmartProbeBanner(pMin.x, pMin.y, `▼ MIN: ${minTempNode.T.toFixed(1)}°C`, "#1a75ff", minOffsetX, -40, viewW, viewH);
+    // 2. MIN Temp Probe Callout: placed below rod to strictly avoid colorbar on top-right
+    const pMin = project(minTempNode.x, minTempNode.y + (rodShape === "square" ? ROD_H / 2 : 0), minTempNode.z + (rodShape === "square" ? ROD_W / 2 : 0), cx, cy);
+    const minOffsetX = (pMin.x > viewW / 2) ? -120 : 25;
+    drawSmartProbeBanner(pMin.x, pMin.y, `▼ MIN: ${minTempNode.T.toFixed(1)}°C`, "#1a75ff", minOffsetX, 45, viewW, viewH);
   }
 
   function drawSmartProbeBanner(targetX, targetY, text, color, offsetX, offsetY, viewW, viewH) {
@@ -1039,6 +1032,15 @@ const CadViewer = (() => {
 
     let boxX = targetX + offsetX;
     let boxY = targetY + offsetY;
+
+    // If near top-right colorbar (x > viewW - 140 and y < 190), avoid collision
+    if (boxX + boxW > viewW - 140 && boxY < 190) {
+      if (boxY < 190 && offsetY < 0) {
+        boxX = viewW - 150 - boxW;
+      } else {
+        boxY = 195;
+      }
+    }
 
     // Clamp strictly within viewport canvas margins
     if (boxX < 14) boxX = 14;
