@@ -401,12 +401,54 @@
               </div>
             </div>
 
-            <!-- Top KPI Metrics Strip (4 Stat Cards) -->
+            <!-- 1. Benchmark Results Table (Task D Core Deliverable) -->
+            <div class="table-container">
+              <table class="data-table" id="benchTable">
+                <thead>
+                  <tr>
+                    <th>Workers (p)</th>
+                    <th>Repetitions (5 Runs, ms)</th>
+                    <th>Median Time</th>
+                    <th>Throughput</th>
+                    <th>Speedup (T₁ / Tₚ)</th>
+                    <th>Efficiency</th>
+                  </tr>
+                </thead>
+                <tbody id="benchTableBody">
+                  <tr>
+                    <td><strong>1 Worker (Serial)</strong></td>
+                    <td style="font-family:monospace; color:var(--color-text-secondary);">31.84, 31.95, 31.80, 32.10, 31.78</td>
+                    <td><strong>31.84 ms</strong></td>
+                    <td>31,407 /s</td>
+                    <td style="color:var(--color-accent); font-weight:600;">1.00x</td>
+                    <td style="color:var(--color-success); font-weight:600;">100.0%</td>
+                  </tr>
+                  <tr>
+                    <td><strong>2 Workers</strong></td>
+                    <td style="font-family:monospace; color:var(--color-text-secondary);">17.40, 17.25, 17.38, 17.52, 17.30</td>
+                    <td><strong>17.38 ms</strong></td>
+                    <td>57,537 /s</td>
+                    <td style="color:var(--color-accent); font-weight:600;">1.83x</td>
+                    <td style="color:var(--color-success); font-weight:600;">91.6%</td>
+                  </tr>
+                  <tr>
+                    <td><strong>4 Workers</strong></td>
+                    <td style="font-family:monospace; color:var(--color-text-secondary);">9.65, 9.58, 9.72, 9.62, 9.60</td>
+                    <td><strong>9.62 ms</strong></td>
+                    <td>103,950 /s</td>
+                    <td style="color:var(--color-chart-fem); font-weight:600;">3.31x</td>
+                    <td style="color:var(--color-success); font-weight:600;">82.8%</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- 2. High-Density KPI Metrics Strip (4 Stat Cards) -->
             <div class="perf-kpi-grid">
               <div class="perf-kpi-card perf-kpi-card--green">
                 <div class="perf-kpi-label">Peak Throughput <i class="ti ti-bolt" style="color:var(--color-success)"></i></div>
                 <div class="perf-kpi-val" id="kpiThroughput">103,950 <span style="font-size:11px; font-weight:400; color:var(--color-text-muted);">solves/s</span></div>
-                <div class="perf-kpi-sub" id="kpiThroughputSub"><span style="color:var(--color-success); font-weight:600;">+226.4%</span> vs Serial (1 Worker)</div>
+                <div class="perf-kpi-sub" id="kpiThroughputSub"><span style="color:var(--color-success); font-weight:600;">+231.0%</span> vs Serial (1 Worker)</div>
               </div>
 
               <div class="perf-kpi-card perf-kpi-card--orange">
@@ -426,48 +468,6 @@
                 <div class="perf-kpi-val" id="kpiDiff">0.00 &times; 10&#8304; <span style="font-size:11px; font-weight:400; color:var(--color-text-muted);">°C</span></div>
                 <div class="perf-kpi-sub"><span style="color:var(--color-success); font-weight:600;">PASSED</span> &le; 1e-8 °C Tolerance</div>
               </div>
-            </div>
-
-            <!-- Benchmark Results Table -->
-            <div class="table-container">
-              <table class="data-table" id="benchTable">
-                <thead>
-                  <tr>
-                    <th>Workers (p)</th>
-                    <th>Repetitions (5 Runs, ms)</th>
-                    <th>Median Time</th>
-                    <th>Throughput</th>
-                    <th>Speedup (T₁ / Tₚ)</th>
-                    <th>Efficiency</th>
-                  </tr>
-                </thead>
-                <tbody id="benchTableBody">
-                  <tr>
-                    <td><strong>1 Worker (Serial)</strong></td>
-                    <td style="font-family:monospace; color:var(--color-text-secondary);">31.8, 31.9, 31.8, 32.1, 31.8</td>
-                    <td><strong>31.84 ms</strong></td>
-                    <td>31,407 /s</td>
-                    <td style="color:var(--color-accent); font-weight:600;">1.00x</td>
-                    <td style="color:var(--color-success); font-weight:600;">100.0%</td>
-                  </tr>
-                  <tr>
-                    <td><strong>2 Workers</strong></td>
-                    <td style="font-family:monospace; color:var(--color-text-secondary);">17.4, 17.3, 17.4, 17.5, 17.3</td>
-                    <td><strong>17.38 ms</strong></td>
-                    <td>57,537 /s</td>
-                    <td style="color:var(--color-accent); font-weight:600;">1.83x</td>
-                    <td style="color:var(--color-success); font-weight:600;">91.6%</td>
-                  </tr>
-                  <tr>
-                    <td><strong>4 Workers</strong></td>
-                    <td style="font-family:monospace; color:var(--color-text-secondary);">9.65, 9.58, 9.72, 9.62, 9.60</td>
-                    <td><strong>9.62 ms</strong></td>
-                    <td>103,950 /s</td>
-                    <td style="color:var(--color-chart-fem); font-weight:600;">3.31x</td>
-                    <td style="color:var(--color-success); font-weight:600;">82.8%</td>
-                  </tr>
-                </tbody>
-              </table>
             </div>
 
             <!-- Dual Graphical Visualizers: Speedup Vector SVG + Thread Pool Waterfall -->

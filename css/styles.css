@@ -782,6 +782,7 @@ html, body {
   grid-template-columns: repeat(4, 1fr);
   gap: 10px;
   margin-bottom: 12px;
+  flex-shrink: 0;
 }
 .perf-kpi-card {
   background: var(--color-bg-inset);
@@ -831,10 +832,13 @@ html, body {
 }
 
 .table-container {
+  flex-shrink: 0;
   overflow-x: auto;
   margin-bottom: 12px;
   border: 0.5px solid var(--color-border);
   border-radius: var(--radius-md);
+  background: var(--color-bg-inset);
+  min-height: 120px;
 }
 
 .data-table {
@@ -844,7 +848,7 @@ html, body {
   text-align: left;
 }
 .data-table th {
-  background: var(--color-bg-inset);
+  background: var(--color-bg-surface);
   padding: 8px 10px;
   font-weight: 600;
   color: var(--color-text-secondary);
@@ -861,10 +865,11 @@ html, body {
 .data-table tr:last-child td { border-bottom: none; }
 
 .perf-charts-grid {
+  flex-shrink: 0;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
-  margin-top: 6px;
+  margin-bottom: 12px;
 }
 .perf-chart-card {
   background: var(--color-bg-inset);
@@ -882,23 +887,35 @@ html, body {
   padding: 4px;
 }
 
-.waterfall-thread-row {
+/* Waterfall layout: clean block rows with title and duty cycle separated */
+.waterfall-core-item {
   display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-bottom: 7px;
+}
+.waterfall-core-header {
+  display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
   font-size: 11px;
 }
-.waterfall-thread-name {
-  width: 60px;
+.waterfall-core-name {
   font-weight: 600;
   color: var(--color-text-primary);
-  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.waterfall-core-duty {
+  font-family: monospace;
+  color: var(--color-success);
+  font-weight: 600;
 }
 .waterfall-bar-track {
-  flex: 1;
-  height: 18px;
-  background: var(--color-bg-page);
+  width: 100%;
+  height: 15px;
+  background: var(--color-bg-surface);
   border-radius: 3px;
   overflow: hidden;
   display: flex;
@@ -911,13 +928,7 @@ html, body {
 .waterfall-chunk--dispatch { background: rgba(56, 189, 248, 0.45); }
 .waterfall-chunk--compute { background: var(--color-accent); }
 .waterfall-chunk--sync { background: rgba(245, 158, 11, 0.5); }
-.waterfall-thread-stat {
-  width: 80px;
-  text-align: right;
-  font-family: monospace;
-  font-size: 10px;
-  color: var(--color-text-secondary);
-}
+.waterfall-chunk--idle { background: var(--color-bg-inset); }
 
 .amdahl-analytical-card {
   display: grid;
