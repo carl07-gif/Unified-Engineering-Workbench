@@ -1,48 +1,20 @@
 /* ═══════════════════════════════════════════════════════════════
-   Main Application Coordinator — Full Workbench Lifecycle
+   Unified Engineering Workbench — Main Application Orchestrator
    ═══════════════════════════════════════════════════════════════ */
 
 "use strict";
 
 const EMBEDDED_SAMPLE_STL = `solid thermal_rod_heat_sink
-  facet normal 0.0 0.0 -1.0
+  facet normal 0.0 -1.0 0.0
     outer loop
       vertex 0.0 0.0 0.0
-      vertex 0.0 0.05 0.0
       vertex 1.0 0.0 0.0
-    endloop
-  endfacet
-  facet normal 0.0 0.0 -1.0
-    outer loop
-      vertex 1.0 0.0 0.0
-      vertex 0.0 0.05 0.0
-      vertex 1.0 0.05 0.0
-    endloop
-  endfacet
-  facet normal 0.0 0.0 1.0
-    outer loop
-      vertex 0.0 0.0 0.05
       vertex 1.0 0.0 0.05
-      vertex 0.0 0.05 0.05
-    endloop
-  endfacet
-  facet normal 0.0 0.0 1.0
-    outer loop
-      vertex 1.0 0.0 0.05
-      vertex 1.0 0.05 0.05
-      vertex 0.0 0.05 0.05
     endloop
   endfacet
   facet normal 0.0 -1.0 0.0
     outer loop
       vertex 0.0 0.0 0.0
-      vertex 1.0 0.0 0.0
-      vertex 0.0 0.0 0.05
-    endloop
-  endfacet
-  facet normal 0.0 -1.0 0.0
-    outer loop
-      vertex 1.0 0.0 0.0
       vertex 1.0 0.0 0.05
       vertex 0.0 0.0 0.05
     endloop
@@ -51,28 +23,56 @@ const EMBEDDED_SAMPLE_STL = `solid thermal_rod_heat_sink
     outer loop
       vertex 0.0 0.05 0.0
       vertex 0.0 0.05 0.05
-      vertex 1.0 0.05 0.0
+      vertex 1.0 0.05 0.05
     endloop
   endfacet
   facet normal 0.0 1.0 0.0
     outer loop
-      vertex 1.0 0.05 0.0
-      vertex 0.0 0.05 0.05
+      vertex 0.0 0.05 0.0
       vertex 1.0 0.05 0.05
+      vertex 1.0 0.05 0.0
+    endloop
+  endfacet
+  facet normal 0.0 0.0 -1.0
+    outer loop
+      vertex 0.0 0.0 0.0
+      vertex 0.0 0.05 0.0
+      vertex 1.0 0.05 0.0
+    endloop
+  endfacet
+  facet normal 0.0 0.0 -1.0
+    outer loop
+      vertex 0.0 0.0 0.0
+      vertex 1.0 0.05 0.0
+      vertex 1.0 0.0 0.0
+    endloop
+  endfacet
+  facet normal 0.0 0.0 1.0
+    outer loop
+      vertex 0.0 0.0 0.05
+      vertex 1.0 0.0 0.05
+      vertex 1.0 0.05 0.05
+    endloop
+  endfacet
+  facet normal 0.0 0.0 1.0
+    outer loop
+      vertex 0.0 0.0 0.05
+      vertex 1.0 0.05 0.05
+      vertex 0.0 0.05 0.05
     endloop
   endfacet
   facet normal -1.0 0.0 0.0
     outer loop
       vertex 0.0 0.0 0.0
       vertex 0.0 0.0 0.05
-      vertex 0.0 0.05 0.0
+      vertex 0.0 0.05 0.05
     endloop
   endfacet
   facet normal -1.0 0.0 0.0
     outer loop
-      vertex 0.0 0.05 0.0
-      vertex 0.0 0.0 0.05
+      vertex 0.0 0.0 0.0
       vertex 0.0 0.05 0.05
+      vertex 0.0 0.05 0.0
     endloop
   endfacet
   facet normal 1.0 0.0 0.0
@@ -208,22 +208,25 @@ document.addEventListener("DOMContentLoaded", () => {
     const N  = parseInt(selectN.value, 10);
 
     if (isNaN(L) || L <= 0) {
-      return { valid: false, msg: "<strong>Validation Error:</strong> Rod length <em>L</em> must be strictly greater than 0.<br><em>Action:</em> Enter a positive length in meters (e.g., 1.0 m)." };
+      return { valid: false, msg: "Length L must be a positive finite number (> 0)." };
     }
     if (isNaN(A) || A <= 0) {
-      return { valid: false, msg: "<strong>Validation Error:</strong> Cross-section area <em>A</em> must be &gt; 0.<br><em>Action:</em> Enter a positive area in m² (e.g., 0.0001 m²)." };
+      return { valid: false, msg: "Cross-section Area A must be positive (> 0 m²)." };
     }
     if (isNaN(k) || k <= 0) {
-      return { valid: false, msg: "<strong>Validation Error:</strong> Thermal conductivity <em>k</em> must be strictly &gt; 0 to prevent physical singularity.<br><em>Action:</em> Enter a positive conductivity (e.g., 10 W/m·K)." };
+      return { valid: false, msg: "Thermal conductivity k must be strictly positive (> 0 W/m·K)." };
     }
     if (isNaN(q) || q < 0) {
-      return { valid: false, msg: "<strong>Validation Error:</strong> Volumetric heat generation <em>q</em> must be &ge; 0.<br><em>Action:</em> Enter a non-negative heat generation value (e.g., 10000 W/m³)." };
+      return { valid: false, msg: "Volumetric heat generation q must be non-negative (≥ 0 W/m³)." };
     }
-    if (isNaN(T0) || isNaN(TL)) {
-      return { valid: false, msg: "<strong>Validation Error:</strong> Boundary temperatures T(0) and T(L) must be valid numbers.<br><em>Action:</em> Enter real values in °C (e.g., 100 and 20)." };
+    if (isNaN(T0) || !isFinite(T0)) {
+      return { valid: false, msg: "Prescribed boundary temperature T(0) must be a finite number." };
     }
-    if (isNaN(N) || N < 2) {
-      return { valid: false, msg: "<strong>Validation Error:</strong> Element count <em>N</em> must be at least 2.<br><em>Action:</em> Select a valid mesh resolution from the dropdown (10, 20, 40, 80)." };
+    if (isNaN(TL) || !isFinite(TL)) {
+      return { valid: false, msg: "Prescribed boundary temperature T(L) must be a finite number." };
+    }
+    if (isNaN(N) || N < 2 || N > 2000) {
+      return { valid: false, msg: "Element count N must be an integer between 2 and 2000." };
     }
 
     return {
@@ -270,7 +273,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const exact = FEMSolver.exactCurve(params.L, params.k, params.q, params.T0, params.TL);
 
       // 3. Render SVG Chart
-      ChartRenderer.draw(exact, femRes, params.N);
+      ChartRenderer.draw(exact, femRes, params.N, params);
 
       // 4. Run convergence study across [10, 20, 40, 80]
       const study = FEMSolver.convergenceStudy(params, [10, 20, 40, 80]);
@@ -305,10 +308,11 @@ document.addEventListener("DOMContentLoaded", () => {
     study.forEach(item => {
       const card = document.createElement("div");
       card.className = "conv-card" + (item.N === activeN ? " conv-card--active" : "");
+      card.title = `Click to simulate with N = ${item.N} elements`;
 
       const label = document.createElement("p");
       label.className = "conv-card__label";
-      label.textContent = `N = ${item.N}`;
+      label.innerHTML = `<strong>N = ${item.N}</strong> <span style="font-size:10px; color:var(--color-accent);">${item.N === 10 ? '(Baseline)' : '(4.00×)'}</span>`;
 
       const val = document.createElement("p");
       val.className = "conv-card__value";
@@ -316,11 +320,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const sub = document.createElement("p");
       sub.className = "conv-card__sub";
-      sub.textContent = `h = ${(1.0 / item.N).toFixed(3)} m`;
+      sub.textContent = `h = ${(1.0 / item.N).toFixed(3)} m (midpoint error)`;
 
       card.appendChild(label);
       card.appendChild(val);
       card.appendChild(sub);
+
+      card.addEventListener("click", () => {
+        if (selectN) {
+          selectN.value = String(item.N);
+          const quickBtns = document.querySelectorAll("#quickNSelector .quick-n-btn");
+          quickBtns.forEach(b => {
+            b.classList.toggle("quick-n-btn--active", b.dataset.n === String(item.N));
+          });
+          runThermalSolver();
+        }
+      });
+
       convGrid.appendChild(card);
     });
   }
@@ -390,7 +406,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (lastSolveResult && lastParams) {
         const exact = FEMSolver.exactCurve(lastParams.L, lastParams.k, lastParams.q, lastParams.T0, lastParams.TL);
-        ChartRenderer.draw(exact, lastSolveResult, lastParams.N);
+        ChartRenderer.draw(exact, lastSolveResult, lastParams.N, lastParams);
       }
     });
   }
@@ -506,6 +522,31 @@ document.addEventListener("DOMContentLoaded", () => {
   // Bind thermal controls
   if (btnSolve) btnSolve.addEventListener("click", runThermalSolver);
   if (btnExport) btnExport.addEventListener("click", exportCSV);
+
+  // Bind Chart View Tabs (Task C)
+  const chartTabs = document.querySelectorAll("#chartViewTabs .chart-tab");
+  chartTabs.forEach(tab => {
+    tab.addEventListener("click", () => {
+      chartTabs.forEach(t => t.classList.remove("chart-tab--active"));
+      tab.classList.add("chart-tab--active");
+      const mode = tab.dataset.mode;
+      ChartRenderer.setMode(mode);
+    });
+  });
+
+  // Bind Quick N Selector Buttons
+  const quickNBtns = document.querySelectorAll("#quickNSelector .quick-n-btn");
+  quickNBtns.forEach(btn => {
+    btn.addEventListener("click", () => {
+      const nVal = btn.dataset.n;
+      quickNBtns.forEach(b => b.classList.remove("quick-n-btn--active"));
+      btn.classList.add("quick-n-btn--active");
+      if (selectN) {
+        selectN.value = nVal;
+        runThermalSolver();
+      }
+    });
+  });
 
   let debounceTimer;
   [inputL, inputArea, inputK, inputQ, inputT0, inputTL, selectN].forEach(el => {

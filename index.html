@@ -211,6 +211,32 @@
 
           <!-- Main content: SVG Chart + Convergence Cards -->
           <div class="main-content">
+            <!-- Professional Interactive Chart Controls & View Switcher -->
+            <div class="chart-header-bar">
+              <div class="chart-view-tabs" id="chartViewTabs">
+                <button class="chart-tab chart-tab--active" data-mode="profile" id="tabChartProfile">
+                  <i class="ti ti-chart-line"></i> T(x) Profile
+                </button>
+                <button class="chart-tab" data-mode="multi" id="tabChartMulti">
+                  <i class="ti ti-layers-linked"></i> Multi-Mesh Overlay (N=10, 20, 40, 80)
+                </button>
+                <button class="chart-tab" data-mode="loglog" id="tabChartLogLog">
+                  <i class="ti ti-chart-dots"></i> Convergence Rate &Omicron;(h&sup2;)
+                </button>
+                <button class="chart-tab" data-mode="residuals" id="tabChartResiduals">
+                  <i class="ti ti-chart-arcs"></i> Spatial Midpoint Error
+                </button>
+              </div>
+              <div class="chart-quick-n" id="quickNSelector">
+                <span class="quick-n-label">Quick Mesh:</span>
+                <button class="quick-n-btn" data-n="10">N=10</button>
+                <button class="quick-n-btn" data-n="20">N=20</button>
+                <button class="quick-n-btn" data-n="40">N=40</button>
+                <button class="quick-n-btn quick-n-btn--active" data-n="80">N=80</button>
+                <button class="quick-n-btn" data-n="160">N=160</button>
+              </div>
+            </div>
+
             <!-- Vector SVG Plot Container (Pre-rendered for zero-wait display) -->
             <div class="svg-chart-container" id="chartSvgWrapper">
               <svg viewBox="0 0 540 230" width="100%" height="auto" role="img" class="thermal-svg-plot">
