@@ -131,24 +131,45 @@ const ChartRenderer = (() => {
   function renderProfileChart(W, H, plotL, plotR, plotT, plotB, plotW, plotH) {
     const C = getThemeColors();
     const xMax = currentParams.L || 1.0;
-    const yMin = 0.0;
-    const yMax = 200.0;
+
+    // Dynamically calculate temperature range from solution
+    let tMin = 20.0, tMax = 188.2;
+    if (currentExact && currentExact.T && currentExact.T.length) {
+      tMin = Math.min(...currentExact.T);
+      tMax = Math.max(...currentExact.T);
+    }
+    if (currentFem && currentFem.T && currentFem.T.length) {
+      tMin = Math.min(tMin, ...currentFem.T);
+      tMax = Math.max(tMax, ...currentFem.T);
+    }
+
+    // Default to [0, 200] matching assignment PDF exactly, but expand if solution exceeds
+    let yMin = 0.0;
+    let yMax = 200.0;
+    if (tMin < 0 || tMax > 200) {
+      const span = tMax - tMin || 20;
+      const margin = span * 0.1;
+      const step = Math.max(10, Math.pow(10, Math.floor(Math.log10(span))));
+      yMin = Math.floor((tMin - margin) / step) * step;
+      yMax = Math.ceil((tMax + margin) / step) * step;
+    }
 
     function px(x) { return plotL + (x / xMax) * plotW; }
     function py(t) { return plotB - ((t - yMin) / (yMax - yMin)) * plotH; }
 
     // Gridlines & Labels
-    const yTicks = [0, 50, 100, 150, 200];
+    const yStep = (yMax - yMin) / 4;
+    const yTicks = [yMin, yMin + yStep, yMin + 2 * yStep, yMin + 3 * yStep, yMax];
     let gridSvg = "";
     yTicks.forEach(yVal => {
       const yPos = py(yVal);
       gridSvg += `
         <line x1="${plotL}" y1="${yPos.toFixed(1)}" x2="${plotR}" y2="${yPos.toFixed(1)}" stroke="${C.gridLineMajor}" stroke-width="0.75" />
-        <text class="chart-tick-text" x="${plotL - 10}" y="${(yPos + 4).toFixed(1)}" text-anchor="end" font-size="11" font-family="monospace" font-weight="${C.isDark ? "400" : "600"}" fill="${C.tickText}">${yVal}</text>
+        <text class="chart-tick-text" x="${plotL - 10}" y="${(yPos + 4).toFixed(1)}" text-anchor="end" font-size="11" font-family="monospace" font-weight="${C.isDark ? "400" : "600"}" fill="${C.tickText}">${Math.round(yVal)}</text>
       `;
     });
 
-    const xTicks = [0, 0.25, 0.5, 0.75, 1.0];
+    const xTicks = [0, 0.25 * xMax, 0.5 * xMax, 0.75 * xMax, xMax];
     xTicks.forEach(xVal => {
       const xPos = px(xVal);
       gridSvg += `
@@ -237,88 +258,130 @@ const ChartRenderer = (() => {
   function renderMultiMeshOverlay(W, H, plotL, plotR, plotT, plotB, plotW, plotH) {
     const C = getThemeColors();
     const xMax = currentParams.L || 1.0;
-    const yMin = 0.0;
-    const yMax = 200.0;
+
+    // Dynamically solve for all 4 meshes
+    const meshConfigs = [
+      { N: 10, col: "#d946ef", dash: "5,3" },
+      { N: 20, col: "#f97316", dash: "4,2" },
+      { N: 40, col: "#f59e0b", dash: "3,2" },
+      { N: 80, col: "#10b981", dash: "solid" }
+    ];
+
+    // Compute convergence study for exact errors
+    const study = FEMSolver.convergenceStudy(currentParams, [10, 20, 40, 80]);
+    const studyMap = {};
+    if (study && Array.isArray(study)) {
+      study.forEach(s => { studyMap[s.N] = s; });
+    }
+
+    // Solve meshes
+    const meshResults = meshConfigs.map(mc => {
+      const res = FEMSolver.solve({ ...currentParams, N: mc.N });
+      const err = studyMap[mc.N] ? studyMap[mc.N].maxErr : (currentParams.q * Math.pow(xMax / mc.N, 2)) / (8 * (currentParams.k || 10));
+      return { ...mc, res, err };
+    });
+
+    // Exact curve
+    const exact = currentExact || FEMSolver.exactCurve(currentParams.L, currentParams.k, currentParams.q, currentParams.T0, currentParams.TL);
+
+    // Compute dynamic bounds
+    let tMin = Math.min(...exact.T);
+    let tMax = Math.max(...exact.T);
+    meshResults.forEach(mr => {
+      tMin = Math.min(tMin, ...mr.res.T);
+      tMax = Math.max(tMax, ...mr.res.T);
+    });
+
+    let yMin = 0.0;
+    let yMax = 200.0;
+    if (tMin < 0 || tMax > 200) {
+      const span = tMax - tMin || 20;
+      const margin = span * 0.1;
+      const step = Math.max(10, Math.pow(10, Math.floor(Math.log10(span))));
+      yMin = Math.floor((tMin - margin) / step) * step;
+      yMax = Math.ceil((tMax + margin) / step) * step;
+    }
 
     function px(x) { return plotL + (x / xMax) * plotW; }
     function py(t) { return plotB - ((t - yMin) / (yMax - yMin)) * plotH; }
 
-    const yTicks = [0, 50, 100, 150, 200];
+    const yStep = (yMax - yMin) / 4;
+    const yTicks = [yMin, yMin + yStep, yMin + 2 * yStep, yMin + 3 * yStep, yMax];
     let gridSvg = "";
     yTicks.forEach(yVal => {
       const yPos = py(yVal);
       gridSvg += `
         <line x1="${plotL}" y1="${yPos.toFixed(1)}" x2="${plotR}" y2="${yPos.toFixed(1)}" stroke="${C.gridLineMajor}" stroke-width="0.75" />
-        <text x="${plotL - 10}" y="${(yPos + 4).toFixed(1)}" text-anchor="end" font-size="11" font-family="monospace" font-weight="${C.isDark ? "400" : "600"}" fill="${C.tickText}">${yVal}</text>
+        <text class="chart-tick-text" x="${plotL - 10}" y="${(yPos + 4).toFixed(1)}" text-anchor="end" font-size="11" font-family="monospace" font-weight="${C.isDark ? "400" : "600"}" fill="${C.tickText}">${Math.round(yVal)}</text>
       `;
     });
 
-    const xTicks = [0, 0.25, 0.5, 0.75, 1.0];
+    const xTicks = [0, 0.25 * xMax, 0.5 * xMax, 0.75 * xMax, xMax];
     xTicks.forEach(xVal => {
       const xPos = px(xVal);
       gridSvg += `
         <line x1="${xPos.toFixed(1)}" y1="${plotT}" x2="${xPos.toFixed(1)}" y2="${plotB}" stroke="${C.gridLineMinor}" stroke-width="0.75" stroke-dasharray="3,3" />
-        <text x="${xPos.toFixed(1)}" y="${plotB + 20}" text-anchor="middle" font-size="11" font-family="monospace" font-weight="${C.isDark ? "400" : "600"}" fill="${C.tickText}">${xVal.toFixed(2)}</text>
+        <text class="chart-tick-text" x="${xPos.toFixed(1)}" y="${plotB + 20}" text-anchor="middle" font-size="11" font-family="monospace" font-weight="${C.isDark ? "400" : "600"}" fill="${C.tickText}">${xVal.toFixed(2)}</text>
       `;
     });
 
-    // Solve for N in {10, 20, 40, 80}
-    const meshConfigs = [
-      { N: 10, col: "#d946ef", dash: "5,3", name: "N=10 (e=1.250°C)" },
-      { N: 20, col: "#f97316", dash: "4,2", name: "N=20 (e=0.312°C)" },
-      { N: 40, col: "#f59e0b", dash: "3,2", name: "N=40 (e=0.078°C)" },
-      { N: 80, col: "#10b981", dash: "solid", name: "N=80 (e=0.020°C)" }
-    ];
-
+    // Mesh polylines with staggered animated tracing
     let meshPolylines = "";
-    meshConfigs.forEach(mc => {
-      const res = FEMSolver.solve({ ...currentParams, N: mc.N });
-      const pts = res.x.map((x, i) => `${px(x).toFixed(1)},${py(res.T[i]).toFixed(1)}`).join(" ");
+    meshResults.forEach((mr, idx) => {
+      const pts = mr.res.x.map((x, i) => `${px(x).toFixed(1)},${py(mr.res.T[i]).toFixed(1)}`).join(" ");
+      const delay = (idx * 0.1).toFixed(2);
       meshPolylines += `
-        <polyline fill="none" stroke="${mc.col}" stroke-width="1.8" ${mc.dash !== "solid" ? `stroke-dasharray="${mc.dash}"` : ""} stroke-linejoin="round" points="${pts}" />
+        <polyline class="curve-trace-fem" style="animation-delay:${delay}s;" fill="none" stroke="${mr.col}" stroke-width="1.8" ${mr.dash !== "solid" ? `stroke-dasharray="${mr.dash}"` : ""} stroke-linejoin="round" points="${pts}" />
       `;
     });
 
-    const exactPts = currentExact.x.map((x, i) => `${px(x).toFixed(1)},${py(currentExact.T[i]).toFixed(1)}`).join(" ");
+    const exactPts = exact.x.map((x, i) => `${px(x).toFixed(1)},${py(exact.T[i]).toFixed(1)}`).join(" ");
 
     return `
-      <svg viewBox="0 0 ${W} ${H}" width="100%" height="auto" role="img" class="thermal-svg-plot">
+      <svg viewBox="0 0 ${W} ${H}" width="100%" height="auto" role="img" class="thermal-svg-plot" id="thermalSvgEl">
+        <defs>
+          <linearGradient id="plotBgGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="${C.plotBgStart}" />
+            <stop offset="100%" stop-color="${C.plotBgEnd}" />
+          </linearGradient>
+        </defs>
+
         <!-- Plot Area Frame -->
-        <rect x="${plotL}" y="${plotT}" width="${plotW}" height="${plotH}" fill="${C.plotBgStart}" rx="6" stroke="${C.plotBorder}" stroke-width="1" />
+        <rect x="${plotL}" y="${plotT}" width="${plotW}" height="${plotH}" fill="url(#plotBgGrad)" rx="6" stroke="${C.plotBorder}" stroke-width="1" />
         ${gridSvg}
 
-        <text x="${plotL + plotW / 2}" y="348" font-size="12" font-family="sans-serif" font-weight="700" fill="${C.axisTitle}" text-anchor="middle">
+        <text class="chart-axis-title" x="${plotL + plotW / 2}" y="348" font-size="12" font-family="sans-serif" font-weight="700" fill="${C.axisTitle}" text-anchor="middle">
           Position along rod x (m)
         </text>
-        <text x="22" y="${plotT + plotH / 2}" font-size="12" font-family="sans-serif" font-weight="700" fill="${C.axisTitle}" text-anchor="middle" transform="rotate(-90 22 ${plotT + plotH / 2})">
+        <text class="chart-axis-title" x="22" y="${plotT + plotH / 2}" font-size="12" font-family="sans-serif" font-weight="700" fill="${C.axisTitle}" text-anchor="middle" transform="rotate(-90 22 ${plotT + plotH / 2})">
           Temperature (°C)
         </text>
 
-        <!-- Mesh polylines -->
+        <!-- Exact Analytical (Thick Cyan reference) with animated tracing -->
+        <polyline class="curve-trace-exact" fill="none" stroke="${C.exactLine}" stroke-width="2.8" stroke-linejoin="round" points="${exactPts}" />
+
+        <!-- Mesh polylines with staggered animated tracing -->
         ${meshPolylines}
 
-        <!-- Exact Analytical (Thick Cyan reference) -->
-        <polyline fill="none" stroke="${C.exactLine}" stroke-width="2.8" stroke-linejoin="round" points="${exactPts}" />
-
-        <!-- Rich Multi-Mesh Legend -->
+        <!-- Dynamic Multi-Mesh Legend with real computed errors -->
         <g transform="translate(${plotL + 12}, ${plotT + 12})">
-          <rect x="0" y="0" width="180" height="120" rx="4" fill="${C.boxBg}" stroke="${C.boxBorder}" stroke-width="0.8" />
-          <text x="10" y="16" font-size="10.5" font-weight="700" fill="${C.boxTitle}">Mesh Convergence Series</text>
+          <rect x="0" y="0" width="186" height="122" rx="4" fill="${C.boxBg}" stroke="${C.boxBorder}" stroke-width="0.8" />
+          <text class="chart-legend-text" x="10" y="16" font-size="10.5" font-weight="700" fill="${C.boxTitle}">Mesh Convergence Series</text>
 
           <line x1="10" y1="32" x2="30" y2="32" stroke="${C.exactLine}" stroke-width="2.5" />
-          <text x="36" y="35" font-size="10" fill="${C.boxText}">Exact Analytical</text>
+          <text class="chart-legend-text" x="36" y="35" font-size="10" fill="${C.boxText}">Exact Analytical</text>
 
           <line x1="10" y1="50" x2="30" y2="50" stroke="#10b981" stroke-width="2" />
-          <text x="36" y="53" font-size="10" fill="#10b981">N = 80 (e = 0.0195 °C)</text>
+          <text class="chart-legend-text" x="36" y="53" font-size="10" fill="#10b981">N = 80 (e = ${meshResults[3].err.toFixed(4)} °C)</text>
 
           <line x1="10" y1="68" x2="30" y2="68" stroke="#f59e0b" stroke-width="2" stroke-dasharray="3,2" />
-          <text x="36" y="71" font-size="10" fill="#f59e0b">N = 40 (e = 0.0781 °C)</text>
+          <text class="chart-legend-text" x="36" y="71" font-size="10" fill="#f59e0b">N = 40 (e = ${meshResults[2].err.toFixed(4)} °C)</text>
 
           <line x1="10" y1="86" x2="30" y2="86" stroke="#f97316" stroke-width="2" stroke-dasharray="4,2" />
-          <text x="36" y="89" font-size="10" fill="#f97316">N = 20 (e = 0.3125 °C)</text>
+          <text class="chart-legend-text" x="36" y="89" font-size="10" fill="#f97316">N = 20 (e = ${meshResults[1].err.toFixed(4)} °C)</text>
 
           <line x1="10" y1="104" x2="30" y2="104" stroke="#d946ef" stroke-width="2" stroke-dasharray="5,3" />
-          <text x="36" y="107" font-size="10" fill="#d946ef">N = 10 (e = 1.2500 °C)</text>
+          <text class="chart-legend-text" x="36" y="107" font-size="10" fill="#d946ef">N = 10 (e = ${meshResults[0].err.toFixed(4)} °C)</text>
         </g>
       </svg>
     `;
@@ -330,17 +393,30 @@ const ChartRenderer = (() => {
      ───────────────────────────────────────────── */
   function renderLogLogConvergence(W, H, plotL, plotR, plotT, plotB, plotW, plotH) {
     const C = getThemeColors();
-    const data = [
+    const L = currentParams.L || 1.0;
+
+    // Real dynamic data computed from FEMSolver
+    const study = FEMSolver.convergenceStudy(currentParams, [10, 20, 40, 80]);
+    const data = (study && study.length) ? study.map(s => ({
+      N: s.N,
+      h: L / s.N,
+      err: Math.max(s.maxErr, 1e-7)
+    })) : [
       { N: 10, h: 0.1000, err: 1.2500 },
       { N: 20, h: 0.0500, err: 0.3125 },
       { N: 40, h: 0.0250, err: 0.078125 },
       { N: 80, h: 0.0125, err: 0.01953125 }
     ];
 
-    const minLogH = Math.log10(0.01);  // -2.0
-    const maxLogH = Math.log10(0.12);  // -0.92
-    const minLogE = Math.log10(0.01);  // -2.0
-    const maxLogE = Math.log10(1.5);   // 0.176
+    const minH = Math.min(...data.map(d => d.h));
+    const maxH = Math.max(...data.map(d => d.h));
+    const minE = Math.min(...data.map(d => d.err));
+    const maxE = Math.max(...data.map(d => d.err));
+
+    const minLogH = Math.log10(minH * 0.7);
+    const maxLogH = Math.log10(maxH * 1.3);
+    const minLogE = Math.log10(Math.max(1e-6, minE * 0.4));
+    const maxLogE = Math.log10(maxE * 2.0);
 
     function pLogX(h) {
       const val = Math.log10(h);
@@ -352,58 +428,63 @@ const ChartRenderer = (() => {
     }
 
     // Grid ticks on log scale
-    const hTicks = [0.0125, 0.025, 0.05, 0.10];
     let gridSvg = "";
-    hTicks.forEach(ht => {
-      const xp = pLogX(ht);
+    data.forEach(d => {
+      const xp = pLogX(d.h);
       gridSvg += `
         <line x1="${xp.toFixed(1)}" y1="${plotT}" x2="${xp.toFixed(1)}" y2="${plotB}" stroke="${C.gridLineMajor}" stroke-width="0.75" />
-        <text x="${xp.toFixed(1)}" y="${plotB + 20}" text-anchor="middle" font-size="11" font-family="monospace" font-weight="${C.isDark ? "400" : "600"}" fill="${C.tickText}">${ht}</text>
+        <text class="chart-tick-text" x="${xp.toFixed(1)}" y="${plotB + 20}" text-anchor="middle" font-size="11" font-family="monospace" font-weight="${C.isDark ? "400" : "600"}" fill="${C.tickText}">${d.h.toFixed(4)}</text>
       `;
     });
 
-    const errTicks = [0.01, 0.05, 0.1, 0.5, 1.0];
     let errGridSvg = "";
-    errTicks.forEach(et => {
-      const yp = pLogY(et);
+    data.forEach(d => {
+      const yp = pLogY(d.err);
       errGridSvg += `
         <line x1="${plotL}" y1="${yp.toFixed(1)}" x2="${plotR}" y2="${yp.toFixed(1)}" stroke="${C.gridLineMajor}" stroke-width="0.75" />
-        <text x="${plotL - 10}" y="${(yp + 4).toFixed(1)}" text-anchor="end" font-size="11" font-family="monospace" font-weight="${C.isDark ? "400" : "600"}" fill="${C.tickText}">${et}</text>
+        <text class="chart-tick-text" x="${plotL - 10}" y="${(yp + 4).toFixed(1)}" text-anchor="end" font-size="11" font-family="monospace" font-weight="${C.isDark ? "400" : "600"}" fill="${C.tickText}">${d.err < 0.01 ? d.err.toExponential(2) : d.err.toFixed(4)}</text>
       `;
     });
 
-    // Theoretical Slope = 2.000 line
-    const p1 = { x: pLogX(0.10), y: pLogY(1.25) };
-    const p2 = { x: pLogX(0.0125), y: pLogY(0.01953125) };
+    // Theoretical Slope = 2.000 line connecting N=10 and N=80
+    const p1 = { x: pLogX(data[0].h), y: pLogY(data[0].err) };
+    const p2 = { x: pLogX(data[data.length - 1].h), y: pLogY(data[data.length - 1].err) };
 
-    // Measured data nodes
+    // Measured data nodes with pop-in animation
     let ptsSvg = "";
-    data.forEach(d => {
+    data.forEach((d, idx) => {
       const cx = pLogX(d.h);
       const cy = pLogY(d.err);
+      const delay = (idx * 0.1).toFixed(2);
       ptsSvg += `
-        <circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="5.5" fill="#10b981" stroke="#ffffff" stroke-width="1.5" />
-        <text x="${(cx + 8).toFixed(1)}" y="${(cy - 6).toFixed(1)}" font-size="10.5" font-family="monospace" font-weight="700" fill="${C.boxTitle}">
+        <circle class="fea-node-marker" style="animation-delay:${delay}s;" cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="5.5" fill="#10b981" stroke="#ffffff" stroke-width="1.5" />
+        <text class="chart-tick-text" x="${(cx + 8).toFixed(1)}" y="${(cy - 6).toFixed(1)}" font-size="10.5" font-family="monospace" font-weight="700" fill="${C.boxTitle}">
           N=${d.N} (${d.err.toFixed(4)}°C)
         </text>
       `;
     });
 
     return `
-      <svg viewBox="0 0 ${W} ${H}" width="100%" height="auto" role="img" class="thermal-svg-plot">
-        <rect x="${plotL}" y="${plotT}" width="${plotW}" height="${plotH}" fill="${C.plotBgStart}" rx="6" stroke="${C.plotBorder}" stroke-width="1" />
+      <svg viewBox="0 0 ${W} ${H}" width="100%" height="auto" role="img" class="thermal-svg-plot" id="thermalSvgEl">
+        <defs>
+          <linearGradient id="plotBgGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="${C.plotBgStart}" />
+            <stop offset="100%" stop-color="${C.plotBgEnd}" />
+          </linearGradient>
+        </defs>
+        <rect x="${plotL}" y="${plotT}" width="${plotW}" height="${plotH}" fill="url(#plotBgGrad)" rx="6" stroke="${C.plotBorder}" stroke-width="1" />
         ${gridSvg}
         ${errGridSvg}
 
-        <text x="${plotL + plotW / 2}" y="348" font-size="12" font-family="sans-serif" font-weight="700" fill="${C.axisTitle}" text-anchor="middle">
+        <text class="chart-axis-title" x="${plotL + plotW / 2}" y="348" font-size="12" font-family="sans-serif" font-weight="700" fill="${C.axisTitle}" text-anchor="middle">
           Element Size h = L / N (m) [Log Scale]
         </text>
-        <text x="22" y="${plotT + plotH / 2}" font-size="12" font-family="sans-serif" font-weight="700" fill="${C.axisTitle}" text-anchor="middle" transform="rotate(-90 22 ${plotT + plotH / 2})">
+        <text class="chart-axis-title" x="22" y="${plotT + plotH / 2}" font-size="12" font-family="sans-serif" font-weight="700" fill="${C.axisTitle}" text-anchor="middle" transform="rotate(-90 22 ${plotT + plotH / 2})">
           Max Midpoint Error e_max (°C) [Log Scale]
         </text>
 
-        <!-- Fitted Line (Slope = 2.000) -->
-        <line x1="${p1.x.toFixed(1)}" y1="${p1.y.toFixed(1)}" x2="${p2.x.toFixed(1)}" y2="${p2.y.toFixed(1)}" stroke="#38bdf8" stroke-width="2.5" />
+        <!-- Fitted Line (Slope = 2.000) with animated tracing -->
+        <line class="curve-trace-exact" x1="${p1.x.toFixed(1)}" y1="${p1.y.toFixed(1)}" x2="${p2.x.toFixed(1)}" y2="${p2.y.toFixed(1)}" stroke="#38bdf8" stroke-width="2.5" />
 
         <!-- Data Nodes -->
         ${ptsSvg}
@@ -411,10 +492,10 @@ const ChartRenderer = (() => {
         <!-- Asymptotic Verification Callout Card -->
         <g transform="translate(${plotL + 16}, ${plotT + 14})">
           <rect x="0" y="0" width="310" height="42" rx="4" fill="${C.isDark ? "rgba(16,185,129,0.15)" : "rgba(16,185,129,0.10)"}" stroke="${C.isDark ? "#10b981" : "#059669"}" stroke-width="1" />
-          <text x="12" y="18" font-size="11" font-family="sans-serif" font-weight="700" fill="${C.isDark ? "#10b981" : "#059669"}">
+          <text class="chart-legend-text" x="12" y="18" font-size="11" font-family="sans-serif" font-weight="700" fill="${C.isDark ? "#10b981" : "#059669"}">
             ✓ Asymptotic Rate: O(h²) Verified
           </text>
-          <text x="12" y="32" font-size="10.5" font-family="monospace" fill="${C.boxSubText}">
+          <text class="chart-legend-text" x="12" y="32" font-size="10.5" font-family="monospace" fill="${C.boxSubText}">
             Log-Log Slope = 2.000 | e_mid = q·h² / (8k)
           </text>
         </g>
@@ -431,8 +512,10 @@ const ChartRenderer = (() => {
     const C = getThemeColors();
     const xMax = currentParams.L || 1.0;
     const h = xMax / currentN;
-    const theoreticalMaxErr = (currentParams.q * h * h) / (8 * currentParams.k);
-    const yMax = theoreticalMaxErr * 1.35 || 1.0;
+    const k = currentParams.k || 10.0;
+    const q = currentParams.q != null ? currentParams.q : 10000.0;
+    const theoreticalMaxErr = k > 0 ? (q * h * h) / (8 * k) : 0.01;
+    const yMax = theoreticalMaxErr > 0 ? theoreticalMaxErr * 1.35 : 1.0;
 
     function px(x) { return plotL + (x / xMax) * plotW; }
     function py(e) { return plotB - (e / yMax) * plotH; }
@@ -443,24 +526,26 @@ const ChartRenderer = (() => {
       const yPos = py(yVal);
       gridSvg += `
         <line x1="${plotL}" y1="${yPos.toFixed(1)}" x2="${plotR}" y2="${yPos.toFixed(1)}" stroke="${C.gridLineMajor}" stroke-width="0.75" />
-        <text x="${plotL - 10}" y="${(yPos + 4).toFixed(1)}" text-anchor="end" font-size="10" font-family="monospace" font-weight="${C.isDark ? "400" : "600"}" fill="${C.tickText}">${yVal.toFixed(4)}</text>
+        <text class="chart-tick-text" x="${plotL - 10}" y="${(yPos + 4).toFixed(1)}" text-anchor="end" font-size="10" font-family="monospace" font-weight="${C.isDark ? "400" : "600"}" fill="${C.tickText}">${yVal.toFixed(4)}</text>
       `;
     });
 
-    const xTicks = [0, 0.25, 0.5, 0.75, 1.0];
+    const xTicks = [0, 0.25 * xMax, 0.5 * xMax, 0.75 * xMax, xMax];
     xTicks.forEach(xVal => {
       const xPos = px(xVal);
       gridSvg += `
         <line x1="${xPos.toFixed(1)}" y1="${plotT}" x2="${xPos.toFixed(1)}" y2="${plotB}" stroke="${C.gridLineMinor}" stroke-width="0.75" stroke-dasharray="3,3" />
-        <text x="${xPos.toFixed(1)}" y="${plotB + 20}" text-anchor="middle" font-size="11" font-family="monospace" font-weight="${C.isDark ? "400" : "600"}" fill="${C.tickText}">${xVal.toFixed(2)}</text>
+        <text class="chart-tick-text" x="${xPos.toFixed(1)}" y="${plotB + 20}" text-anchor="middle" font-size="11" font-family="monospace" font-weight="${C.isDark ? "400" : "600"}" fill="${C.tickText}">${xVal.toFixed(2)}</text>
       `;
     });
 
     // Generate parabolic error arches along each element: e(x) = (q / 2k) * (x - x_i) * (x_{i+1} - x)
     let residualPath = `M ${px(0).toFixed(1)} ${py(0).toFixed(1)}`;
-    for (let el = 0; el < currentN; el++) {
-      const x1 = el * h;
-      const x2 = (el + 1) * h;
+    const stepCount = Math.min(currentN, 80);
+    const stepH = xMax / stepCount;
+    for (let el = 0; el < stepCount; el++) {
+      const x1 = el * stepH;
+      const x2 = (el + 1) * stepH;
       const xMid = (x1 + x2) / 2;
       const eMid = theoreticalMaxErr;
       const cpX = px(xMid);
@@ -469,31 +554,37 @@ const ChartRenderer = (() => {
     }
 
     return `
-      <svg viewBox="0 0 ${W} ${H}" width="100%" height="auto" role="img" class="thermal-svg-plot">
-        <rect x="${plotL}" y="${plotT}" width="${plotW}" height="${plotH}" fill="${C.plotBgStart}" rx="6" stroke="${C.plotBorder}" stroke-width="1" />
+      <svg viewBox="0 0 ${W} ${H}" width="100%" height="auto" role="img" class="thermal-svg-plot" id="thermalSvgEl">
+        <defs>
+          <linearGradient id="plotBgGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="${C.plotBgStart}" />
+            <stop offset="100%" stop-color="${C.plotBgEnd}" />
+          </linearGradient>
+        </defs>
+        <rect x="${plotL}" y="${plotT}" width="${plotW}" height="${plotH}" fill="url(#plotBgGrad)" rx="6" stroke="${C.plotBorder}" stroke-width="1" />
         ${gridSvg}
 
-        <text x="${plotL + plotW / 2}" y="348" font-size="12" font-family="sans-serif" font-weight="700" fill="${C.axisTitle}" text-anchor="middle">
+        <text class="chart-axis-title" x="${plotL + plotW / 2}" y="348" font-size="12" font-family="sans-serif" font-weight="700" fill="${C.axisTitle}" text-anchor="middle">
           Position along rod x (m)
         </text>
-        <text x="22" y="${plotT + plotH / 2}" font-size="12" font-family="sans-serif" font-weight="700" fill="${C.axisTitle}" text-anchor="middle" transform="rotate(-90 22 ${plotT + plotH / 2})">
+        <text class="chart-axis-title" x="22" y="${plotT + plotH / 2}" font-size="12" font-family="sans-serif" font-weight="700" fill="${C.axisTitle}" text-anchor="middle" transform="rotate(-90 22 ${plotT + plotH / 2})">
           Interpolation Error |T_exact - T_FE| (°C)
         </text>
 
-        <!-- Residuals Path -->
-        <path d="${residualPath}" fill="${C.isDark ? "rgba(245,158,11,0.15)" : "rgba(245,158,11,0.2)"}" stroke="#f59e0b" stroke-width="2" />
+        <!-- Residuals Path with animated sweep -->
+        <path class="curve-trace-exact" d="${residualPath}" fill="${C.isDark ? "rgba(245,158,11,0.15)" : "rgba(245,158,11,0.2)"}" stroke="#f59e0b" stroke-width="2" />
 
         <!-- Max Error Guideline -->
         <line x1="${plotL}" y1="${py(theoreticalMaxErr).toFixed(1)}" x2="${plotR}" y2="${py(theoreticalMaxErr).toFixed(1)}" stroke="#ff3333" stroke-width="1.5" stroke-dasharray="4,2" />
-        <text x="${plotR - 12}" y="${(py(theoreticalMaxErr) - 6).toFixed(1)}" font-size="10.5" font-family="monospace" font-weight="700" fill="${C.isDark ? "#ff7849" : "#dc2626"}" text-anchor="end">
+        <text class="chart-tick-text" x="${plotR - 12}" y="${(py(theoreticalMaxErr) - 6).toFixed(1)}" font-size="10.5" font-family="monospace" font-weight="700" fill="${C.isDark ? "#ff7849" : "#dc2626"}" text-anchor="end">
           Theoretical e_mid = q·h² / (8k) = ${theoreticalMaxErr.toFixed(4)} °C
         </text>
 
         <!-- Callout Banner -->
         <g transform="translate(${plotL + 14}, ${plotT + 14})">
           <rect x="0" y="0" width="280" height="36" rx="4" fill="${C.boxBg}" stroke="${C.boxBorder}" stroke-width="0.8" />
-          <text x="10" y="15" font-size="10" font-weight="700" fill="#f59e0b">Superconvergence Insight:</text>
-          <text x="10" y="28" font-size="9.5" fill="${C.boxSubText}">Error = 0.00°C at nodes; peaks at element midpoints.</text>
+          <text class="chart-legend-text" x="10" y="15" font-size="10" font-weight="700" fill="#f59e0b">Superconvergence Insight:</text>
+          <text class="chart-legend-text" x="10" y="28" font-size="9.5" fill="${C.boxSubText}">Error = 0.00°C at nodes; peaks at element midpoints.</text>
         </g>
       </svg>
     `;
