@@ -605,8 +605,13 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // Execute initial solves & loads
-  runThermalSolver();
+  // Execute initial solves & loads (Geometry tab active by default)
   loadSampleSTL();
   loadSampleAnsys();
+  runThermalSolver();
+  setTimeout(() => {
+    if (typeof CadViewer !== "undefined" && CadViewer.fitToView) {
+      CadViewer.fitToView();
+    }
+  }, 40);
 });

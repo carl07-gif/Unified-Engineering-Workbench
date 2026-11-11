@@ -34,10 +34,10 @@
 
     <!-- ─── Tab Navigation Bar ─── -->
     <nav class="tab-bar" role="tablist">
-      <button class="tab" role="tab" data-tab="geometry" aria-selected="false">
+      <button class="tab tab--active" role="tab" data-tab="geometry" aria-selected="true">
         <i class="ti ti-cube" aria-hidden="true"></i>Geometry &amp; ANSYS
       </button>
-      <button class="tab tab--active" role="tab" data-tab="thermal" aria-selected="true">
+      <button class="tab" role="tab" data-tab="thermal" aria-selected="false">
         <i class="ti ti-temperature" aria-hidden="true"></i>Thermal Analysis
       </button>
       <button class="tab" role="tab" data-tab="performance" aria-selected="false">
@@ -54,7 +54,7 @@
       <!-- ============================================================== -->
       <!-- TAB 1: GEOMETRY & ANSYS VISUALIZATION (TASK B)                -->
       <!-- ============================================================== -->
-      <section class="tab-panel" id="panel-geometry" hidden>
+      <section class="tab-panel tab-panel--active" id="panel-geometry">
         <div class="geometry-layout">
           <aside class="sidebar">
             <h3 class="sidebar-title">CAD / ANSYS Import</h3>
@@ -166,7 +166,7 @@
       <!-- ============================================================== -->
       <!-- TAB 2: THERMAL ANALYSIS (TASK C)                              -->
       <!-- ============================================================== -->
-      <section class="tab-panel tab-panel--active" id="panel-thermal">
+      <section class="tab-panel" id="panel-thermal" hidden>
         <div class="thermal-layout">
           <!-- Sidebar: Rod parameters -->
           <aside class="sidebar">
