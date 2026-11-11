@@ -144,7 +144,7 @@ const MulticoreViewController = (() => {
         <td style="font-size:11px; color:var(--color-text-secondary);">${r.repTimes.map(t => t.toFixed(1)).join(", ")}</td>
         <td><strong>${r.median.toFixed(2)} ms</strong></td>
         <td style="color:var(--color-accent); font-weight:600;">${r.speedup.toFixed(2)}x</td>
-        <td style="color:${r.efficiency > 0.8 ? "var(--color-success)" : "var(--color-warning)}; font-weight:600;">
+        <td style="color:${r.efficiency > 0.8 ? "var(--color-success)" : "var(--color-warning)"}; font-weight:600;">
           ${(r.efficiency * 100).toFixed(1)}%
         </td>
       `;

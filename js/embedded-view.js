@@ -185,7 +185,7 @@ const EmbeddedViewController = (() => {
         <div style="font-size:11px; color:var(--color-text-secondary); margin-bottom:4px;">
           ${d.role} &bull; <span style="font-family:var(--font-mono);">${d.hwId}</span>
         </div>
-        <div style="font-size:11px; color:${d.status === "timeout" ? "var(--color-danger)" : "var(--color-text-muted)};">
+        <div style="font-size:11px; color:${d.status === "timeout" ? "var(--color-danger)" : "var(--color-text-muted)"};">
           ${d.statusMsg}
         </div>
         <div class="dev-metrics">
