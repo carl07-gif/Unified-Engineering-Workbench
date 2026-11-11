@@ -11,6 +11,7 @@ const EmbeddedViewController = (() => {
       name: "STM32H743ZI Microcontroller",
       role: "Telemetry Supervisor & Safety Loop",
       hwId: "0483:374B",
+      image: "stm32h743zi_mcu.jpg",
       voltageDomain: "3.3V I/O",
       status: "connected", // "connected", "timeout", "disconnected"
       statusMsg: "Operating normally (480 MHz, RTOS tick 1 kHz)",
@@ -24,6 +25,7 @@ const EmbeddedViewController = (() => {
       name: "Xilinx Artix-7 XC7A100T FPGA",
       role: "Matrix & Mesh Compute Accelerator",
       hwId: "03FD:0008",
+      image: "artix7_fpga.jpg",
       voltageDomain: "1.8V VCCO / 1.0V VCCINT",
       status: "connected",
       statusMsg: "Bitstream verified (AXI4-Lite & SPI synchronized)",
@@ -37,6 +39,7 @@ const EmbeddedViewController = (() => {
       name: "FTDI FT2232H JTAG Debug Probe",
       role: "IEEE 1149.1 TAP Controller Master",
       hwId: "0403:6010",
+      image: "ft2232h_jtag.jpg",
       voltageDomain: "3.3V Target VREF Sensed",
       status: "connected",
       statusMsg: "TAP State: Run-Test/Idle (TCK 15.0 MHz)",
@@ -276,7 +279,7 @@ const EmbeddedViewController = (() => {
       card.innerHTML = `
         <div class="dev-card-header">
           <div style="display:flex; align-items:center; gap:10px;">
-            ${getDeviceThumbSvg(d.id)}
+            <img src="assets/devices/${d.image}" alt="${d.name}" class="dev-card-photo" onerror="this.style.display='none'" />
             <div>
               <div class="dev-name">${d.name}</div>
               <div style="font-size:10.5px; color:var(--color-text-secondary); margin-top:2px;">
