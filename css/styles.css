@@ -771,6 +771,64 @@ html, body {
   background: var(--color-success-bg);
   color: var(--color-success);
 }
+.agreement-badge--error {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+
+/* Performance KPI Stat Strip */
+.perf-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.perf-kpi-card {
+  background: var(--color-bg-inset);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+}
+.perf-kpi-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 3.5px;
+  height: 100%;
+  background: var(--color-accent);
+}
+.perf-kpi-card--green::before { background: var(--color-success); }
+.perf-kpi-card--orange::before { background: var(--color-chart-fem); }
+.perf-kpi-card--purple::before { background: #a855f7; }
+
+.perf-kpi-label {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.perf-kpi-val {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 3px 0 2px;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-primary);
+}
+.perf-kpi-sub {
+  font-size: 10.5px;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
 
 .table-container {
   overflow-x: auto;
@@ -797,37 +855,91 @@ html, body {
   border-bottom: 0.5px solid var(--color-border);
   font-variant-numeric: tabular-nums;
 }
+.data-table tr:hover td {
+  background: var(--color-bg-hover);
+}
 .data-table tr:last-child td { border-bottom: none; }
 
 .perf-charts-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
-  margin-top: 10px;
+  margin-top: 6px;
 }
 .perf-chart-card {
   background: var(--color-bg-inset);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   padding: 10px 14px;
 }
-.perf-chart-card h4 { font-size: 12.5px; font-weight: 600; margin-bottom: 8px; }
+.perf-chart-card h4 { font-size: 12px; font-weight: 600; margin-bottom: 6px; }
 
-.bar-chart-container {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+.perf-speedup-svg-wrap {
+  width: 100%;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-surface);
+  border: 0.5px solid var(--color-border);
+  padding: 4px;
 }
-.bar-row {
+
+.waterfall-thread-row {
   display: flex;
   align-items: center;
   gap: 8px;
+  margin-bottom: 8px;
+  font-size: 11px;
+}
+.waterfall-thread-name {
+  width: 60px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  font-size: 11px;
+}
+.waterfall-bar-track {
+  flex: 1;
+  height: 18px;
+  background: var(--color-bg-page);
+  border-radius: 3px;
+  overflow: hidden;
+  display: flex;
+  border: 0.5px solid var(--color-border);
+}
+.waterfall-chunk {
+  height: 100%;
+  transition: width 0.4s ease;
+}
+.waterfall-chunk--dispatch { background: rgba(56, 189, 248, 0.45); }
+.waterfall-chunk--compute { background: var(--color-accent); }
+.waterfall-chunk--sync { background: rgba(245, 158, 11, 0.5); }
+.waterfall-thread-stat {
+  width: 80px;
+  text-align: right;
+  font-family: monospace;
+  font-size: 10px;
+  color: var(--color-text-secondary);
+}
+
+.amdahl-analytical-card {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  background: var(--color-bg-inset);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  margin-top: 10px;
+}
+.amdahl-formula-box {
+  border-right: 0.5px solid var(--color-border);
+  padding-right: 12px;
+}
+.amdahl-stats-box {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
   font-size: 11.5px;
 }
-.bar-label { width: 70px; color: var(--color-text-secondary); }
-.bar-track { flex: 1; height: 16px; background: var(--color-border); border-radius: 3px; overflow: hidden; }
-.bar-fill { height: 100%; background: var(--color-accent); border-radius: 3px; transition: width 0.4s ease; }
-.bar-fill--speedup { background: var(--color-chart-fem); }
-.bar-val { width: 55px; font-weight: 600; text-align: right; }
 
 .hw-summary-box {
   background: var(--color-bg-inset);
