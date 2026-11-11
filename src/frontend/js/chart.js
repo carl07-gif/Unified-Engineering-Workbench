@@ -363,25 +363,22 @@ const ChartRenderer = (() => {
         <!-- Mesh polylines with staggered animated tracing -->
         ${meshPolylines}
 
-        <!-- Dynamic Multi-Mesh Legend with real computed errors -->
-        <g transform="translate(${plotL + 12}, ${plotT + 12})">
-          <rect x="0" y="0" width="186" height="122" rx="4" fill="${C.boxBg}" stroke="${C.boxBorder}" stroke-width="0.8" />
-          <text class="chart-legend-text" x="10" y="16" font-size="10.5" font-weight="700" fill="${C.boxTitle}">Mesh Convergence Series</text>
+        <!-- Dynamic Multi-Mesh Legend Bar (Clean Non-Overlapping Header at y=22) -->
+        <g transform="translate(${plotL + 10}, 22)">
+          <line x1="0" y1="0" x2="16" y2="0" stroke="${C.exactLine}" stroke-width="2.6" />
+          <text class="chart-legend-text" x="22" y="3.5" font-size="10.5" font-family="sans-serif" font-weight="700" fill="${C.legendText}">Exact</text>
 
-          <line x1="10" y1="32" x2="30" y2="32" stroke="${C.exactLine}" stroke-width="2.5" />
-          <text class="chart-legend-text" x="36" y="35" font-size="10" fill="${C.boxText}">Exact Analytical</text>
+          <line x1="72" y1="0" x2="88" y2="0" stroke="#10b981" stroke-width="2.2" />
+          <text class="chart-legend-text" x="94" y="3.5" font-size="10" font-family="sans-serif" font-weight="700" fill="#10b981">N=80 (${meshResults[3].err.toFixed(4)}°C)</text>
 
-          <line x1="10" y1="50" x2="30" y2="50" stroke="#10b981" stroke-width="2" />
-          <text class="chart-legend-text" x="36" y="53" font-size="10" fill="#10b981">N = 80 (e = ${meshResults[3].err.toFixed(4)} °C)</text>
+          <line x1="202" y1="0" x2="218" y2="0" stroke="#f59e0b" stroke-width="2.2" stroke-dasharray="3,2" />
+          <text class="chart-legend-text" x="224" y="3.5" font-size="10" font-family="sans-serif" font-weight="700" fill="#f59e0b">N=40 (${meshResults[2].err.toFixed(4)}°C)</text>
 
-          <line x1="10" y1="68" x2="30" y2="68" stroke="#f59e0b" stroke-width="2" stroke-dasharray="3,2" />
-          <text class="chart-legend-text" x="36" y="71" font-size="10" fill="#f59e0b">N = 40 (e = ${meshResults[2].err.toFixed(4)} °C)</text>
+          <line x1="332" y1="0" x2="348" y2="0" stroke="#f97316" stroke-width="2.2" stroke-dasharray="4,2" />
+          <text class="chart-legend-text" x="354" y="3.5" font-size="10" font-family="sans-serif" font-weight="700" fill="#f97316">N=20 (${meshResults[1].err.toFixed(4)}°C)</text>
 
-          <line x1="10" y1="86" x2="30" y2="86" stroke="#f97316" stroke-width="2" stroke-dasharray="4,2" />
-          <text class="chart-legend-text" x="36" y="89" font-size="10" fill="#f97316">N = 20 (e = ${meshResults[1].err.toFixed(4)} °C)</text>
-
-          <line x1="10" y1="104" x2="30" y2="104" stroke="#d946ef" stroke-width="2" stroke-dasharray="5,3" />
-          <text class="chart-legend-text" x="36" y="107" font-size="10" fill="#d946ef">N = 10 (e = ${meshResults[0].err.toFixed(4)} °C)</text>
+          <line x1="462" y1="0" x2="478" y2="0" stroke="#d946ef" stroke-width="2.2" stroke-dasharray="5,3" />
+          <text class="chart-legend-text" x="484" y="3.5" font-size="10" font-family="sans-serif" font-weight="700" fill="#d946ef">N=10 (${meshResults[0].err.toFixed(4)}°C)</text>
         </g>
       </svg>
     `;
@@ -489,14 +486,10 @@ const ChartRenderer = (() => {
         <!-- Data Nodes -->
         ${ptsSvg}
 
-        <!-- Asymptotic Verification Callout Card -->
-        <g transform="translate(${plotL + 16}, ${plotT + 14})">
-          <rect x="0" y="0" width="310" height="42" rx="4" fill="${C.isDark ? "rgba(16,185,129,0.15)" : "rgba(16,185,129,0.10)"}" stroke="${C.isDark ? "#10b981" : "#059669"}" stroke-width="1" />
-          <text class="chart-legend-text" x="12" y="18" font-size="11" font-family="sans-serif" font-weight="700" fill="${C.isDark ? "#10b981" : "#059669"}">
-            ✓ Asymptotic Rate: O(h²) Verified
-          </text>
-          <text class="chart-legend-text" x="12" y="32" font-size="10.5" font-family="monospace" fill="${C.boxSubText}">
-            Log-Log Slope = 2.000 | e_mid = q·h² / (8k)
+        <!-- Asymptotic Verification Callout (Clean Non-Overlapping Header at y=22) -->
+        <g transform="translate(${plotR - 330}, 22)">
+          <text class="chart-legend-text" x="330" y="2" font-size="11" font-family="sans-serif" font-weight="700" fill="${C.isDark ? "#10b981" : "#059669"}" text-anchor="end">
+            ✓ Asymptotic Rate: O(h²) Verified | Log-Log Slope = 2.000
           </text>
         </g>
       </svg>
@@ -580,11 +573,10 @@ const ChartRenderer = (() => {
           Theoretical e_mid = q·h² / (8k) = ${theoreticalMaxErr.toFixed(4)} °C
         </text>
 
-        <!-- Callout Banner -->
-        <g transform="translate(${plotL + 14}, ${plotT + 14})">
-          <rect x="0" y="0" width="280" height="36" rx="4" fill="${C.boxBg}" stroke="${C.boxBorder}" stroke-width="0.8" />
-          <text class="chart-legend-text" x="10" y="15" font-size="10" font-weight="700" fill="#f59e0b">Superconvergence Insight:</text>
-          <text class="chart-legend-text" x="10" y="28" font-size="9.5" fill="${C.boxSubText}">Error = 0.00°C at nodes; peaks at element midpoints.</text>
+        <!-- Callout Banner (Clean Non-Overlapping Header at y=22) -->
+        <g transform="translate(${plotL + 10}, 22)">
+          <text class="chart-legend-text" x="0" y="2" font-size="10.5" font-family="sans-serif" font-weight="700" fill="#f59e0b">Superconvergence Insight:</text>
+          <text class="chart-legend-text" x="145" y="2" font-size="10" font-family="sans-serif" fill="${C.boxSubText}">Error = 0.00°C at nodes; peaks at element midpoints.</text>
         </g>
       </svg>
     `;
