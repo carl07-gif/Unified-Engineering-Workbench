@@ -449,6 +449,12 @@ document.addEventListener("DOMContentLoaded", () => {
           ChartRenderer.draw();
         }
       }
+
+      // Redraw embedded block diagram with active theme colors
+      if (typeof EmbeddedViewController !== "undefined" && EmbeddedViewController.updateBlockDiagram) {
+        const selDev = document.getElementById("selHwDevice");
+        EmbeddedViewController.updateBlockDiagram(selDev ? selDev.value : "mcu");
+      }
     });
   }
 

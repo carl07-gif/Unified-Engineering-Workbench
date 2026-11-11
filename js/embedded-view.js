@@ -65,11 +65,11 @@ const EmbeddedViewController = (() => {
 
     if (btnConnect) {
       btnConnect.addEventListener("click", () => {
-        const id = selDev.value;
+        const id = selDev ? selDev.value : "mcu";
         const dev = devicesState.find(d => d.id === id);
         if (dev) {
           dev.status = "connected";
-          dev.statusMsg = "Connected and streaming telemetry.";
+          dev.statusMsg = "Connected and streaming telemetry (1 kHz).";
           renderDeviceCards();
         }
       });
@@ -77,7 +77,7 @@ const EmbeddedViewController = (() => {
 
     if (btnDisconnect) {
       btnDisconnect.addEventListener("click", () => {
-        const id = selDev.value;
+        const id = selDev ? selDev.value : "mcu";
         const dev = devicesState.find(d => d.id === id);
         if (dev) {
           dev.status = "disconnected";
@@ -89,7 +89,7 @@ const EmbeddedViewController = (() => {
 
     if (btnTimeout) {
       btnTimeout.addEventListener("click", () => {
-        const id = selDev.value;
+        const id = selDev ? selDev.value : "mcu";
         const dev = devicesState.find(d => d.id === id);
         if (dev) {
           dev.status = "timeout";
@@ -119,6 +119,24 @@ const EmbeddedViewController = (() => {
         renderDeviceCards();
       });
     }
+
+    if (selDev) {
+      selDev.addEventListener("change", () => {
+        renderDeviceCards();
+      });
+    }
+
+    // Interactive Diagram Node Clicking
+    const diagNodes = document.querySelectorAll(".diag-node-box");
+    diagNodes.forEach(node => {
+      node.addEventListener("click", () => {
+        const devId = node.dataset.dev;
+        if (devId && selDev) {
+          selDev.value = devId;
+          renderDeviceCards();
+        }
+      });
+    });
 
     // Subtab switching
     const btnDiagram = document.getElementById("btnSubtabDiagram");
@@ -161,10 +179,14 @@ const EmbeddedViewController = (() => {
     const grid = document.getElementById("deviceCardsGrid");
     if (!grid) return;
 
+    const selDev = document.getElementById("selHwDevice");
+    const activeId = selDev ? selDev.value : "mcu";
+
     grid.innerHTML = "";
     devicesState.forEach(d => {
+      const isSelected = d.id === activeId;
       const card = document.createElement("div");
-      card.className = `dev-card ${d.status === "timeout" ? "dev-card--timeout" : ""}`;
+      card.className = `dev-card ${d.status === "timeout" ? "dev-card--timeout" : ""} ${isSelected ? "dev-card--selected" : ""}`;
 
       let badgeClass = "dev-badge--ok";
       let badgeText = "ONLINE";
@@ -185,7 +207,7 @@ const EmbeddedViewController = (() => {
         <div style="font-size:11px; color:var(--color-text-secondary); margin-bottom:4px;">
           ${d.role} &bull; <span style="font-family:var(--font-mono);">${d.hwId}</span>
         </div>
-        <div style="font-size:11px; color:${d.status === "timeout" ? "var(--color-danger)" : "var(--color-text-muted)"};">
+        <div style="font-size:11px; color:${d.status === "timeout" ? "var(--color-danger)" : "var(--color-text-muted)"}; font-weight:${d.status === "timeout" ? "600" : "400"};">
           ${d.statusMsg}
         </div>
         <div class="dev-metrics">
@@ -195,10 +217,116 @@ const EmbeddedViewController = (() => {
           <div class="dev-metric-item">Packets: <strong>#${d.seq}</strong></div>
         </div>
       `;
+
+      card.addEventListener("click", () => {
+        if (selDev) {
+          selDev.value = d.id;
+          renderDeviceCards();
+        }
+      });
+
       grid.appendChild(card);
+    });
+
+    updateBlockDiagram(activeId);
+  }
+
+  function updateBlockDiagram(activeId) {
+    const isDark = (document.documentElement.getAttribute("data-mode") || "light") === "dark";
+
+    const configs = [
+      {
+        id: "jtag",
+        box: document.getElementById("diagBoxJtag"),
+        sub: document.getElementById("diagSubJtag"),
+        lines: [document.getElementById("diagUsbJtag"), document.getElementById("diagLineJtagIn"), document.getElementById("diagLineJtagOut")],
+        normalFill: isDark ? "#13253b" : "#f0f7fe",
+        normalStroke: "#3987e5",
+        normalSub: "ONLINE • USB 2.0 HS"
+      },
+      {
+        id: "mcu",
+        box: document.getElementById("diagBoxMcu"),
+        sub: document.getElementById("diagSubMcu"),
+        lines: [document.getElementById("diagUsbMcu"), document.getElementById("diagLineMcuIn"), document.getElementById("diagLineMcuOut")],
+        normalFill: isDark ? "#112b18" : "#f3fbf4",
+        normalStroke: "#0ca30c",
+        normalSub: "ONLINE • 3.3V Domain"
+      },
+      {
+        id: "fpga",
+        box: document.getElementById("diagBoxFpga"),
+        sub: document.getElementById("diagSubFpga"),
+        lines: [document.getElementById("diagUsbFpga"), document.getElementById("diagLineFpgaIn"), document.getElementById("diagLineFpgaOut")],
+        normalFill: isDark ? "#331f16" : "#fdf4f0",
+        normalStroke: "#d95926",
+        normalSub: "ONLINE • 1.8V VCCO"
+      }
+    ];
+
+    configs.forEach(cfg => {
+      const dev = devicesState.find(d => d.id === cfg.id);
+      if (!dev || !cfg.box) return;
+
+      const isSelected = cfg.id === activeId;
+      const gNode = cfg.box.parentElement;
+
+      if (dev.status === "timeout") {
+        cfg.box.setAttribute("fill", isDark ? "rgba(239, 68, 68, 0.2)" : "#fee2e2");
+        cfg.box.setAttribute("stroke", "#ef4444");
+        cfg.box.setAttribute("stroke-width", "2.4");
+        if (cfg.sub) {
+          cfg.sub.textContent = "TIMEOUT • Retrying...";
+          cfg.sub.setAttribute("fill", "#ef4444");
+        }
+        if (gNode) gNode.classList.add("diag-node-timeout");
+        cfg.lines.forEach(l => {
+          if (l) {
+            l.setAttribute("stroke", "#ef4444");
+            l.classList.remove("diag-flow-active");
+          }
+        });
+      } else if (dev.status === "disconnected") {
+        cfg.box.setAttribute("fill", isDark ? "#181820" : "#f1f5f9");
+        cfg.box.setAttribute("stroke", isDark ? "#374151" : "#cbd5e1");
+        cfg.box.setAttribute("stroke-width", "1.5");
+        if (cfg.sub) {
+          cfg.sub.textContent = "OFFLINE • Standby";
+          cfg.sub.setAttribute("fill", isDark ? "#9ca3af" : "#64748b");
+        }
+        if (gNode) {
+          gNode.classList.remove("diag-node-timeout");
+          gNode.classList.add("diag-node-offline");
+        }
+        cfg.lines.forEach(l => {
+          if (l) {
+            l.setAttribute("stroke", isDark ? "#374151" : "#cbd5e1");
+            l.classList.remove("diag-flow-active");
+          }
+        });
+      } else {
+        // Connected (Online)
+        cfg.box.setAttribute("fill", cfg.normalFill);
+        cfg.box.setAttribute("stroke", isSelected ? "var(--color-accent)" : cfg.normalStroke);
+        cfg.box.setAttribute("stroke-width", isSelected ? "2.5" : "1.8");
+        if (cfg.sub) {
+          cfg.sub.textContent = cfg.normalSub;
+          cfg.sub.setAttribute("fill", cfg.normalStroke);
+        }
+        if (gNode) {
+          gNode.classList.remove("diag-node-timeout");
+          gNode.classList.remove("diag-node-offline");
+        }
+        cfg.lines.forEach(l => {
+          if (l) {
+            l.setAttribute("stroke", cfg.normalStroke);
+            l.classList.add("diag-flow-active");
+          }
+        });
+      }
     });
   }
 
-  return { init };
+  return { init, updateBlockDiagram };
 })();
 

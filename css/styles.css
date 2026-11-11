@@ -933,13 +933,9 @@ html, body {
 }
 
 .perf-node-pop {
+  transform-origin: center;
   opacity: 0;
-  animation: perfNodeFade 0.35s ease-out forwards;
-}
-
-@keyframes perfNodeFade {
-  0% { opacity: 0; }
-  100% { opacity: 1; }
+  animation: nodePopIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
 @keyframes waterfallSweep {
@@ -1047,7 +1043,38 @@ html, body {
   flex-direction: column;
   gap: 6px;
 }
-.dev-card--timeout { border-color: var(--color-danger); }
+.dev-card--timeout { border-color: var(--color-danger); box-shadow: 0 0 10px rgba(239,68,68,0.25); }
+.dev-card--selected { border-color: var(--color-accent); box-shadow: 0 0 0 1.5px var(--color-accent); }
+.dev-card { cursor: pointer; transition: all 0.2s ease; }
+.dev-card:hover { border-color: var(--color-accent); }
+
+/* Embedded Block Diagram Live Telemetry Animation (Task E) */
+.diag-flow-active {
+  stroke-dasharray: 6 3;
+  animation: diagPacketFlow 1.2s linear infinite;
+}
+@keyframes diagPacketFlow {
+  from { stroke-dashoffset: 18; }
+  to { stroke-dashoffset: 0; }
+}
+
+.diag-node-box {
+  cursor: pointer;
+  transition: transform 0.2s ease, opacity 0.25s ease;
+}
+.diag-node-box:hover {
+  transform: translateY(-2px);
+}
+.diag-node-timeout {
+  animation: diagTimeoutPulse 1s infinite alternate ease-in-out;
+}
+@keyframes diagTimeoutPulse {
+  0% { stroke: #ef4444; stroke-width: 2px; }
+  100% { stroke: #b91c1c; stroke-width: 3.5px; }
+}
+.diag-node-offline {
+  opacity: 0.5;
+}
 .dev-card-header {
   display: flex;
   align-items: center;

@@ -572,16 +572,16 @@
             </select>
 
             <div style="display:flex; gap:6px; margin-bottom:12px;">
-              <button class="btn btn--secondary" id="btnConnectDev" style="flex:1;">Connect</button>
-              <button class="btn btn--ghost" id="btnDisconnectDev" style="flex:1;">Disconnect</button>
+              <button class="btn btn--primary" id="btnConnectDev" style="flex:1;"><i class="ti ti-plug"></i> Connect</button>
+              <button class="btn btn--danger-outline" id="btnDisconnectDev" style="flex:1;"><i class="ti ti-power"></i> Disconnect</button>
             </div>
 
             <h4 class="sidebar-title" style="margin-top:14px; font-size:12px;">Simulate Recoverable Fault</h4>
-            <button class="btn btn--danger-outline" id="btnInjectTimeout">
-              <i class="ti ti-alert-triangle"></i>Trigger Comm Timeout
+            <button class="btn btn--danger-outline" id="btnInjectTimeout" style="width:100%;">
+              <i class="ti ti-alert-triangle"></i> Trigger Comm Timeout
             </button>
-            <button class="btn btn--secondary" id="btnClearFault" style="margin-top:6px;">
-              <i class="ti ti-refresh"></i>Clear Fault &amp; Auto-Recover
+            <button class="btn btn--secondary" id="btnClearFault" style="margin-top:6px; width:100%;">
+              <i class="ti ti-refresh"></i> Clear Fault &amp; Auto-Recover
             </button>
 
             <div class="info-callout" style="margin-top:16px;">
@@ -608,72 +608,82 @@
               <!-- Block Diagram View -->
               <div class="subtab-content" id="subtabContentDiagram">
                 <div class="block-diagram-container">
-                  <svg viewBox="0 0 740 260" width="100%" height="auto" class="svg-diagram">
+                  <svg viewBox="0 0 740 260" width="100%" height="auto" class="svg-diagram" id="hwBlockDiagramSvg">
+                    <!-- Host PC (Win11) -->
                     <rect x="20" y="30" width="130" height="200" rx="8" fill="var(--color-bg-inset)"
                       stroke="var(--color-border-strong)" stroke-width="1.5" />
-                    <text x="85" y="60" text-anchor="middle" font-weight="600" fill="var(--color-text-primary)">Host PC
-                      (Win11)</text>
-                    <text x="85" y="80" text-anchor="middle" font-size="11" fill="var(--color-text-secondary)">Workbench
-                      Core</text>
-                    <rect x="40" y="105" width="90" height="26" rx="4" fill="var(--color-bg-surface)"
+                    <text x="85" y="60" text-anchor="middle" font-weight="700" font-size="12" fill="var(--color-text-primary)">Host PC (Win11)</text>
+                    <text x="85" y="78" text-anchor="middle" font-size="10.5" font-weight="500" fill="var(--color-text-secondary)">Workbench Core</text>
+                    <rect x="36" y="105" width="98" height="26" rx="4" fill="var(--color-bg-surface)"
                       stroke="var(--color-border)" />
-                    <text x="85" y="122" text-anchor="middle" font-size="11" fill="var(--color-accent)">USB Root
-                      Hub</text>
+                    <text x="85" y="122" text-anchor="middle" font-size="10.5" font-weight="600" fill="var(--color-accent)">USB Root Hub</text>
 
-                    <path d="M 130 118 L 220 70" stroke="var(--color-accent)" stroke-width="2" fill="none" />
-                    <path d="M 130 118 L 220 130" stroke="var(--color-accent)" stroke-width="2" fill="none" />
-                    <path d="M 130 118 L 220 190" stroke="var(--color-accent)" stroke-width="2" fill="none" />
+                    <!-- USB Links from Host to Devices -->
+                    <path id="diagUsbJtag" d="M 134 118 L 220 70" stroke="var(--color-accent)" stroke-width="2" fill="none" class="diag-flow-active" />
+                    <path id="diagUsbMcu" d="M 134 118 L 220 130" stroke="var(--color-accent)" stroke-width="2" fill="none" class="diag-flow-active" />
+                    <path id="diagUsbFpga" d="M 134 118 L 220 190" stroke="var(--color-accent)" stroke-width="2" fill="none" class="diag-flow-active" />
 
-                    <rect x="220" y="45" width="150" height="50" rx="6" fill="#f0f7fe" stroke="#3987e5"
-                      stroke-width="1.5" />
-                    <text x="295" y="68" text-anchor="middle" font-weight="600" font-size="12" fill="#0d366b">FT2232H
-                      JTAG Probe</text>
-                    <text x="295" y="84" text-anchor="middle" font-size="10" fill="#3987e5">USB 2.0 HS (480 Mbps)</text>
+                    <!-- Device 1: FT2232H JTAG Probe -->
+                    <g id="diagNodeJtag" class="diag-node-box" data-dev="jtag">
+                      <rect id="diagBoxJtag" x="220" y="45" width="150" height="50" rx="6" fill="#f0f7fe" stroke="#3987e5"
+                        stroke-width="1.8" />
+                      <text x="295" y="67" text-anchor="middle" font-weight="700" font-size="11.5" fill="#0d366b">FT2232H JTAG Probe</text>
+                      <text id="diagSubJtag" x="295" y="83" text-anchor="middle" font-size="10" font-weight="600" fill="#3987e5">ONLINE • USB 2.0 HS</text>
+                    </g>
 
-                    <rect x="220" y="105" width="150" height="50" rx="6" fill="#f3fbf4" stroke="#0ca30c"
-                      stroke-width="1.5" />
-                    <text x="295" y="128" text-anchor="middle" font-weight="600" font-size="12"
-                      fill="#074506">STM32H743ZI MCU</text>
-                    <text x="295" y="144" text-anchor="middle" font-size="10" fill="#0ca30c">USB-CDC (3.3V
-                      Domain)</text>
+                    <!-- Device 2: STM32H743ZI MCU -->
+                    <g id="diagNodeMcu" class="diag-node-box" data-dev="mcu">
+                      <rect id="diagBoxMcu" x="220" y="105" width="150" height="50" rx="6" fill="#f3fbf4" stroke="#0ca30c"
+                        stroke-width="1.8" />
+                      <text x="295" y="127" text-anchor="middle" font-weight="700" font-size="11.5" fill="#074506">STM32H743ZI MCU</text>
+                      <text id="diagSubMcu" x="295" y="143" text-anchor="middle" font-size="10" font-weight="600" fill="#0ca30c">ONLINE • 3.3V Domain</text>
+                    </g>
 
-                    <rect x="220" y="165" width="150" height="50" rx="6" fill="#fdf4f0" stroke="#d95926"
-                      stroke-width="1.5" />
-                    <text x="295" y="188" text-anchor="middle" font-weight="600" font-size="12" fill="#5d230b">Artix-7
-                      XC7A100T FPGA</text>
-                    <text x="295" y="204" text-anchor="middle" font-size="10" fill="#d95926">1.8V VCCO / 1.0V
-                      VCCINT</text>
+                    <!-- Device 3: Artix-7 FPGA -->
+                    <g id="diagNodeFpga" class="diag-node-box" data-dev="fpga">
+                      <rect id="diagBoxFpga" x="220" y="165" width="150" height="50" rx="6" fill="#fdf4f0" stroke="#d95926"
+                        stroke-width="1.8" />
+                      <text x="295" y="187" text-anchor="middle" font-weight="700" font-size="11.5" fill="#5d230b">Artix-7 XC7A100T FPGA</text>
+                      <text id="diagSubFpga" x="295" y="203" text-anchor="middle" font-size="10" font-weight="600" fill="#d95926">ONLINE • 1.8V VCCO</text>
+                    </g>
 
+                    <!-- Bidirectional Level Shifter TXB0108 -->
                     <rect x="420" y="45" width="110" height="170" rx="6" fill="var(--color-bg-inset)"
-                      stroke="var(--color-border-strong)" stroke-dasharray="4 2" />
-                    <text x="475" y="70" text-anchor="middle" font-weight="600" font-size="11"
-                      fill="var(--color-text-secondary)">Bidirectional</text>
-                    <text x="475" y="85" text-anchor="middle" font-weight="600" font-size="11"
-                      fill="var(--color-text-secondary)">Level Shifter</text>
-                    <text x="475" y="105" text-anchor="middle" font-size="10"
-                      fill="var(--color-text-muted)">TXB0108</text>
-                    <text x="475" y="120" text-anchor="middle" font-size="10" fill="var(--color-text-muted)">(1.8V
-                      &harr; 3.3V)</text>
+                      stroke="var(--color-border-strong)" stroke-width="1.2" stroke-dasharray="4 2" />
+                    <text x="475" y="70" text-anchor="middle" font-weight="700" font-size="11"
+                      fill="var(--color-text-primary)">Bidirectional</text>
+                    <text x="475" y="86" text-anchor="middle" font-weight="700" font-size="11"
+                      fill="var(--color-text-primary)">Level Shifter</text>
+                    <text x="475" y="108" text-anchor="middle" font-weight="600" font-size="10"
+                      fill="var(--color-accent)">TXB0108</text>
+                    <text x="475" y="124" text-anchor="middle" font-size="10" font-weight="500" fill="var(--color-text-secondary)">(1.8V &harr; 3.3V)</text>
 
-                    <path d="M 370 70 L 420 70" stroke="#3987e5" stroke-width="1.5" fill="none" />
-                    <path d="M 530 70 L 590 120" stroke="#3987e5" stroke-width="1.5" stroke-dasharray="3 3"
-                      fill="none" />
-                    <path d="M 530 180 L 590 180" stroke="#3987e5" stroke-width="1.5" stroke-dasharray="3 3"
-                      fill="none" />
+                    <!-- Connections from Devices into Level Shifter -->
+                    <path id="diagLineJtagIn" d="M 370 70 L 420 70" stroke="#3987e5" stroke-width="1.8" fill="none" class="diag-flow-active" />
+                    <path id="diagLineMcuIn" d="M 370 130 L 420 130" stroke="#0ca30c" stroke-width="1.8" fill="none" class="diag-flow-active" />
+                    <path id="diagLineFpgaIn" d="M 370 190 L 420 190" stroke="#d95926" stroke-width="1.8" fill="none" class="diag-flow-active" />
 
-                    <path d="M 370 130 L 420 130" stroke="#0ca30c" stroke-width="1.5" fill="none" />
-                    <path d="M 530 130 L 590 140" stroke="#0ca30c" stroke-width="1.5" fill="none" />
-                    <text x="560" y="125" font-size="9" fill="var(--color-text-muted)">SPI/UART</text>
+                    <!-- Connections from Level Shifter out to Target Hardware -->
+                    <path id="diagLineJtagOut" d="M 530 70 L 590 120" stroke="#3987e5" stroke-width="1.8" stroke-dasharray="3 3"
+                      fill="none" class="diag-flow-active" />
+                    <path id="diagLineMcuOut" d="M 530 130 L 590 145" stroke="#0ca30c" stroke-width="1.8" fill="none" class="diag-flow-active" />
+                    <path id="diagLineFpgaOut" d="M 530 190 L 590 180" stroke="#d95926" stroke-width="1.8" stroke-dasharray="3 3"
+                      fill="none" class="diag-flow-active" />
 
-                    <rect x="590" y="100" width="130" height="110" rx="6" fill="var(--color-bg-surface)"
-                      stroke="var(--color-border-strong)" />
-                    <text x="655" y="125" text-anchor="middle" font-weight="600" font-size="11"
+                    <!-- Clean Tag Badge for Bus Protocol -->
+                    <g transform="translate(542, 116)">
+                      <rect x="0" y="0" width="44" height="15" rx="3" fill="var(--color-bg-surface)" stroke="var(--color-border)" stroke-width="0.8" />
+                      <text x="22" y="11" text-anchor="middle" font-size="9" font-weight="700" fill="var(--color-text-primary)">SPI/UART</text>
+                    </g>
+
+                    <!-- Target Hardware -->
+                    <rect x="590" y="95" width="132" height="118" rx="6" fill="var(--color-bg-surface)"
+                      stroke="var(--color-border-strong)" stroke-width="1.5" />
+                    <text x="656" y="120" text-anchor="middle" font-weight="700" font-size="11.5"
                       fill="var(--color-text-primary)">Target Hardware</text>
-                    <text x="655" y="145" text-anchor="middle" font-size="10" fill="var(--color-text-secondary)">JTAG
-                      TAP Daisy Chain</text>
-                    <text x="655" y="165" text-anchor="middle" font-size="10" fill="var(--color-text-secondary)">TCK,
-                      TMS, TDI, TDO</text>
-                    <text x="655" y="185" text-anchor="middle" font-size="10" fill="#0ca30c">Common GND Bus</text>
+                    <text x="656" y="140" text-anchor="middle" font-size="10" font-weight="500" fill="var(--color-text-secondary)">JTAG TAP Daisy Chain</text>
+                    <text x="656" y="160" text-anchor="middle" font-size="10" font-family="monospace" fill="var(--color-text-secondary)">TCK, TMS, TDI, TDO</text>
+                    <text x="656" y="180" text-anchor="middle" font-size="10" font-weight="700" fill="#0ca30c">Common GND Bus</text>
                   </svg>
                 </div>
               </div>
