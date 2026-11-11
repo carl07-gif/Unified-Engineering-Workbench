@@ -235,7 +235,8 @@ document.addEventListener("DOMContentLoaded", () => {
     };
   }
 
-  function runThermalSolver() {
+  function runThermalSolver(e) {
+    if (e && e.preventDefault) e.preventDefault();
     const check = validateThermalParams();
 
     if (!check.valid) {
@@ -259,47 +260,79 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (btnSolve) {
       btnSolve.classList.add("btn--running");
-      btnSolve.innerHTML = `<i class="ti ti-loader" style="animation: spin 1s linear infinite;"></i> Solving…`;
+      btnSolve.innerHTML = `<i class="ti ti-loader animate-spin" aria-hidden="true"></i> Solving FEA…`;
     }
-    if (statusText) statusText.textContent = `Assembling and solving 1D FEA rod with N = ${params.N} elements…`;
+    if (statusText) statusText.textContent = `Assembling global stiffness matrix K and load vector F (N = ${params.N} elements)…`;
     if (statusState) statusState.textContent = "Solving";
-    if (progressFill) progressFill.style.width = "40%";
+    if (progressFill) {
+      progressFill.style.width = "45%";
+      progressFill.style.backgroundColor = "var(--color-accent)";
+    }
 
     setTimeout(() => {
-      // 1. Solve chosen N
-      const femRes = FEMSolver.solve(params);
+      try {
+        // 1. Solve chosen N
+        const femRes = FEMSolver.solve(params);
 
-      // 2. Generate exact comparison curve
-      const exact = FEMSolver.exactCurve(params.L, params.k, params.q, params.T0, params.TL);
+        // 2. Generate exact comparison curve
+        const exact = FEMSolver.exactCurve(params.L, params.k, params.q, params.T0, params.TL);
 
-      // 3. Render SVG Chart
-      ChartRenderer.draw(exact, femRes, params.N, params);
+        // 3. Render SVG Chart
+        ChartRenderer.draw(exact, femRes, params.N, params);
 
-      // 4. Run convergence study across [10, 20, 40, 80]
-      const study = FEMSolver.convergenceStudy(params, [10, 20, 40, 80]);
-      renderConvergenceCards(study, params.N);
+        // Visual flash on chart wrapper to confirm solve executed
+        const chartWrapper = document.getElementById("chartSvgWrapper");
+        if (chartWrapper) {
+          chartWrapper.classList.remove("chart-recomputed");
+          void chartWrapper.offsetWidth;
+          chartWrapper.classList.add("chart-recomputed");
+        }
 
-      lastSolveResult = femRes;
-      lastParams = params;
+        // 4. Run convergence study across [10, 20, 40, 80]
+        const study = FEMSolver.convergenceStudy(params, [10, 20, 40, 80]);
+        renderConvergenceCards(study, params.N);
 
-      if (progressFill) progressFill.style.width = "100%";
-      if (statusIcon) {
-        statusIcon.className = "ti ti-circle-check status-bar-icon";
-        statusIcon.style.color = "var(--color-success)";
+        lastSolveResult = femRes;
+        lastParams = params;
+
+        if (progressFill) {
+          progressFill.style.width = "100%";
+          progressFill.style.backgroundColor = "var(--color-success)";
+        }
+        if (statusIcon) {
+          statusIcon.className = "ti ti-circle-check status-bar-icon";
+          statusIcon.style.color = "var(--color-success)";
+        }
+        if (statusText) {
+          const errVal = (femRes.max_midpoint_error != null && !isNaN(femRes.max_midpoint_error))
+            ? femRes.max_midpoint_error.toFixed(4)
+            : (study && study.length ? study[study.length - 1].maxErr.toFixed(4) : "0.0195");
+          statusText.textContent = `Solved ${params.N} elements in ${femRes.solveTimeMs.toFixed(2)} ms (Max midpoint error: ${errVal} °C)`;
+        }
+        if (statusState) statusState.textContent = "Ready";
+
+        // Distinct success state on button
+        if (btnSolve) {
+          btnSolve.classList.remove("btn--running");
+          btnSolve.classList.add("btn--success");
+          btnSolve.innerHTML = `<i class="ti ti-check" aria-hidden="true"></i> Solved!`;
+          setTimeout(() => {
+            btnSolve.classList.remove("btn--success");
+            btnSolve.innerHTML = `<i class="ti ti-player-play" aria-hidden="true"></i>Run solver`;
+          }, 600);
+        }
+      } catch (err) {
+        console.error("Solver error:", err);
+        if (paramErrorBox) {
+          paramErrorBox.hidden = false;
+          paramErrorBox.innerHTML = `<i class="ti ti-alert-triangle"></i> Solver error: ${err.message || err}`;
+        }
+        if (btnSolve) {
+          btnSolve.classList.remove("btn--running");
+          btnSolve.innerHTML = `<i class="ti ti-player-play" aria-hidden="true"></i>Run solver`;
+        }
       }
-      if (statusText) {
-        const errVal = (femRes.max_midpoint_error != null && !isNaN(femRes.max_midpoint_error))
-          ? femRes.max_midpoint_error.toFixed(4)
-          : (study && study.length ? study[study.length - 1].maxErr.toFixed(4) : "0.0195");
-        statusText.textContent = `Solved ${params.N} elements in ${femRes.solveTimeMs.toFixed(2)} ms (Max midpoint error: ${errVal} °C)`;
-      }
-      if (statusState) statusState.textContent = "Ready";
-
-      if (btnSolve) {
-        btnSolve.classList.remove("btn--running");
-        btnSolve.innerHTML = `<i class="ti ti-player-play" aria-hidden="true"></i>Run solver`;
-      }
-    }, 20);
+    }, 180);
   }
 
   function renderConvergenceCards(study, activeN) {
