@@ -168,6 +168,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // 1. Initialize Subsystems safely
   try {
     ChartRenderer.init(document.getElementById("chartSvgWrapper"));
+    ChartRenderer.draw();
   } catch (e) {
     console.error("ChartRenderer init error:", e);
   }
@@ -277,6 +278,11 @@ document.addEventListener("DOMContentLoaded", () => {
         // 3. Render SVG Chart
         ChartRenderer.draw(exact, femRes, params.N, params);
 
+        // 4. Update 3D CadViewer Viewport & Rod Thermal Field
+        if (typeof CadViewer !== "undefined" && CadViewer.updateThermalParams) {
+          CadViewer.updateThermalParams(params);
+        }
+
         // Visual flash on chart wrapper to confirm solve executed
         const chartWrapper = document.getElementById("chartSvgWrapper");
         if (chartWrapper) {
@@ -285,7 +291,7 @@ document.addEventListener("DOMContentLoaded", () => {
           chartWrapper.classList.add("chart-recomputed");
         }
 
-        // 4. Run convergence study across [10, 20, 40, 80]
+        // 5. Run convergence study across [10, 20, 40, 80]
         const study = FEMSolver.convergenceStudy(params, [10, 20, 40, 80]);
         renderConvergenceCards(study, params.N);
 

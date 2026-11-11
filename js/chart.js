@@ -144,7 +144,7 @@ const ChartRenderer = (() => {
       const yPos = py(yVal);
       gridSvg += `
         <line x1="${plotL}" y1="${yPos.toFixed(1)}" x2="${plotR}" y2="${yPos.toFixed(1)}" stroke="${C.gridLineMajor}" stroke-width="0.75" />
-        <text x="${plotL - 10}" y="${(yPos + 4).toFixed(1)}" text-anchor="end" font-size="11" font-family="monospace" font-weight="${C.isDark ? "400" : "600"}" fill="${C.tickText}">${yVal}</text>
+        <text class="chart-tick-text" x="${plotL - 10}" y="${(yPos + 4).toFixed(1)}" text-anchor="end" font-size="11" font-family="monospace" font-weight="${C.isDark ? "400" : "600"}" fill="${C.tickText}">${yVal}</text>
       `;
     });
 
@@ -153,7 +153,7 @@ const ChartRenderer = (() => {
       const xPos = px(xVal);
       gridSvg += `
         <line x1="${xPos.toFixed(1)}" y1="${plotT}" x2="${xPos.toFixed(1)}" y2="${plotB}" stroke="${C.gridLineMinor}" stroke-width="0.75" stroke-dasharray="3,3" />
-        <text x="${xPos.toFixed(1)}" y="${plotB + 20}" text-anchor="middle" font-size="11" font-family="monospace" font-weight="${C.isDark ? "400" : "600"}" fill="${C.tickText}">${xVal.toFixed(2)}</text>
+        <text class="chart-tick-text" x="${xPos.toFixed(1)}" y="${plotB + 20}" text-anchor="middle" font-size="11" font-family="monospace" font-weight="${C.isDark ? "400" : "600"}" fill="${C.tickText}">${xVal.toFixed(2)}</text>
       `;
     });
 
@@ -163,7 +163,7 @@ const ChartRenderer = (() => {
     // FEM Polyline (piecewise linear finite element solution)
     const femPts = currentFem.x.map((x, i) => `${px(x).toFixed(1)},${py(currentFem.T[i]).toFixed(1)}`).join(" ");
 
-    // Full nodal markers (matching assignment PDF exactly)
+    // Full nodal markers (matching assignment PDF exactly with sequential pop-in)
     const totalNodes = currentFem.x.length;
     let nodesSvg = "";
     const dotR = currentN <= 20 ? 3.5 : (currentN <= 40 ? 2.8 : (currentN <= 80 ? 2.2 : 1.6));
@@ -171,7 +171,8 @@ const ChartRenderer = (() => {
     for (let i = 0; i < totalNodes; i++) {
       const nx = px(currentFem.x[i]).toFixed(1);
       const ny = py(currentFem.T[i]).toFixed(1);
-      nodesSvg += `<circle cx="${nx}" cy="${ny}" r="${dotR}" fill="${C.femLine}" stroke="#ffffff" stroke-width="0.6" />`;
+      const delay = ((i / totalNodes) * 0.45).toFixed(3);
+      nodesSvg += `<circle class="fea-node-marker" style="animation-delay:${delay}s;" cx="${nx}" cy="${ny}" r="${dotR}" fill="${C.femLine}" stroke="#ffffff" stroke-width="0.6" />`;
     }
 
     return `
@@ -193,29 +194,29 @@ const ChartRenderer = (() => {
         ${gridSvg}
 
         <!-- Axis Titles -->
-        <text x="${plotL + plotW / 2}" y="348" font-size="12" font-family="sans-serif" font-weight="700" fill="${C.axisTitle}" text-anchor="middle">
+        <text class="chart-axis-title" x="${plotL + plotW / 2}" y="348" font-size="12" font-family="sans-serif" font-weight="700" fill="${C.axisTitle}" text-anchor="middle">
           Position along rod x (m)
         </text>
-        <text x="22" y="${plotT + plotH / 2}" font-size="12" font-family="sans-serif" font-weight="700" fill="${C.axisTitle}" text-anchor="middle" transform="rotate(-90 22 ${plotT + plotH / 2})">
+        <text class="chart-axis-title" x="22" y="${plotT + plotH / 2}" font-size="12" font-family="sans-serif" font-weight="700" fill="${C.axisTitle}" text-anchor="middle" transform="rotate(-90 22 ${plotT + plotH / 2})">
           Temperature (°C)
         </text>
 
-        <!-- Exact Analytical Polyline -->
-        <polyline fill="none" stroke="${C.exactLine}" stroke-width="2.6" stroke-linejoin="round" points="${exactPts}" filter="url(#cyanGlow)" />
+        <!-- Exact Analytical Polyline (Animated Dynamic Tracing) -->
+        <polyline class="curve-trace-exact" fill="none" stroke="${C.exactLine}" stroke-width="2.6" stroke-linejoin="round" points="${exactPts}" filter="url(#cyanGlow)" />
 
-        <!-- FEM Piecewise-Linear Polyline -->
-        <polyline fill="none" stroke="${C.femLine}" stroke-width="1.8" stroke-dasharray="4,2" stroke-linejoin="round" points="${femPts}" />
+        <!-- FEM Piecewise-Linear Polyline (Animated Dynamic Tracing) -->
+        <polyline class="curve-trace-fem" fill="none" stroke="${C.femLine}" stroke-width="1.8" stroke-dasharray="4,2" stroke-linejoin="round" points="${femPts}" />
 
-        <!-- FEM Nodal Markers -->
+        <!-- FEM Nodal Markers (Staggered Sequential Pop-in) -->
         ${nodesSvg}
 
         <!-- Top-Right Legend (Clean, Non-Intersecting, matching Assignment PDF exactly) -->
         <g transform="translate(${plotR - 225}, 22)">
           <line x1="0" y1="0" x2="22" y2="0" stroke="${C.exactLine}" stroke-width="2.5" />
-          <text x="28" y="4" font-size="11" font-family="sans-serif" font-weight="700" fill="${C.legendText}">Exact Analytical</text>
+          <text class="chart-legend-text" x="28" y="4" font-size="11" font-family="sans-serif" font-weight="700" fill="${C.legendText}">Exact Analytical</text>
 
           <circle cx="145" cy="0" r="3.5" fill="${C.femLine}" stroke="#ffffff" stroke-width="0.5" />
-          <text x="154" y="4" font-size="11" font-family="sans-serif" font-weight="700" fill="${C.legendText}">FEM (N=${currentN})</text>
+          <text class="chart-legend-text" x="154" y="4" font-size="11" font-family="sans-serif" font-weight="700" fill="${C.legendText}">FEM (N=${currentN})</text>
         </g>
 
         <!-- Dynamic Crosshair Hairline (driven by JS, hidden until hover) -->

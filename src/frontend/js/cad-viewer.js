@@ -38,13 +38,14 @@ const CadViewer = (() => {
   let hoveredNode = null;
   let nodeTooltip, nodeTooltipBody;
 
-  // Geometry dimensions for uniform rod: L = 1.0 m, A = 1e-4 m²
-  const ROD_L = 1.0;
-  const ROD_W = 0.05;              // Cross-section width
-  const ROD_H = 0.05;              // Cross-section height
+  // Dynamic geometry dimensions for uniform rod
+  let ROD_L = 1.0;
+  let ROD_W = 0.05;              // Cross-section width
+  let ROD_H = 0.05;              // Cross-section height
   const ROD_RADIUS = 0.028;        // Equivalent cylinder radius
-  const NUM_SEGMENTS = 40;         // Longitudinal FEA elements
+  let NUM_SEGMENTS = 40;         // Longitudinal FEA elements
   const CYL_SLICES = 32;           // Cylinder angular discretization
+  let currentThermalParams = null;
 
   // Animation state
   let animFrameId = null;
@@ -225,6 +226,12 @@ const CadViewer = (() => {
   }
 
   function tempAtX(x) {
+    if (currentThermalParams) {
+      const { L, k, q, T0, TL } = currentThermalParams;
+      if (L > 0 && k > 0) {
+        return T0 + (TL - T0) * (x / L) + (q / (2.0 * k)) * x * (L - x);
+      }
+    }
     if (ansysNodes.length > 0) {
       let closest = ansysNodes[0];
       let minD = Math.abs(ansysNodes[0].x - x);
@@ -1344,6 +1351,74 @@ const CadViewer = (() => {
     showShadow = enable;
   }
 
+  /* Dynamically update 3D thermal rod geometry & contour field from 1D FEA parameters */
+  function updateThermalParams(params) {
+    if (!params) return;
+    currentThermalParams = { ...params };
+    ROD_L = params.L > 0 ? params.L : 1.0;
+    NUM_SEGMENTS = Math.min(Math.max(params.N || 40, 10), 100);
+
+    const L = ROD_L;
+    const k = params.k || 10.0;
+    const q = params.q != null ? params.q : 10000.0;
+    const T0 = params.T0 != null ? params.T0 : 100.0;
+    const TL = params.TL != null ? params.TL : 20.0;
+    const N = params.N || 80;
+
+    // Peak temperature location for steady-state 1D with uniform source
+    // dT/dx = (TL - T0)/L + (q/(2k))*(L - 2x) = 0
+    // => x_peak = L/2 + k*(TL - T0)/(q*L)
+    let xPeak = L / 2;
+    if (q > 0 && k > 0) {
+      xPeak = L / 2 + (k * (TL - T0)) / (q * L);
+      xPeak = Math.max(0, Math.min(L, xPeak));
+    }
+
+    const tPeak = T0 + (TL - T0) * (xPeak / L) + (q / (2 * k)) * xPeak * (L - xPeak);
+    const tMin = Math.min(T0, TL);
+    const tMax = Math.max(T0, TL, tPeak);
+
+    minTemp = tMin;
+    maxTemp = tMax;
+
+    // Generate accurate 3D node representation
+    const nodes = [];
+    const yOffsets = [-0.025, 0.025];
+    const zOffsets = [-0.025, 0.025];
+    let id = 1;
+    let minN = null;
+    let maxN = null;
+
+    const sampleCount = Math.min(N, 60);
+    for (let i = 0; i <= sampleCount; i++) {
+      const x = (i / sampleCount) * L;
+      const T = T0 + (TL - T0) * (x / L) + (q / (2 * k)) * x * (L - x);
+      for (const y of yOffsets) {
+        for (const z of zOffsets) {
+          const nObj = { id: id++, x, y, z, T };
+          if (!minN || T < minN.T) minN = nObj;
+          if (!maxN || T > maxN.T) maxN = nObj;
+          nodes.push(nObj);
+        }
+      }
+    }
+
+    ansysNodes = nodes;
+    minTempNode = minN;
+    maxTempNode = maxN;
+
+    const legMin = document.getElementById("legendMin");
+    const legMid = document.getElementById("legendMid");
+    const legMax = document.getElementById("legendMax");
+    if (legMin && legMid && legMax) {
+      legMin.textContent = `${minTemp.toFixed(1)} °C`;
+      legMid.textContent = `${((minTemp + maxTemp) / 2).toFixed(1)} °C`;
+      legMax.textContent = `${maxTemp.toFixed(1)} °C`;
+    }
+
+    render();
+  }
+
   return {
     init,
     loadSTLString,
@@ -1357,6 +1432,7 @@ const CadViewer = (() => {
     setContourStyle,
     setWireframe,
     setProbes,
-    setShadow
+    setShadow,
+    updateThermalParams
   };
 })();

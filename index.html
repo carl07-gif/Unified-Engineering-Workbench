@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en" data-mode="dark">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +8,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.42.0/dist/tabler-icons.min.css">
   <link rel="stylesheet" href="css/styles.css">
 </head>
+
 <body>
   <div class="app-shell">
     <!-- ─── Top Chrome Header ─── -->
@@ -56,7 +58,7 @@
         <div class="geometry-layout">
           <aside class="sidebar">
             <h3 class="sidebar-title">CAD / ANSYS Import</h3>
-            
+
             <p class="section-subtitle">1. ASCII STL Geometry</p>
             <div class="file-upload-box">
               <input type="file" id="stlFileInput" accept=".stl" style="display:none;">
@@ -67,7 +69,8 @@
                 <i class="ti ti-file-code"></i>Sample Heat Sink STL
               </button>
             </div>
-            <div class="file-meta" id="stlMeta"><i class="ti ti-check" style="color:var(--color-success)"></i> sample_geometry.stl (12 triangles)</div>
+            <div class="file-meta" id="stlMeta"><i class="ti ti-check" style="color:var(--color-success)"></i>
+              sample_geometry.stl (12 triangles)</div>
 
             <p class="section-subtitle" style="margin-top:14px;">2. ANSYS Nodal Temps (CSV)</p>
             <div class="file-upload-box">
@@ -79,7 +82,8 @@
                 <i class="ti ti-file-spreadsheet"></i>Sample ANSYS CSV
               </button>
             </div>
-            <div class="file-meta" id="ansysMeta"><i class="ti ti-check" style="color:var(--color-success)"></i> sample_ansys_nodal_temps.csv (44 nodes)</div>
+            <div class="file-meta" id="ansysMeta"><i class="ti ti-check" style="color:var(--color-success)"></i>
+              sample_ansys_nodal_temps.csv (44 nodes)</div>
 
             <p class="section-subtitle" style="margin-top:14px;">3D View Controls</p>
             <button class="btn btn--secondary" id="btnResetCamera">
@@ -125,7 +129,7 @@
 
           <div class="main-content" style="position:relative; padding:0; overflow:hidden;">
             <canvas id="cad3DCanvas" class="cad-3d-canvas"></canvas>
-            
+
             <!-- ANSYS Temperature Colormap Legend -->
             <div class="temperature-legend" id="tempLegend">
               <span class="legend-title">ANSYS Contour (°C)</span>
@@ -152,7 +156,8 @@
             </div>
 
             <div class="viewport-controls-hint">
-              <span><i class="ti ti-mouse"></i> Left-click: Orbit 3D | Right-click: Pan | Scroll: Zoom | Hover: Inspect Node</span>
+              <span><i class="ti ti-mouse"></i> Left-click: Orbit 3D | Right-click: Pan | Scroll: Zoom | Hover: Inspect
+                Node</span>
             </div>
           </div>
         </div>
@@ -205,7 +210,9 @@
             </button>
 
             <div class="info-callout" style="margin-top:14px;">
-              <strong>Assumptions:</strong> Steady-state 1D heat conduction &minus;<em>d</em>/<em>dx</em>(<em>kA dT</em>/<em>dx</em>) = <em>qA</em>, insulated lateral boundaries, uniform thermal properties, Dirichlet BCs at <em>x</em> = 0, <em>L</em>.
+              <strong>Assumptions:</strong> Steady-state 1D heat conduction &minus;<em>d</em>/<em>dx</em>(<em>kA
+                dT</em>/<em>dx</em>) = <em>qA</em>, insulated lateral boundaries, uniform thermal properties, Dirichlet
+              BCs at <em>x</em> = 0, <em>L</em>.
             </div>
           </aside>
 
@@ -256,18 +263,26 @@
                   <text x="57" y="192.0" text-anchor="end" font-size="11" fill="var(--color-text-secondary)">0</text>
                 </g>
                 <g font-family="var(--font-sans)">
-                  <text x="65.0" y="204.0" text-anchor="middle" font-size="11" fill="var(--color-text-secondary)">0.00</text>
-                  <text x="177.5" y="204.0" text-anchor="middle" font-size="11" fill="var(--color-text-secondary)">0.25</text>
-                  <text x="290.0" y="204.0" text-anchor="middle" font-size="11" fill="var(--color-text-secondary)">0.50</text>
-                  <text x="402.5" y="204.0" text-anchor="middle" font-size="11" fill="var(--color-text-secondary)">0.75</text>
-                  <text x="515.0" y="204.0" text-anchor="middle" font-size="11" fill="var(--color-text-secondary)">1.00</text>
+                  <text x="65.0" y="204.0" text-anchor="middle" font-size="11"
+                    fill="var(--color-text-secondary)">0.00</text>
+                  <text x="177.5" y="204.0" text-anchor="middle" font-size="11"
+                    fill="var(--color-text-secondary)">0.25</text>
+                  <text x="290.0" y="204.0" text-anchor="middle" font-size="11"
+                    fill="var(--color-text-secondary)">0.50</text>
+                  <text x="402.5" y="204.0" text-anchor="middle" font-size="11"
+                    fill="var(--color-text-secondary)">0.75</text>
+                  <text x="515.0" y="204.0" text-anchor="middle" font-size="11"
+                    fill="var(--color-text-secondary)">1.00</text>
                 </g>
-                <text x="290" y="224" font-size="11.5" fill="var(--color-text-secondary)" text-anchor="middle" font-weight="500">Position along rod x (m)</text>
-                <text x="14" y="110" font-size="11.5" fill="var(--color-text-secondary)" text-anchor="middle" font-weight="500" transform="rotate(-90 14 110)">Temperature (°C)</text>
-                
+                <text x="290" y="224" font-size="11.5" fill="var(--color-text-secondary)" text-anchor="middle"
+                  font-weight="500">Position along rod x (m)</text>
+                <text x="14" y="110" font-size="11.5" fill="var(--color-text-secondary)" text-anchor="middle"
+                  font-weight="500" transform="rotate(-90 14 110)">Temperature (°C)</text>
+
                 <!-- Exact Curve (Blue) -->
-                <polyline fill="none" stroke="#378ADD" stroke-width="2.5" stroke-linejoin="round" points="65.0,110.0 87.5,91.8 110.0,76.2 132.5,63.1 155.0,52.6 177.5,44.7 200.0,39.3 222.5,36.5 245.0,36.3 267.5,38.6 290.0,43.5 312.5,51.0 335.0,61.0 357.5,73.6 380.0,88.8 402.5,106.5 425.0,126.8 447.5,149.7 470.0,175.1 492.5,203.1 515.0,172.4" />
-                
+                <polyline fill="none" stroke="#378ADD" stroke-width="2.5" stroke-linejoin="round"
+                  points="65.0,110.0 87.5,91.8 110.0,76.2 132.5,63.1 155.0,52.6 177.5,44.7 200.0,39.3 222.5,36.5 245.0,36.3 267.5,38.6 290.0,43.5 312.5,51.0 335.0,61.0 357.5,73.6 380.0,88.8 402.5,106.5 425.0,126.8 447.5,149.7 470.0,175.1 492.5,203.1 515.0,172.4" />
+
                 <!-- FEM Nodes (Orange Dots) -->
                 <g>
                   <circle cx="65.0" cy="110.0" r="3.5" fill="#D85A30" stroke="#ffffff" stroke-width="0.5" />
@@ -315,14 +330,19 @@
               </div>
             </div>
             <p class="convergence-caption">
-              Max midpoint error evaluated using FE linear shape functions: <em>T</em><sub>mid</sub> = (<em>T</em><sub><em>i</em></sub> + <em>T</em><sub><em>i</em>+1</sub>) / 2. Theoretical convergence rate: &Omicron;(<em>h</em><sup>2</sup>) = <em>q h</em><sup>2</sup> / (8<em>k</em>).
+              Max midpoint error evaluated using FE linear shape functions: <em>T</em><sub>mid</sub> =
+              (<em>T</em><sub><em>i</em></sub> + <em>T</em><sub><em>i</em>+1</sub>) / 2. Theoretical convergence rate:
+              &Omicron;(<em>h</em><sup>2</sup>) = <em>q h</em><sup>2</sup> / (8<em>k</em>).
             </p>
 
             <div class="debug-insight-card">
               <i class="ti ti-bulb insight-icon"></i>
               <div>
                 <strong>Interdisciplinary Debugging Insight:</strong>
-                Linear finite elements with consistent load yield exact nodal values for 1D Poisson problems on uniform meshes (<em>e</em><sub>node</sub> = 0). Evaluating convergence <em>only at nodes</em> gives a false impression of zero error. True &Omicron;(<em>h</em><sup>2</sup>) spatial discretization error appears at element midpoints where the exact solution curves quadratically.
+                Linear finite elements with consistent load yield exact nodal values for 1D Poisson problems on uniform
+                meshes (<em>e</em><sub>node</sub> = 0). Evaluating convergence <em>only at nodes</em> gives a false
+                impression of zero error. True &Omicron;(<em>h</em><sup>2</sup>) spatial discretization error appears at
+                element midpoints where the exact solution curves quadratically.
               </div>
             </div>
           </div>
@@ -424,23 +444,49 @@
               <div class="perf-chart-card">
                 <h4>Execution Time vs Worker Threads</h4>
                 <div class="bar-chart-container" id="timeBarContainer">
-                  <div class="bar-row"><span class="bar-label">1 Worker</span><div class="bar-track"><div class="bar-fill" style="width:100%;"></div></div><span class="bar-val">31.8ms</span></div>
-                  <div class="bar-row"><span class="bar-label">2 Workers</span><div class="bar-track"><div class="bar-fill" style="width:54%;"></div></div><span class="bar-val">17.4ms</span></div>
-                  <div class="bar-row"><span class="bar-label">4 Workers</span><div class="bar-track"><div class="bar-fill" style="width:30%;"></div></div><span class="bar-val">9.6ms</span></div>
+                  <div class="bar-row"><span class="bar-label">1 Worker</span>
+                    <div class="bar-track">
+                      <div class="bar-fill" style="width:100%;"></div>
+                    </div><span class="bar-val">31.8ms</span>
+                  </div>
+                  <div class="bar-row"><span class="bar-label">2 Workers</span>
+                    <div class="bar-track">
+                      <div class="bar-fill" style="width:54%;"></div>
+                    </div><span class="bar-val">17.4ms</span>
+                  </div>
+                  <div class="bar-row"><span class="bar-label">4 Workers</span>
+                    <div class="bar-track">
+                      <div class="bar-fill" style="width:30%;"></div>
+                    </div><span class="bar-val">9.6ms</span>
+                  </div>
                 </div>
               </div>
               <div class="perf-chart-card">
                 <h4>Speedup &amp; Parallel Scaling Efficiency</h4>
                 <div class="bar-chart-container" id="speedupBarContainer">
-                  <div class="bar-row"><span class="bar-label">1 Worker</span><div class="bar-track"><div class="bar-fill bar-fill--speedup" style="width:25%;"></div></div><span class="bar-val">1.00x</span></div>
-                  <div class="bar-row"><span class="bar-label">2 Workers</span><div class="bar-track"><div class="bar-fill bar-fill--speedup" style="width:46%;"></div></div><span class="bar-val">1.83x</span></div>
-                  <div class="bar-row"><span class="bar-label">4 Workers</span><div class="bar-track"><div class="bar-fill bar-fill--speedup" style="width:83%;"></div></div><span class="bar-val">3.31x</span></div>
+                  <div class="bar-row"><span class="bar-label">1 Worker</span>
+                    <div class="bar-track">
+                      <div class="bar-fill bar-fill--speedup" style="width:25%;"></div>
+                    </div><span class="bar-val">1.00x</span>
+                  </div>
+                  <div class="bar-row"><span class="bar-label">2 Workers</span>
+                    <div class="bar-track">
+                      <div class="bar-fill bar-fill--speedup" style="width:46%;"></div>
+                    </div><span class="bar-val">1.83x</span>
+                  </div>
+                  <div class="bar-row"><span class="bar-label">4 Workers</span>
+                    <div class="bar-track">
+                      <div class="bar-fill bar-fill--speedup" style="width:83%;"></div>
+                    </div><span class="bar-val">3.31x</span>
+                  </div>
                 </div>
               </div>
             </div>
 
             <div class="info-callout" style="margin-top:10px;">
-              <strong>Overhead &amp; Limitations Note:</strong> Thread pool task dispatch, mutex synchronization, and CPU cache coherency overhead represent non-zero costs for small workloads. Maximum speedup approaches Amdahl's limit; efficiency typically ranges between 75%–95% on modern multicore CPUs.
+              <strong>Overhead &amp; Limitations Note:</strong> Thread pool task dispatch, mutex synchronization, and
+              CPU cache coherency overhead represent non-zero costs for small workloads. Maximum speedup approaches
+              Amdahl's limit; efficiency typically ranges between 75%–95% on modern multicore CPUs.
             </div>
           </div>
         </div>
@@ -478,7 +524,9 @@
             </button>
 
             <div class="info-callout" style="margin-top:16px;">
-              <strong>Design Rationale:</strong> A JTAG adapter is a specialized IEEE 1149.1 Test Access Port (TAP) state-machine master. It provides scan-chain access, register inspection, and boundary scan, rather than acting as a peer computing node.
+              <strong>Design Rationale:</strong> A JTAG adapter is a specialized IEEE 1149.1 Test Access Port (TAP)
+              state-machine master. It provides scan-chain access, register inspection, and boundary scan, rather than
+              acting as a peer computing node.
             </div>
           </aside>
 
@@ -500,46 +548,70 @@
               <div class="subtab-content" id="subtabContentDiagram">
                 <div class="block-diagram-container">
                   <svg viewBox="0 0 740 260" width="100%" height="auto" class="svg-diagram">
-                    <rect x="20" y="30" width="130" height="200" rx="8" fill="var(--color-bg-inset)" stroke="var(--color-border-strong)" stroke-width="1.5"/>
-                    <text x="85" y="60" text-anchor="middle" font-weight="600" fill="var(--color-text-primary)">Host PC (Win11)</text>
-                    <text x="85" y="80" text-anchor="middle" font-size="11" fill="var(--color-text-secondary)">Workbench Core</text>
-                    <rect x="40" y="105" width="90" height="26" rx="4" fill="var(--color-bg-surface)" stroke="var(--color-border)"/>
-                    <text x="85" y="122" text-anchor="middle" font-size="11" fill="var(--color-accent)">USB Root Hub</text>
+                    <rect x="20" y="30" width="130" height="200" rx="8" fill="var(--color-bg-inset)"
+                      stroke="var(--color-border-strong)" stroke-width="1.5" />
+                    <text x="85" y="60" text-anchor="middle" font-weight="600" fill="var(--color-text-primary)">Host PC
+                      (Win11)</text>
+                    <text x="85" y="80" text-anchor="middle" font-size="11" fill="var(--color-text-secondary)">Workbench
+                      Core</text>
+                    <rect x="40" y="105" width="90" height="26" rx="4" fill="var(--color-bg-surface)"
+                      stroke="var(--color-border)" />
+                    <text x="85" y="122" text-anchor="middle" font-size="11" fill="var(--color-accent)">USB Root
+                      Hub</text>
 
-                    <path d="M 130 118 L 220 70" stroke="var(--color-accent)" stroke-width="2" fill="none"/>
-                    <path d="M 130 118 L 220 130" stroke="var(--color-accent)" stroke-width="2" fill="none"/>
-                    <path d="M 130 118 L 220 190" stroke="var(--color-accent)" stroke-width="2" fill="none"/>
+                    <path d="M 130 118 L 220 70" stroke="var(--color-accent)" stroke-width="2" fill="none" />
+                    <path d="M 130 118 L 220 130" stroke="var(--color-accent)" stroke-width="2" fill="none" />
+                    <path d="M 130 118 L 220 190" stroke="var(--color-accent)" stroke-width="2" fill="none" />
 
-                    <rect x="220" y="45" width="150" height="50" rx="6" fill="#f0f7fe" stroke="#3987e5" stroke-width="1.5"/>
-                    <text x="295" y="68" text-anchor="middle" font-weight="600" font-size="12" fill="#0d366b">FT2232H JTAG Probe</text>
+                    <rect x="220" y="45" width="150" height="50" rx="6" fill="#f0f7fe" stroke="#3987e5"
+                      stroke-width="1.5" />
+                    <text x="295" y="68" text-anchor="middle" font-weight="600" font-size="12" fill="#0d366b">FT2232H
+                      JTAG Probe</text>
                     <text x="295" y="84" text-anchor="middle" font-size="10" fill="#3987e5">USB 2.0 HS (480 Mbps)</text>
 
-                    <rect x="220" y="105" width="150" height="50" rx="6" fill="#f3fbf4" stroke="#0ca30c" stroke-width="1.5"/>
-                    <text x="295" y="128" text-anchor="middle" font-weight="600" font-size="12" fill="#074506">STM32H743ZI MCU</text>
-                    <text x="295" y="144" text-anchor="middle" font-size="10" fill="#0ca30c">USB-CDC (3.3V Domain)</text>
+                    <rect x="220" y="105" width="150" height="50" rx="6" fill="#f3fbf4" stroke="#0ca30c"
+                      stroke-width="1.5" />
+                    <text x="295" y="128" text-anchor="middle" font-weight="600" font-size="12"
+                      fill="#074506">STM32H743ZI MCU</text>
+                    <text x="295" y="144" text-anchor="middle" font-size="10" fill="#0ca30c">USB-CDC (3.3V
+                      Domain)</text>
 
-                    <rect x="220" y="165" width="150" height="50" rx="6" fill="#fdf4f0" stroke="#d95926" stroke-width="1.5"/>
-                    <text x="295" y="188" text-anchor="middle" font-weight="600" font-size="12" fill="#5d230b">Artix-7 XC7A100T FPGA</text>
-                    <text x="295" y="204" text-anchor="middle" font-size="10" fill="#d95926">1.8V VCCO / 1.0V VCCINT</text>
+                    <rect x="220" y="165" width="150" height="50" rx="6" fill="#fdf4f0" stroke="#d95926"
+                      stroke-width="1.5" />
+                    <text x="295" y="188" text-anchor="middle" font-weight="600" font-size="12" fill="#5d230b">Artix-7
+                      XC7A100T FPGA</text>
+                    <text x="295" y="204" text-anchor="middle" font-size="10" fill="#d95926">1.8V VCCO / 1.0V
+                      VCCINT</text>
 
-                    <rect x="420" y="45" width="110" height="170" rx="6" fill="var(--color-bg-inset)" stroke="var(--color-border-strong)" stroke-dasharray="4 2"/>
-                    <text x="475" y="70" text-anchor="middle" font-weight="600" font-size="11" fill="var(--color-text-secondary)">Bidirectional</text>
-                    <text x="475" y="85" text-anchor="middle" font-weight="600" font-size="11" fill="var(--color-text-secondary)">Level Shifter</text>
-                    <text x="475" y="105" text-anchor="middle" font-size="10" fill="var(--color-text-muted)">TXB0108</text>
-                    <text x="475" y="120" text-anchor="middle" font-size="10" fill="var(--color-text-muted)">(1.8V &harr; 3.3V)</text>
+                    <rect x="420" y="45" width="110" height="170" rx="6" fill="var(--color-bg-inset)"
+                      stroke="var(--color-border-strong)" stroke-dasharray="4 2" />
+                    <text x="475" y="70" text-anchor="middle" font-weight="600" font-size="11"
+                      fill="var(--color-text-secondary)">Bidirectional</text>
+                    <text x="475" y="85" text-anchor="middle" font-weight="600" font-size="11"
+                      fill="var(--color-text-secondary)">Level Shifter</text>
+                    <text x="475" y="105" text-anchor="middle" font-size="10"
+                      fill="var(--color-text-muted)">TXB0108</text>
+                    <text x="475" y="120" text-anchor="middle" font-size="10" fill="var(--color-text-muted)">(1.8V
+                      &harr; 3.3V)</text>
 
-                    <path d="M 370 70 L 420 70" stroke="#3987e5" stroke-width="1.5" fill="none"/>
-                    <path d="M 530 70 L 590 120" stroke="#3987e5" stroke-width="1.5" stroke-dasharray="3 3" fill="none"/>
-                    <path d="M 530 180 L 590 180" stroke="#3987e5" stroke-width="1.5" stroke-dasharray="3 3" fill="none"/>
+                    <path d="M 370 70 L 420 70" stroke="#3987e5" stroke-width="1.5" fill="none" />
+                    <path d="M 530 70 L 590 120" stroke="#3987e5" stroke-width="1.5" stroke-dasharray="3 3"
+                      fill="none" />
+                    <path d="M 530 180 L 590 180" stroke="#3987e5" stroke-width="1.5" stroke-dasharray="3 3"
+                      fill="none" />
 
-                    <path d="M 370 130 L 420 130" stroke="#0ca30c" stroke-width="1.5" fill="none"/>
-                    <path d="M 530 130 L 590 140" stroke="#0ca30c" stroke-width="1.5" fill="none"/>
+                    <path d="M 370 130 L 420 130" stroke="#0ca30c" stroke-width="1.5" fill="none" />
+                    <path d="M 530 130 L 590 140" stroke="#0ca30c" stroke-width="1.5" fill="none" />
                     <text x="560" y="125" font-size="9" fill="var(--color-text-muted)">SPI/UART</text>
 
-                    <rect x="590" y="100" width="130" height="110" rx="6" fill="var(--color-bg-surface)" stroke="var(--color-border-strong)"/>
-                    <text x="655" y="125" text-anchor="middle" font-weight="600" font-size="11" fill="var(--color-text-primary)">Target Hardware</text>
-                    <text x="655" y="145" text-anchor="middle" font-size="10" fill="var(--color-text-secondary)">JTAG TAP Daisy Chain</text>
-                    <text x="655" y="165" text-anchor="middle" font-size="10" fill="var(--color-text-secondary)">TCK, TMS, TDI, TDO</text>
+                    <rect x="590" y="100" width="130" height="110" rx="6" fill="var(--color-bg-surface)"
+                      stroke="var(--color-border-strong)" />
+                    <text x="655" y="125" text-anchor="middle" font-weight="600" font-size="11"
+                      fill="var(--color-text-primary)">Target Hardware</text>
+                    <text x="655" y="145" text-anchor="middle" font-size="10" fill="var(--color-text-secondary)">JTAG
+                      TAP Daisy Chain</text>
+                    <text x="655" y="165" text-anchor="middle" font-size="10" fill="var(--color-text-secondary)">TCK,
+                      TMS, TDI, TDO</text>
                     <text x="655" y="185" text-anchor="middle" font-size="10" fill="#0ca30c">Common GND Bus</text>
                   </svg>
                 </div>
@@ -610,10 +682,15 @@
                 <div class="safety-plan-card">
                   <h4>Safe Integration Plan &amp; Physical Limitations</h4>
                   <ul>
-                    <li><strong>Power Sequencing:</strong> Core voltage (1.0V VCCINT) must ramp before auxiliary (1.8V VCCAUX) and I/O (3.3V VCCO) to prevent latch-up in FPGA CMOS gate structures.</li>
-                    <li><strong>Grounding &amp; Isolation:</strong> Star-ground architecture with low-impedance plane returns prevents digital switching noise from coupling into analog ADC telemetry.</li>
-                    <li><strong>Cold Plugging Protection:</strong> Target VREF buffer disables JTAG output drivers whenever target power drops below 1.2V to prevent phantom parasitic powering via ESD protection diodes.</li>
-                    <li><strong>Simulation Boundary:</strong> Physical PCB layout, FPGA bitstream compilation, and silicon firmware programming are outside assessment prototype scope.</li>
+                    <li><strong>Power Sequencing:</strong> Core voltage (1.0V VCCINT) must ramp before auxiliary (1.8V
+                      VCCAUX) and I/O (3.3V VCCO) to prevent latch-up in FPGA CMOS gate structures.</li>
+                    <li><strong>Grounding &amp; Isolation:</strong> Star-ground architecture with low-impedance plane
+                      returns prevents digital switching noise from coupling into analog ADC telemetry.</li>
+                    <li><strong>Cold Plugging Protection:</strong> Target VREF buffer disables JTAG output drivers
+                      whenever target power drops below 1.2V to prevent phantom parasitic powering via ESD protection
+                      diodes.</li>
+                    <li><strong>Simulation Boundary:</strong> Physical PCB layout, FPGA bitstream compilation, and
+                      silicon firmware programming are outside assessment prototype scope.</li>
                   </ul>
                 </div>
               </div>
@@ -626,7 +703,8 @@
 
     <!-- ─── Universal Status Bar ─── -->
     <footer class="status-bar" id="statusBar">
-      <i class="ti ti-circle-check status-bar-icon" id="statusIcon" style="color:var(--color-success);" aria-hidden="true"></i>
+      <i class="ti ti-circle-check status-bar-icon" id="statusIcon" style="color:var(--color-success);"
+        aria-hidden="true"></i>
       <span id="statusText">System ready &mdash; C++17 numerical engine initialized</span>
       <div class="progress-track">
         <div class="progress-fill" id="progressFill" style="width: 100%"></div>
@@ -650,22 +728,32 @@
       <div class="modal-body">
         <div class="math-derivation-box">
           <h4>Analytical Forward Pass &amp; Chain-Rule Derivation</h4>
-          <p class="math-line">Single regression sample: <em>x</em> = 1.0, target <em>y</em> = 2.0, learning rate &alpha; = 0.1</p>
-          <p class="math-line">Architecture: <em>z</em> = <em>w x</em> + <em>b</em>, <em>h</em> = tanh(<em>z</em>), <em>&ycirc;</em> = <em>v h</em> + <em>c</em>, <em>J</em> = &frac12;(<em>&ycirc;</em> &minus; <em>y</em>)<sup>2</sup></p>
+          <p class="math-line">Single regression sample: <em>x</em> = 1.0, target <em>y</em> = 2.0, learning rate
+            &alpha; = 0.1</p>
+          <p class="math-line">Architecture: <em>z</em> = <em>w x</em> + <em>b</em>, <em>h</em> = tanh(<em>z</em>),
+            <em>&ycirc;</em> = <em>v h</em> + <em>c</em>, <em>J</em> = &frac12;(<em>&ycirc;</em> &minus;
+            <em>y</em>)<sup>2</sup></p>
           <p class="math-line">Initial values (<em>w</em> = 0.5, <em>b</em> = 0, <em>v</em> = 1.0, <em>c</em> = 0):</p>
           <p class="math-subline">&bull; <em>z</em> = 0.5(1.0) + 0 = 0.5</p>
           <p class="math-subline">&bull; <em>h</em> = tanh(0.5) = 0.46211716</p>
           <p class="math-subline">&bull; <em>&ycirc;</em> = 1.0(0.46211716) + 0 = 0.46211716</p>
-          <p class="math-subline">&bull; Initial Loss: <em>J</em> = &frac12;(0.46211716 &minus; 2.0)<sup>2</sup> = &frac12;(&minus;1.53788284)<sup>2</sup> &approx; <strong>1.18255182</strong></p>
-          
+          <p class="math-subline">&bull; Initial Loss: <em>J</em> = &frac12;(0.46211716 &minus; 2.0)<sup>2</sup> =
+            &frac12;(&minus;1.53788284)<sup>2</sup> &approx; <strong>1.18255182</strong></p>
+
           <h4 style="margin-top:10px;">Exact Chain Rule Derivatives:</h4>
           <div class="deriv-grid">
-            <div>&part;<em>J</em> / &part;<em>&ycirc;</em> = <em>&ycirc;</em> &minus; <em>y</em> = &minus;1.53788284</div>
-            <div>&part;<em>J</em> / &part;<em>c</em> = &part;<em>J</em> / &part;<em>&ycirc;</em> &middot; 1 = <strong>&minus;1.53788284</strong></div>
-            <div>&part;<em>J</em> / &part;<em>v</em> = &part;<em>J</em> / &part;<em>&ycirc;</em> &middot; <em>h</em> = <strong>&minus;0.71068191</strong></div>
-            <div>&part;<em>J</em> / &part;<em>z</em> = &part;<em>J</em> / &part;<em>&ycirc;</em> &middot; <em>v</em> &middot; (1 &minus; <em>h</em><sup>2</sup>) = <strong>&minus;1.20946447</strong></div>
-            <div>&part;<em>J</em> / &part;<em>w</em> = &part;<em>J</em> / &part;<em>z</em> &middot; <em>x</em> = <strong>&minus;1.20946447</strong></div>
-            <div>&part;<em>J</em> / &part;<em>b</em> = &part;<em>J</em> / &part;<em>z</em> &middot; 1 = <strong>&minus;1.20946447</strong></div>
+            <div>&part;<em>J</em> / &part;<em>&ycirc;</em> = <em>&ycirc;</em> &minus; <em>y</em> = &minus;1.53788284
+            </div>
+            <div>&part;<em>J</em> / &part;<em>c</em> = &part;<em>J</em> / &part;<em>&ycirc;</em> &middot; 1 =
+              <strong>&minus;1.53788284</strong></div>
+            <div>&part;<em>J</em> / &part;<em>v</em> = &part;<em>J</em> / &part;<em>&ycirc;</em> &middot; <em>h</em> =
+              <strong>&minus;0.71068191</strong></div>
+            <div>&part;<em>J</em> / &part;<em>z</em> = &part;<em>J</em> / &part;<em>&ycirc;</em> &middot; <em>v</em>
+              &middot; (1 &minus; <em>h</em><sup>2</sup>) = <strong>&minus;1.20946447</strong></div>
+            <div>&part;<em>J</em> / &part;<em>w</em> = &part;<em>J</em> / &part;<em>z</em> &middot; <em>x</em> =
+              <strong>&minus;1.20946447</strong></div>
+            <div>&part;<em>J</em> / &part;<em>b</em> = &part;<em>J</em> / &part;<em>z</em> &middot; 1 =
+              <strong>&minus;1.20946447</strong></div>
           </div>
 
           <h4 style="margin-top:10px;">Simultaneous Parameter Update (Step 1):</h4>
@@ -676,12 +764,15 @@
             <em>c</em><sup>(1)</sup> = 0.0 &minus; 0.1(&minus;1.53788284) = <strong>0.15378828</strong>
           </p>
           <p style="font-size:11px; color:var(--color-text-secondary); margin-top:4px;">
-            <strong>Gradient Direction Meaning:</strong> All four initial gradients are strictly negative (&part;<em>J</em> / &part;&theta; &lt; 0), indicating that increasing every parameter increases prediction <em>&ycirc;</em> toward target <em>y</em> = 2.0, reducing the loss.
+            <strong>Gradient Direction Meaning:</strong> All four initial gradients are strictly negative
+            (&part;<em>J</em> / &part;&theta; &lt; 0), indicating that increasing every parameter increases prediction
+            <em>&ycirc;</em> toward target <em>y</em> = 2.0, reducing the loss.
           </p>
         </div>
 
         <!-- Finite Difference Verification Table -->
-        <h4 style="margin:14px 0 6px;">Central Finite Difference Verification (&epsilon; = 10<sup>&minus;6</sup>, Threshold &le; 10<sup>&minus;5</sup>)</h4>
+        <h4 style="margin:14px 0 6px;">Central Finite Difference Verification (&epsilon; = 10<sup>&minus;6</sup>,
+          Threshold &le; 10<sup>&minus;5</sup>)</h4>
         <div class="table-container">
           <table class="data-table">
             <thead>
@@ -694,10 +785,38 @@
               </tr>
             </thead>
             <tbody id="gradCheckTableBody">
-              <tr><td><strong>&part;J / &part;w</strong></td><td>-1.20946447</td><td>-1.20946447</td><td>3.24e-11</td><td style="color:var(--color-success); font-weight:600;"><i class="ti ti-check"></i> PASSED (&le; 1e-5)</td></tr>
-              <tr><td><strong>&part;J / &part;b</strong></td><td>-1.20946447</td><td>-1.20946447</td><td>3.24e-11</td><td style="color:var(--color-success); font-weight:600;"><i class="ti ti-check"></i> PASSED (&le; 1e-5)</td></tr>
-              <tr><td><strong>&part;J / &part;v</strong></td><td>-0.71068191</td><td>-0.71068191</td><td>1.82e-11</td><td style="color:var(--color-success); font-weight:600;"><i class="ti ti-check"></i> PASSED (&le; 1e-5)</td></tr>
-              <tr><td><strong>&part;J / &part;c</strong></td><td>-1.53788284</td><td>-1.53788284</td><td>2.11e-11</td><td style="color:var(--color-success); font-weight:600;"><i class="ti ti-check"></i> PASSED (&le; 1e-5)</td></tr>
+              <tr>
+                <td><strong>&part;J / &part;w</strong></td>
+                <td>-1.20946447</td>
+                <td>-1.20946447</td>
+                <td>3.24e-11</td>
+                <td style="color:var(--color-success); font-weight:600;"><i class="ti ti-check"></i> PASSED (&le; 1e-5)
+                </td>
+              </tr>
+              <tr>
+                <td><strong>&part;J / &part;b</strong></td>
+                <td>-1.20946447</td>
+                <td>-1.20946447</td>
+                <td>3.24e-11</td>
+                <td style="color:var(--color-success); font-weight:600;"><i class="ti ti-check"></i> PASSED (&le; 1e-5)
+                </td>
+              </tr>
+              <tr>
+                <td><strong>&part;J / &part;v</strong></td>
+                <td>-0.71068191</td>
+                <td>-0.71068191</td>
+                <td>1.82e-11</td>
+                <td style="color:var(--color-success); font-weight:600;"><i class="ti ti-check"></i> PASSED (&le; 1e-5)
+                </td>
+              </tr>
+              <tr>
+                <td><strong>&part;J / &part;c</strong></td>
+                <td>-1.53788284</td>
+                <td>-1.53788284</td>
+                <td>2.11e-11</td>
+                <td style="color:var(--color-success); font-weight:600;"><i class="ti ti-check"></i> PASSED (&le; 1e-5)
+                </td>
+              </tr>
             </tbody>
           </table>
         </div>
@@ -717,4 +836,5 @@
   <script src="js/backprop-view.js"></script>
   <script src="js/app.js"></script>
 </body>
+
 </html>
