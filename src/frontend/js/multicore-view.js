@@ -7,7 +7,7 @@
 
 const MulticoreViewController = (() => {
   let isRunning = false;
-  let activeGraphMode = "speedup"; // "speedup", "time", "throughput"
+  let activeGraphMode = "time"; // "time", "speedup", "throughput"
   let lastResults = null;
   let lastP = 0.942;
   let lastCaseCount = 1000;
@@ -360,17 +360,18 @@ const MulticoreViewController = (() => {
         const x = mapX(r.p);
         const y = mapY(r.median);
         measuredPath += (idx === 0 ? `M ${x.toFixed(1)} ${y.toFixed(1)}` : ` L ${x.toFixed(1)} ${y.toFixed(1)}`);
+        const delay = (0.15 + idx * 0.15).toFixed(2);
 
         markersSvg += `
-          <circle cx="${x}" cy="${y}" r="6" fill="#6da7ec" fill-opacity="0.25"/>
-          <circle cx="${x}" cy="${y}" r="4" fill="#6da7ec" stroke="#ffffff" stroke-width="1.2"/>
-          <g transform="translate(${x}, ${y - 12})">
+          <circle class="perf-node-pop" style="animation-delay:${delay}s;" cx="${x}" cy="${y}" r="6" fill="#6da7ec" fill-opacity="0.25"/>
+          <circle class="perf-node-pop" style="animation-delay:${delay}s;" cx="${x}" cy="${y}" r="4" fill="#6da7ec" stroke="#ffffff" stroke-width="1.2"/>
+          <g class="perf-node-pop" style="animation-delay:${delay}s;" transform="translate(${x}, ${y - 12})">
             <rect x="-18" y="-11" width="36" height="13" rx="3" fill="var(--color-bg-surface)" stroke="var(--color-border)" stroke-width="0.8"/>
             <text x="0" y="-1.5" text-anchor="middle" font-size="9" font-weight="700" fill="var(--color-text-primary)" font-family="sans-serif">${r.median.toFixed(1)}ms</text>
           </g>
         `;
       });
-      curvesSvg += `<path d="${measuredPath}" fill="none" stroke="#6da7ec" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>`;
+      curvesSvg += `<path class="curve-trace-perf" d="${measuredPath}" fill="none" stroke="#6da7ec" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>`;
 
       legendSvg = `
         <g transform="translate(${padLeft + 15}, ${padTop - 8})">
@@ -412,17 +413,18 @@ const MulticoreViewController = (() => {
         const x = mapX(r.p);
         const y = mapY(q);
         measuredPath += (idx === 0 ? `M ${x.toFixed(1)} ${y.toFixed(1)}` : ` L ${x.toFixed(1)} ${y.toFixed(1)}`);
+        const delay = (0.15 + idx * 0.15).toFixed(2);
 
         markersSvg += `
-          <circle cx="${x}" cy="${y}" r="6" fill="#10b981" fill-opacity="0.25"/>
-          <circle cx="${x}" cy="${y}" r="4" fill="#10b981" stroke="#ffffff" stroke-width="1.2"/>
-          <g transform="translate(${x}, ${y - 12})">
+          <circle class="perf-node-pop" style="animation-delay:${delay}s;" cx="${x}" cy="${y}" r="6" fill="#10b981" fill-opacity="0.25"/>
+          <circle class="perf-node-pop" style="animation-delay:${delay}s;" cx="${x}" cy="${y}" r="4" fill="#10b981" stroke="#ffffff" stroke-width="1.2"/>
+          <g class="perf-node-pop" style="animation-delay:${delay}s;" transform="translate(${x}, ${y - 12})">
             <rect x="-22" y="-11" width="44" height="13" rx="3" fill="var(--color-bg-surface)" stroke="var(--color-border)" stroke-width="0.8"/>
             <text x="0" y="-1.5" text-anchor="middle" font-size="8.5" font-weight="700" fill="var(--color-success)" font-family="sans-serif">${(q / 1000).toFixed(1)}k /s</text>
           </g>
         `;
       });
-      curvesSvg += `<path d="${measuredPath}" fill="none" stroke="#10b981" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>`;
+      curvesSvg += `<path class="curve-trace-perf" d="${measuredPath}" fill="none" stroke="#10b981" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>`;
 
       legendSvg = `
         <g transform="translate(${padLeft + 15}, ${padTop - 8})">
@@ -474,17 +476,18 @@ const MulticoreViewController = (() => {
         const x = mapX(r.p);
         const y = mapY(r.speedup);
         measuredPath += (idx === 0 ? `M ${x.toFixed(1)} ${y.toFixed(1)}` : ` L ${x.toFixed(1)} ${y.toFixed(1)}`);
+        const delay = (0.15 + idx * 0.15).toFixed(2);
 
         markersSvg += `
-          <circle cx="${x}" cy="${y}" r="6" fill="#6da7ec" fill-opacity="0.25"/>
-          <circle cx="${x}" cy="${y}" r="4" fill="#6da7ec" stroke="#ffffff" stroke-width="1.2"/>
-          <g transform="translate(${x}, ${y - 12})">
+          <circle class="perf-node-pop" style="animation-delay:${delay}s;" cx="${x}" cy="${y}" r="6" fill="#6da7ec" fill-opacity="0.25"/>
+          <circle class="perf-node-pop" style="animation-delay:${delay}s;" cx="${x}" cy="${y}" r="4" fill="#6da7ec" stroke="#ffffff" stroke-width="1.2"/>
+          <g class="perf-node-pop" style="animation-delay:${delay}s;" transform="translate(${x}, ${y - 12})">
             <rect x="-18" y="-11" width="36" height="13" rx="3" fill="var(--color-bg-surface)" stroke="var(--color-border)" stroke-width="0.8"/>
             <text x="0" y="-1.5" text-anchor="middle" font-size="9" font-weight="700" fill="var(--color-text-primary)" font-family="sans-serif">${r.speedup.toFixed(2)}x</text>
           </g>
         `;
       });
-      curvesSvg += `<path d="${measuredPath}" fill="none" stroke="#6da7ec" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>`;
+      curvesSvg += `<path class="curve-trace-perf" d="${measuredPath}" fill="none" stroke="#6da7ec" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>`;
 
       legendSvg = `
         <g transform="translate(${padLeft + 10}, ${padTop - 8})">
@@ -544,14 +547,14 @@ const MulticoreViewController = (() => {
             <span class="waterfall-core-duty">${c.duty}% Active</span>
           </div>
           <div class="waterfall-bar-track">
-            <div class="waterfall-chunk waterfall-chunk--dispatch" style="width:2%;" title="Task Dispatch (${c.dispatch})"></div>
-            <div class="waterfall-chunk waterfall-chunk--compute" style="width:23%;" title="Batch Slice 1/4 (${Math.round(chunkSize/4)} solves)"></div>
-            <div class="waterfall-chunk waterfall-chunk--sync" style="width:1%;" title="Sync / Cache Coherence"></div>
-            <div class="waterfall-chunk waterfall-chunk--compute" style="width:24%;" title="Batch Slice 2/4 (${Math.round(chunkSize/4)} solves)"></div>
-            <div class="waterfall-chunk waterfall-chunk--sync" style="width:1%;" title="Sync / Cache Coherence"></div>
-            <div class="waterfall-chunk waterfall-chunk--compute" style="width:24%;" title="Batch Slice 3/4 (${Math.round(chunkSize/4)} solves)"></div>
-            <div class="waterfall-chunk waterfall-chunk--sync" style="width:1%;" title="Sync / Cache Coherence"></div>
-            <div class="waterfall-chunk waterfall-chunk--compute" style="width:${(c.duty - 74).toFixed(1)}%;" title="Batch Slice 4/4 (${Math.round(chunkSize/4)} solves)"></div>
+            <div class="waterfall-chunk waterfall-chunk--dispatch waterfall-chunk-anim" style="width:2%;" title="Task Dispatch (${c.dispatch})"></div>
+            <div class="waterfall-chunk waterfall-chunk--compute waterfall-chunk-anim" style="width:23%;" title="Batch Slice 1/4 (${Math.round(chunkSize/4)} solves)"></div>
+            <div class="waterfall-chunk waterfall-chunk--sync waterfall-chunk-anim" style="width:1%;" title="Sync / Cache Coherence"></div>
+            <div class="waterfall-chunk waterfall-chunk--compute waterfall-chunk-anim" style="width:24%;" title="Batch Slice 2/4 (${Math.round(chunkSize/4)} solves)"></div>
+            <div class="waterfall-chunk waterfall-chunk--sync waterfall-chunk-anim" style="width:1%;" title="Sync / Cache Coherence"></div>
+            <div class="waterfall-chunk waterfall-chunk--compute waterfall-chunk-anim" style="width:24%;" title="Batch Slice 3/4 (${Math.round(chunkSize/4)} solves)"></div>
+            <div class="waterfall-chunk waterfall-chunk--sync waterfall-chunk-anim" style="width:1%;" title="Sync / Cache Coherence"></div>
+            <div class="waterfall-chunk waterfall-chunk--compute waterfall-chunk-anim" style="width:${(c.duty - 74).toFixed(1)}%;" title="Batch Slice 4/4 (${Math.round(chunkSize/4)} solves)"></div>
             <div class="waterfall-chunk waterfall-chunk--idle" style="width:${(100 - c.duty).toFixed(1)}%;" title="Barrier Wait (${(100 - c.duty).toFixed(1)}%)"></div>
           </div>
         </div>

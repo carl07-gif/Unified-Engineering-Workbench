@@ -923,6 +923,37 @@ html, body {
   border: 0.5px solid var(--color-border);
   padding: 2px;
   min-height: 175px;
+  position: relative;
+}
+
+.curve-trace-perf {
+  stroke-dasharray: 1200;
+  stroke-dashoffset: 1200;
+  animation: tracePolyline 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.perf-node-pop {
+  opacity: 0;
+  animation: perfNodeFade 0.35s ease-out forwards;
+}
+
+@keyframes perfNodeFade {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes waterfallSweep {
+  0% { transform: scaleX(0); }
+  100% { transform: scaleX(1); }
+}
+
+.waterfall-chunk {
+  height: 100%;
+  transform-origin: left;
+  transition: width 0.4s ease;
+}
+.waterfall-chunk-anim {
+  animation: waterfallSweep 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 /* Waterfall layout: clean block rows with title and duty cycle separated */
