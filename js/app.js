@@ -401,9 +401,14 @@ document.addEventListener("DOMContentLoaded", () => {
       html.setAttribute("data-mode", next);
       if (themeIcon) themeIcon.className = next === "dark" ? "ti ti-moon" : "ti ti-sun";
 
-      if (lastSolveResult && lastParams) {
-        const exact = FEMSolver.exactCurve(lastParams.L, lastParams.k, lastParams.q, lastParams.T0, lastParams.TL);
-        ChartRenderer.draw(exact, lastSolveResult, lastParams.N);
+      // Instantly redraw chart with active theme colors
+      if (typeof ChartRenderer !== "undefined" && ChartRenderer.draw) {
+        if (lastSolveResult && lastParams) {
+          const exact = FEMSolver.exactCurve(lastParams.L, lastParams.k, lastParams.q, lastParams.T0, lastParams.TL);
+          ChartRenderer.draw(exact, lastSolveResult, lastParams.N, lastParams);
+        } else {
+          ChartRenderer.draw();
+        }
       }
     });
   }
