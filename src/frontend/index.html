@@ -608,82 +608,293 @@
               <!-- Block Diagram View -->
               <div class="subtab-content" id="subtabContentDiagram">
                 <div class="block-diagram-container">
-                  <svg viewBox="0 0 740 260" width="100%" height="auto" class="svg-diagram" id="hwBlockDiagramSvg">
-                    <!-- Host PC (Win11) -->
-                    <rect x="20" y="30" width="130" height="200" rx="8" fill="var(--color-bg-inset)"
-                      stroke="var(--color-border-strong)" stroke-width="1.5" />
-                    <text x="85" y="60" text-anchor="middle" font-weight="700" font-size="12" fill="var(--color-text-primary)">Host PC (Win11)</text>
-                    <text x="85" y="78" text-anchor="middle" font-size="10.5" font-weight="500" fill="var(--color-text-secondary)">Workbench Core</text>
-                    <rect x="36" y="105" width="98" height="26" rx="4" fill="var(--color-bg-surface)"
-                      stroke="var(--color-border)" />
-                    <text x="85" y="122" text-anchor="middle" font-size="10.5" font-weight="600" fill="var(--color-accent)">USB Root Hub</text>
+                                    <svg viewBox="0 0 830 275" width="100%" height="auto" class="svg-diagram" id="hwBlockDiagramSvg">
+                    <defs>
+                      <linearGradient id="chassisGrad" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stop-color="#1e222d"/>
+                        <stop offset="100%" stop-color="#0f1117"/>
+                      </linearGradient>
+                      <linearGradient id="jtagPcbGrad" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stop-color="#064e3b"/>
+                        <stop offset="100%" stop-color="#022c22"/>
+                      </linearGradient>
+                      <linearGradient id="mcuPcbGrad" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stop-color="#0369a1"/>
+                        <stop offset="100%" stop-color="#0c4a6e"/>
+                      </linearGradient>
+                      <linearGradient id="fpgaPcbGrad" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stop-color="#27272a"/>
+                        <stop offset="100%" stop-color="#18181b"/>
+                      </linearGradient>
+                      <linearGradient id="shifterPcbGrad" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stop-color="#3b0764"/>
+                        <stop offset="100%" stop-color="#240046"/>
+                      </linearGradient>
+                      <linearGradient id="targetPcbGrad" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stop-color="#14532d"/>
+                        <stop offset="100%" stop-color="#052e16"/>
+                      </linearGradient>
+                      <linearGradient id="chipMetalGrad" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stop-color="#475569"/>
+                        <stop offset="50%" stop-color="#334155"/>
+                        <stop offset="100%" stop-color="#1e293b"/>
+                      </linearGradient>
+                      <filter id="boardDropShadow" x="-5%" y="-5%" width="115%" height="120%">
+                        <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#000000" flood-opacity="0.35"/>
+                      </filter>
+                    </defs>
+
+                    <!-- 1. HOST PC (Realistic Workstation Tower) -->
+                    <g id="diagNodeHost" transform="translate(15, 20)">
+                      <rect x="0" y="0" width="135" height="235" rx="8" fill="url(#chassisGrad)" stroke="#3b4252" stroke-width="1.8" filter="url(#boardDropShadow)"/>
+                      <rect x="8" y="8" width="119" height="162" rx="5" fill="#0a0c10" stroke="#1f2430" stroke-width="1"/>
+                      <!-- Dual Illuminated RGB Cooling Fans -->
+                      <circle cx="67" cy="48" r="25" fill="#0f172a" stroke="#0ea5e9" stroke-width="1.5" stroke-dasharray="8 4"/>
+                      <circle cx="67" cy="48" r="9" fill="#0ea5e9" fill-opacity="0.25"/>
+                      <circle cx="67" cy="48" r="3.5" fill="#38bdf8"/>
+                      <circle cx="67" cy="110" r="25" fill="#0f172a" stroke="#0ea5e9" stroke-width="1.5" stroke-dasharray="8 4"/>
+                      <circle cx="67" cy="110" r="9" fill="#0ea5e9" fill-opacity="0.25"/>
+                      <circle cx="67" cy="110" r="3.5" fill="#38bdf8"/>
+                      <!-- RAM Sticks -->
+                      <rect x="100" y="28" width="4" height="40" rx="1" fill="#475569"/>
+                      <rect x="108" y="28" width="4" height="40" rx="1" fill="#475569"/>
+                      <!-- PCIe Compute Card -->
+                      <rect x="14" y="142" width="107" height="22" rx="2" fill="#1e293b" stroke="#0284c7" stroke-width="1"/>
+                      <text x="68" y="156" text-anchor="middle" font-size="7.5" font-weight="700" fill="#38bdf8" font-family="sans-serif">RTX WORKSTATION</text>
+                      <!-- Front I/O & Power Panel -->
+                      <rect x="8" y="178" width="119" height="48" rx="5" fill="#161922" stroke="#2e3440" stroke-width="1"/>
+                      <circle cx="26" cy="202" r="7" fill="#0f172a" stroke="#38bdf8" stroke-width="1.4"/>
+                      <line x1="26" y1="198" x2="26" y2="202" stroke="#38bdf8" stroke-width="1.4"/>
+                      <rect x="42" y="196" width="16" height="6.5" rx="1.5" fill="#0284c7" stroke="#38bdf8" stroke-width="0.5"/>
+                      <rect x="42" y="206" width="16" height="6.5" rx="1.5" fill="#0284c7" stroke="#38bdf8" stroke-width="0.5"/>
+                      <text x="67" y="24" text-anchor="middle" font-weight="700" font-size="11" fill="#ffffff" font-family="sans-serif">Host PC (Win11)</text>
+                      <text x="67" y="34" text-anchor="middle" font-size="8.5" fill="#94a3b8" font-family="sans-serif">Workbench Core</text>
+                      <text x="96" y="202" font-size="8.5" font-weight="700" fill="#38bdf8" font-family="sans-serif">USB 3.2</text>
+                      <text x="96" y="213" font-size="7.5" fill="#94a3b8" font-family="sans-serif">Root Hub</text>
+                    </g>
 
                     <!-- USB Links from Host to Devices -->
-                    <path id="diagUsbJtag" d="M 134 118 L 220 70" stroke="var(--color-accent)" stroke-width="2" fill="none" class="diag-flow-active" />
-                    <path id="diagUsbMcu" d="M 134 118 L 220 130" stroke="var(--color-accent)" stroke-width="2" fill="none" class="diag-flow-active" />
-                    <path id="diagUsbFpga" d="M 134 118 L 220 190" stroke="var(--color-accent)" stroke-width="2" fill="none" class="diag-flow-active" />
+                    <path id="diagUsbJtag" d="M 150 200 C 170 200, 178 58, 195 58" stroke="#38bdf8" stroke-width="2.2" fill="none" class="diag-flow-active"/>
+                    <path id="diagUsbMcu" d="M 150 200 C 170 200, 178 132, 195 132" stroke="#22c55e" stroke-width="2.2" fill="none" class="diag-flow-active"/>
+                    <path id="diagUsbFpga" d="M 150 200 C 170 200, 178 206, 195 206" stroke="#f97316" stroke-width="2.2" fill="none" class="diag-flow-active"/>
 
-                    <!-- Device 1: FT2232H JTAG Probe -->
-                    <g id="diagNodeJtag" class="diag-node-box" data-dev="jtag">
-                      <rect id="diagBoxJtag" x="220" y="45" width="150" height="50" rx="6" fill="#f0f7fe" stroke="#3987e5"
-                        stroke-width="1.8" />
-                      <text x="295" y="67" text-anchor="middle" font-weight="700" font-size="11.5" fill="#0d366b">FT2232H JTAG Probe</text>
-                      <text id="diagSubJtag" x="295" y="83" text-anchor="middle" font-size="10" font-weight="600" fill="#3987e5">ONLINE • USB 2.0 HS</text>
+                    <!-- 2. FT2232H JTAG Probe (Realistic PCB) -->
+                    <g id="diagNodeJtag" class="diag-node-box" data-dev="jtag" transform="translate(195, 24)">
+                      <rect id="diagBoxJtag" x="0" y="0" width="215" height="68" rx="6" fill="url(#jtagPcbGrad)" stroke="#38bdf8" stroke-width="1.8" filter="url(#boardDropShadow)"/>
+                      <!-- Mounting Holes -->
+                      <circle cx="8" cy="8" r="2.5" fill="#0f172a" stroke="#fbbf24" stroke-width="0.8"/>
+                      <circle cx="8" cy="60" r="2.5" fill="#0f172a" stroke="#fbbf24" stroke-width="0.8"/>
+                      <circle cx="207" cy="8" r="2.5" fill="#0f172a" stroke="#fbbf24" stroke-width="0.8"/>
+                      <circle cx="207" cy="60" r="2.5" fill="#0f172a" stroke="#fbbf24" stroke-width="0.8"/>
+                      <!-- USB Type-C Receptacle -->
+                      <rect x="0" y="24" width="12" height="20" rx="2" fill="#94a3b8" stroke="#cbd5e1" stroke-width="0.8"/>
+                      <rect x="3" y="29" width="7" height="10" rx="1" fill="#1e293b"/>
+                      <!-- 12.000 MHz Crystal Oscillator -->
+                      <rect x="18" y="16" width="18" height="9" rx="3" fill="#cbd5e1" stroke="#94a3b8" stroke-width="0.6"/>
+                      <text x="27" y="23" text-anchor="middle" font-size="5.5" font-family="monospace" fill="#334155" font-weight="700">12.000</text>
+                      <!-- FTDI FT2232HL Chip -->
+                      <rect x="42" y="14" width="40" height="40" rx="3" fill="#0f172a" stroke="#475569" stroke-width="1"/>
+                      <circle cx="46" cy="18" r="1.5" fill="#64748b"/>
+                      <text x="62" y="28" text-anchor="middle" font-size="7.5" font-weight="800" fill="#ffffff" font-family="sans-serif">FTDI</text>
+                      <text x="62" y="37" text-anchor="middle" font-size="6.5" font-weight="700" fill="#38bdf8" font-family="sans-serif">FT2232HL</text>
+                      <text x="62" y="46" text-anchor="middle" font-size="5.5" fill="#94a3b8" font-family="monospace">HI-SPEED</text>
+                      <!-- Status LEDs -->
+                      <rect x="20" y="38" width="6" height="4" rx="1" fill="#22c55e" stroke="#15803d" stroke-width="0.5"/>
+                      <text x="30" y="42" font-size="5.5" fill="#86efac" font-family="sans-serif">PWR</text>
+                      <rect x="20" y="48" width="6" height="4" rx="1" fill="#eab308" stroke="#a16207" stroke-width="0.5"/>
+                      <text x="30" y="52" font-size="5.5" fill="#fde047" font-family="sans-serif">ACT</text>
+                      <!-- Silkscreen & Telemetry Labels (Clean Spacing) -->
+                      <text x="90" y="24" font-size="9" font-weight="700" fill="#ffffff" font-family="sans-serif">FT2232H JTAG Probe</text>
+                      <text id="diagSubJtag" x="90" y="37" font-size="8" font-weight="700" fill="#38bdf8" font-family="sans-serif">ONLINE • USB 2.0 HS</text>
+                      <text x="90" y="49" font-size="7" fill="#86efac" font-family="monospace">TAP: Run-Test/Idle</text>
+                      <!-- 10-pin Shrouded JTAG Header (Right Edge) -->
+                      <rect x="186" y="16" width="20" height="36" rx="2" fill="#0f172a" stroke="#64748b" stroke-width="1"/>
+                      <circle cx="191" cy="22" r="1.3" fill="#fbbf24"/><circle cx="201" cy="22" r="1.3" fill="#fbbf24"/>
+                      <circle cx="191" cy="29" r="1.3" fill="#fbbf24"/><circle cx="201" cy="29" r="1.3" fill="#fbbf24"/>
+                      <circle cx="191" cy="36" r="1.3" fill="#fbbf24"/><circle cx="201" cy="36" r="1.3" fill="#fbbf24"/>
+                      <circle cx="191" cy="43" r="1.3" fill="#fbbf24"/><circle cx="201" cy="43" r="1.3" fill="#fbbf24"/>
                     </g>
 
-                    <!-- Device 2: STM32H743ZI MCU -->
-                    <g id="diagNodeMcu" class="diag-node-box" data-dev="mcu">
-                      <rect id="diagBoxMcu" x="220" y="105" width="150" height="50" rx="6" fill="#f3fbf4" stroke="#0ca30c"
-                        stroke-width="1.8" />
-                      <text x="295" y="127" text-anchor="middle" font-weight="700" font-size="11.5" fill="#074506">STM32H743ZI MCU</text>
-                      <text id="diagSubMcu" x="295" y="143" text-anchor="middle" font-size="10" font-weight="600" fill="#0ca30c">ONLINE • 3.3V Domain</text>
+                    <!-- 3. STM32H743ZI MCU (Realistic Nucleo-144) -->
+                    <g id="diagNodeMcu" class="diag-node-box" data-dev="mcu" transform="translate(195, 98)">
+                      <rect id="diagBoxMcu" x="0" y="0" width="215" height="68" rx="6" fill="url(#mcuPcbGrad)" stroke="#22c55e" stroke-width="1.8" filter="url(#boardDropShadow)"/>
+                      <!-- Mounting Holes -->
+                      <circle cx="8" cy="8" r="2.5" fill="#0f172a" stroke="#fbbf24" stroke-width="0.8"/>
+                      <circle cx="8" cy="60" r="2.5" fill="#0f172a" stroke="#fbbf24" stroke-width="0.8"/>
+                      <circle cx="207" cy="8" r="2.5" fill="#0f172a" stroke="#fbbf24" stroke-width="0.8"/>
+                      <circle cx="207" cy="60" r="2.5" fill="#0f172a" stroke="#fbbf24" stroke-width="0.8"/>
+                      <!-- ST-LINK USB Jack -->
+                      <rect x="0" y="24" width="12" height="20" rx="2" fill="#94a3b8" stroke="#cbd5e1" stroke-width="0.8"/>
+                      <rect x="3" y="29" width="7" height="10" rx="1" fill="#1e293b"/>
+                      <!-- USER & RESET Push Buttons -->
+                      <circle cx="22" cy="18" r="5" fill="#0284c7" stroke="#38bdf8" stroke-width="0.8"/>
+                      <circle cx="22" cy="18" r="2.2" fill="#ffffff"/>
+                      <text x="30" y="20" font-size="5.5" fill="#bae6fd" font-family="sans-serif">USER</text>
+                      <circle cx="22" cy="48" r="5" fill="#1e293b" stroke="#475569" stroke-width="0.8"/>
+                      <circle cx="22" cy="48" r="2.2" fill="#94a3b8"/>
+                      <text x="30" y="50" font-size="5.5" fill="#cbd5e1" font-family="sans-serif">RESET</text>
+                      <!-- STM32H743ZI LQFP-144 IC -->
+                      <rect x="42" y="14" width="40" height="40" rx="2" fill="#090d16" stroke="#475569" stroke-width="1"/>
+                      <circle cx="46" cy="18" r="1.5" fill="#0284c7"/>
+                      <text x="62" y="27" text-anchor="middle" font-size="6.5" font-weight="700" fill="#38bdf8" font-family="sans-serif">ARM® M7</text>
+                      <text x="62" y="36" text-anchor="middle" font-size="6.5" font-weight="800" fill="#ffffff" font-family="sans-serif">STM32H7</text>
+                      <text x="62" y="45" text-anchor="middle" font-size="5.5" fill="#86efac" font-family="monospace">480 MHz</text>
+                      <!-- Labels (Clean Spacing) -->
+                      <text x="90" y="24" font-size="9" font-weight="700" fill="#ffffff" font-family="sans-serif">STM32H743ZI MCU</text>
+                      <text id="diagSubMcu" x="90" y="37" font-size="8" font-weight="700" fill="#22c55e" font-family="sans-serif">ONLINE • 3.3V Domain</text>
+                      <text x="90" y="49" font-size="7" fill="#86efac" font-family="monospace">RTOS: Tick 1 kHz</text>
+                      <!-- ST Morpho Headers (Right Edge) -->
+                      <rect x="190" y="12" width="16" height="44" rx="1.5" fill="#0f172a" stroke="#334155" stroke-width="0.8"/>
+                      <circle cx="194" cy="18" r="1.1" fill="#fbbf24"/><circle cx="202" cy="18" r="1.1" fill="#fbbf24"/>
+                      <circle cx="194" cy="26" r="1.1" fill="#fbbf24"/><circle cx="202" cy="26" r="1.1" fill="#fbbf24"/>
+                      <circle cx="194" cy="34" r="1.1" fill="#fbbf24"/><circle cx="202" cy="34" r="1.1" fill="#fbbf24"/>
+                      <circle cx="194" cy="42" r="1.1" fill="#fbbf24"/><circle cx="202" cy="42" r="1.1" fill="#fbbf24"/>
+                      <circle cx="194" cy="50" r="1.1" fill="#fbbf24"/><circle cx="202" cy="50" r="1.1" fill="#fbbf24"/>
                     </g>
 
-                    <!-- Device 3: Artix-7 FPGA -->
-                    <g id="diagNodeFpga" class="diag-node-box" data-dev="fpga">
-                      <rect id="diagBoxFpga" x="220" y="165" width="150" height="50" rx="6" fill="#fdf4f0" stroke="#d95926"
-                        stroke-width="1.8" />
-                      <text x="295" y="187" text-anchor="middle" font-weight="700" font-size="11.5" fill="#5d230b">Artix-7 XC7A100T FPGA</text>
-                      <text id="diagSubFpga" x="295" y="203" text-anchor="middle" font-size="10" font-weight="600" fill="#d95926">ONLINE • 1.8V VCCO</text>
+                    <!-- 4. Artix-7 FPGA (Realistic Arty A7) -->
+                    <g id="diagNodeFpga" class="diag-node-box" data-dev="fpga" transform="translate(195, 172)">
+                      <rect id="diagBoxFpga" x="0" y="0" width="215" height="68" rx="6" fill="url(#fpgaPcbGrad)" stroke="#f97316" stroke-width="1.8" filter="url(#boardDropShadow)"/>
+                      <!-- Mounting Holes -->
+                      <circle cx="8" cy="8" r="2.5" fill="#0f172a" stroke="#fbbf24" stroke-width="0.8"/>
+                      <circle cx="8" cy="60" r="2.5" fill="#0f172a" stroke="#fbbf24" stroke-width="0.8"/>
+                      <circle cx="207" cy="8" r="2.5" fill="#0f172a" stroke="#fbbf24" stroke-width="0.8"/>
+                      <circle cx="207" cy="60" r="2.5" fill="#0f172a" stroke="#fbbf24" stroke-width="0.8"/>
+                      <!-- USB-JTAG Port -->
+                      <rect x="0" y="24" width="12" height="20" rx="2" fill="#94a3b8" stroke="#cbd5e1" stroke-width="0.8"/>
+                      <rect x="3" y="29" width="7" height="10" rx="1" fill="#1e293b"/>
+                      <!-- Micron DDR3 RAM IC -->
+                      <rect x="18" y="15" width="20" height="15" rx="1.5" fill="#090d16" stroke="#475569" stroke-width="0.8"/>
+                      <text x="28" y="24" text-anchor="middle" font-size="5" fill="#94a3b8" font-family="monospace">DDR3</text>
+                      <!-- Slide Switches -->
+                      <rect x="18" y="38" width="20" height="18" rx="1.5" fill="#18181b" stroke="#3f3f46" stroke-width="0.6"/>
+                      <rect x="20" y="42" width="3" height="10" fill="#71717a"/>
+                      <rect x="24" y="42" width="3" height="10" fill="#71717a"/>
+                      <rect x="28" y="42" width="3" height="10" fill="#71717a"/>
+                      <rect x="32" y="42" width="3" height="10" fill="#71717a"/>
+                      <!-- Artix-7 XC7A100T FPGA BGA -->
+                      <rect x="42" y="14" width="40" height="40" rx="3" fill="url(#chipMetalGrad)" stroke="#64748b" stroke-width="1.2"/>
+                      <polygon points="42,14 48,14 42,20" fill="#94a3b8"/>
+                      <text x="62" y="27" text-anchor="middle" font-size="6.5" font-weight="800" fill="#ffffff" font-family="sans-serif">XILINX®</text>
+                      <text x="62" y="36" text-anchor="middle" font-size="6.5" font-weight="800" fill="#fb923c" font-family="sans-serif">ARTIX-7</text>
+                      <text x="62" y="45" text-anchor="middle" font-size="5.5" fill="#cbd5e1" font-family="monospace">XC7A100T</text>
+                      <!-- Labels (Clean Spacing) -->
+                      <text x="90" y="24" font-size="9" font-weight="700" fill="#ffffff" font-family="sans-serif">Artix-7 XC7A100T</text>
+                      <text id="diagSubFpga" x="90" y="37" font-size="8" font-weight="700" fill="#f97316" font-family="sans-serif">ONLINE • 1.8V VCCO</text>
+                      <text x="90" y="49" font-size="7" fill="#86efac" font-family="monospace">Bitstream: Sync OK</text>
+                      <!-- PMOD 12-pin Expansion Header (Right Edge) -->
+                      <rect x="188" y="12" width="18" height="44" rx="2" fill="#090d16" stroke="#3f3f46" stroke-width="0.8"/>
+                      <circle cx="193" cy="18" r="1.1" fill="#fbbf24"/><circle cx="201" cy="18" r="1.1" fill="#fbbf24"/>
+                      <circle cx="193" cy="26" r="1.1" fill="#fbbf24"/><circle cx="201" cy="26" r="1.1" fill="#fbbf24"/>
+                      <circle cx="193" cy="34" r="1.1" fill="#fbbf24"/><circle cx="201" cy="34" r="1.1" fill="#fbbf24"/>
+                      <circle cx="193" cy="42" r="1.1" fill="#fbbf24"/><circle cx="201" cy="42" r="1.1" fill="#fbbf24"/>
+                      <circle cx="193" cy="50" r="1.1" fill="#fbbf24"/><circle cx="201" cy="50" r="1.1" fill="#fbbf24"/>
                     </g>
-
-                    <!-- Bidirectional Level Shifter TXB0108 -->
-                    <rect x="420" y="45" width="110" height="170" rx="6" fill="var(--color-bg-inset)"
-                      stroke="var(--color-border-strong)" stroke-width="1.2" stroke-dasharray="4 2" />
-                    <text x="475" y="70" text-anchor="middle" font-weight="700" font-size="11"
-                      fill="var(--color-text-primary)">Bidirectional</text>
-                    <text x="475" y="86" text-anchor="middle" font-weight="700" font-size="11"
-                      fill="var(--color-text-primary)">Level Shifter</text>
-                    <text x="475" y="108" text-anchor="middle" font-weight="600" font-size="10"
-                      fill="var(--color-accent)">TXB0108</text>
-                    <text x="475" y="124" text-anchor="middle" font-size="10" font-weight="500" fill="var(--color-text-secondary)">(1.8V &harr; 3.3V)</text>
 
                     <!-- Connections from Devices into Level Shifter -->
-                    <path id="diagLineJtagIn" d="M 370 70 L 420 70" stroke="#3987e5" stroke-width="1.8" fill="none" class="diag-flow-active" />
-                    <path id="diagLineMcuIn" d="M 370 130 L 420 130" stroke="#0ca30c" stroke-width="1.8" fill="none" class="diag-flow-active" />
-                    <path id="diagLineFpgaIn" d="M 370 190 L 420 190" stroke="#d95926" stroke-width="1.8" fill="none" class="diag-flow-active" />
+                    <path id="diagLineJtagIn" d="M 410 58 L 455 58" stroke="#38bdf8" stroke-width="2" fill="none" class="diag-flow-active"/>
+                    <path id="diagLineMcuIn" d="M 410 132 L 455 132" stroke="#22c55e" stroke-width="2" fill="none" class="diag-flow-active"/>
+                    <path id="diagLineFpgaIn" d="M 410 206 L 455 206" stroke="#f97316" stroke-width="2" fill="none" class="diag-flow-active"/>
 
-                    <!-- Connections from Level Shifter out to Target Hardware -->
-                    <path id="diagLineJtagOut" d="M 530 70 L 590 120" stroke="#3987e5" stroke-width="1.8" stroke-dasharray="3 3"
-                      fill="none" class="diag-flow-active" />
-                    <path id="diagLineMcuOut" d="M 530 130 L 590 145" stroke="#0ca30c" stroke-width="1.8" fill="none" class="diag-flow-active" />
-                    <path id="diagLineFpgaOut" d="M 530 190 L 590 180" stroke="#d95926" stroke-width="1.8" stroke-dasharray="3 3"
-                      fill="none" class="diag-flow-active" />
-
-                    <!-- Clean Tag Badge for Bus Protocol -->
-                    <g transform="translate(542, 116)">
-                      <rect x="0" y="0" width="44" height="15" rx="3" fill="var(--color-bg-surface)" stroke="var(--color-border)" stroke-width="0.8" />
-                      <text x="22" y="11" text-anchor="middle" font-size="9" font-weight="700" fill="var(--color-text-primary)">SPI/UART</text>
+                    <!-- 5. TXB0108 LEVEL SHIFTER BREAKOUT -->
+                    <g id="diagNodeShifter" transform="translate(455, 22)">
+                      <rect x="0" y="0" width="125" height="230" rx="6" fill="url(#shifterPcbGrad)" stroke="#a855f7" stroke-width="1.8" filter="url(#boardDropShadow)"/>
+                      <!-- Mounting Holes -->
+                      <circle cx="8" cy="10" r="2.5" fill="#0f172a" stroke="#fbbf24" stroke-width="0.8"/>
+                      <circle cx="117" cy="10" r="2.5" fill="#0f172a" stroke="#fbbf24" stroke-width="0.8"/>
+                      <circle cx="8" cy="220" r="2.5" fill="#0f172a" stroke="#fbbf24" stroke-width="0.8"/>
+                      <circle cx="117" cy="220" r="2.5" fill="#0f172a" stroke="#fbbf24" stroke-width="0.8"/>
+                      <!-- Silkscreen Header -->
+                      <text x="62" y="24" text-anchor="middle" font-size="10" font-weight="800" fill="#ffffff" font-family="sans-serif">Bidirectional</text>
+                      <text x="62" y="37" text-anchor="middle" font-size="10" font-weight="800" fill="#ffffff" font-family="sans-serif">Level Shifter</text>
+                      <text x="62" y="52" text-anchor="middle" font-size="9" font-weight="700" fill="#c084fc" font-family="sans-serif">TXB0108 8-CH</text>
+                      <text x="62" y="65" text-anchor="middle" font-size="7.5" fill="#e9d5ff" font-family="monospace">(1.8V ⇄ 3.3V)</text>
+                      <!-- TI TXB0108 TSSOP-20 IC -->
+                      <rect x="42" y="80" width="41" height="85" rx="2" fill="#0f172a" stroke="#475569" stroke-width="1"/>
+                      <circle cx="48" cy="88" r="1.5" fill="#c084fc"/>
+                      <text x="62" y="115" text-anchor="middle" font-size="7" font-weight="700" fill="#ffffff" font-family="sans-serif">TI TXB</text>
+                      <text x="62" y="125" text-anchor="middle" font-size="7" font-weight="800" fill="#c084fc" font-family="sans-serif">0108</text>
+                      <text x="62" y="137" text-anchor="middle" font-size="5.5" fill="#94a3b8" font-family="monospace">AUTO-DIR</text>
+                      <!-- A-Port Pin Array (1.8V Domain) -->
+                      <text x="12" y="80" font-size="6.5" font-weight="700" fill="#f97316" font-family="monospace">A-PORT</text>
+                      <text x="12" y="90" font-size="6" fill="#fed7aa" font-family="monospace">1.8V</text>
+                      <circle cx="16" cy="100" r="2" fill="#fbbf24"/>
+                      <circle cx="16" cy="115" r="2" fill="#fbbf24"/>
+                      <circle cx="16" cy="130" r="2" fill="#fbbf24"/>
+                      <circle cx="16" cy="145" r="2" fill="#fbbf24"/>
+                      <circle cx="16" cy="160" r="2" fill="#fbbf24"/>
+                      <!-- B-Port Pin Array (3.3V Domain) -->
+                      <text x="90" y="80" font-size="6.5" font-weight="700" fill="#38bdf8" font-family="monospace">B-PORT</text>
+                      <text x="90" y="90" font-size="6" fill="#bae6fd" font-family="monospace">3.3V</text>
+                      <circle cx="109" cy="100" r="2" fill="#fbbf24"/>
+                      <circle cx="109" cy="115" r="2" fill="#fbbf24"/>
+                      <circle cx="109" cy="130" r="2" fill="#fbbf24"/>
+                      <circle cx="109" cy="145" r="2" fill="#fbbf24"/>
+                      <circle cx="109" cy="160" r="2" fill="#fbbf24"/>
+                      <!-- Mode Description -->
+                      <text x="62" y="195" text-anchor="middle" font-size="7" font-weight="600" fill="#e9d5ff" font-family="sans-serif">Push-Pull / OD</text>
+                      <text x="62" y="207" text-anchor="middle" font-size="6.5" fill="#cbd5e1" font-family="monospace">OE = High (VCCA)</text>
                     </g>
 
-                    <!-- Target Hardware -->
-                    <rect x="590" y="95" width="132" height="118" rx="6" fill="var(--color-bg-surface)"
-                      stroke="var(--color-border-strong)" stroke-width="1.5" />
-                    <text x="656" y="120" text-anchor="middle" font-weight="700" font-size="11.5"
-                      fill="var(--color-text-primary)">Target Hardware</text>
-                    <text x="656" y="140" text-anchor="middle" font-size="10" font-weight="500" fill="var(--color-text-secondary)">JTAG TAP Daisy Chain</text>
-                    <text x="656" y="160" text-anchor="middle" font-size="10" font-family="monospace" fill="var(--color-text-secondary)">TCK, TMS, TDI, TDO</text>
-                    <text x="656" y="180" text-anchor="middle" font-size="10" font-weight="700" fill="#0ca30c">Common GND Bus</text>
+                    <!-- Connections from Level Shifter out to Target Hardware -->
+                    <path id="diagLineJtagOut" d="M 580 58 C 600 58, 608 135, 630 135" stroke="#38bdf8" stroke-width="2" stroke-dasharray="4 2" fill="none" class="diag-flow-active"/>
+                    <path id="diagLineMcuOut" d="M 580 150 L 630 150" stroke="#22c55e" stroke-width="2" fill="none" class="diag-flow-active"/>
+                    <path id="diagLineFpgaOut" d="M 580 206 C 600 206, 608 185, 630 185" stroke="#f97316" stroke-width="2" stroke-dasharray="4 2" fill="none" class="diag-flow-active"/>
+
+                    <!-- Protocol Pill Badges -->
+                    <g transform="translate(585, 118)">
+                      <rect x="0" y="0" width="38" height="15" rx="3" fill="#0f172a" stroke="#38bdf8" stroke-width="0.8"/>
+                      <text x="19" y="11" text-anchor="middle" font-size="8" font-weight="700" fill="#38bdf8" font-family="sans-serif">JTAG</text>
+                    </g>
+                    <g transform="translate(585, 142)">
+                      <rect x="0" y="0" width="38" height="15" rx="3" fill="#0f172a" stroke="#22c55e" stroke-width="0.8"/>
+                      <text x="19" y="11" text-anchor="middle" font-size="8" font-weight="700" fill="#22c55e" font-family="sans-serif">SPI</text>
+                    </g>
+
+                    <!-- 6. TARGET HARDWARE (IEEE 1149.1 DAISY CHAIN) -->
+                    <g id="diagNodeTarget" transform="translate(630, 36)">
+                      <rect x="0" y="0" width="180" height="202" rx="7" fill="url(#targetPcbGrad)" stroke="#22c55e" stroke-width="1.8" filter="url(#boardDropShadow)"/>
+                      <!-- Mounting Holes -->
+                      <circle cx="8" cy="10" r="2.5" fill="#0f172a" stroke="#fbbf24" stroke-width="0.8"/>
+                      <circle cx="172" cy="10" r="2.5" fill="#0f172a" stroke="#fbbf24" stroke-width="0.8"/>
+                      <circle cx="8" cy="192" r="2.5" fill="#0f172a" stroke="#fbbf24" stroke-width="0.8"/>
+                      <circle cx="172" cy="192" r="2.5" fill="#0f172a" stroke="#fbbf24" stroke-width="0.8"/>
+                      <!-- Title -->
+                      <text x="90" y="24" text-anchor="middle" font-size="11" font-weight="800" fill="#ffffff" font-family="sans-serif">Target Hardware</text>
+                      <text x="90" y="37" text-anchor="middle" font-size="8.5" font-weight="600" fill="#86efac" font-family="sans-serif">IEEE 1149.1 Daisy Chain</text>
+                      <!-- Daisy Chained IC Chips -->
+                      <g transform="translate(14, 52)">
+                        <!-- IC 1: MCU TAP -->
+                        <rect x="0" y="0" width="44" height="42" rx="2" fill="#0f172a" stroke="#0ea5e9" stroke-width="1"/>
+                        <text x="22" y="18" text-anchor="middle" font-size="7" font-weight="700" fill="#38bdf8" font-family="sans-serif">IC 1</text>
+                        <text x="22" y="28" text-anchor="middle" font-size="6" fill="#94a3b8" font-family="sans-serif">MCU</text>
+                        <!-- IC 2: FPGA TAP -->
+                        <rect x="54" y="0" width="44" height="42" rx="2" fill="#0f172a" stroke="#f97316" stroke-width="1"/>
+                        <text x="76" y="18" text-anchor="middle" font-size="7" font-weight="700" fill="#fb923c" font-family="sans-serif">IC 2</text>
+                        <text x="76" y="28" text-anchor="middle" font-size="6" fill="#94a3b8" font-family="sans-serif">FPGA</text>
+                        <!-- IC 3: Flash TAP -->
+                        <rect x="108" y="0" width="44" height="42" rx="2" fill="#0f172a" stroke="#a855f7" stroke-width="1"/>
+                        <text x="130" y="18" text-anchor="middle" font-size="7" font-weight="700" fill="#c084fc" font-family="sans-serif">IC 3</text>
+                        <text x="130" y="28" text-anchor="middle" font-size="6" fill="#94a3b8" font-family="sans-serif">FLASH</text>
+                        <!-- Daisy chain lines between ICs -->
+                        <path d="M 44 21 L 54 21" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="2 1"/>
+                        <path d="M 98 21 L 108 21" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="2 1"/>
+                      </g>
+                      <!-- Test Points Banner -->
+                      <rect x="14" y="110" width="152" height="24" rx="3" fill="#090d16" stroke="#1f2937" stroke-width="1"/>
+                      <circle cx="28" cy="122" r="2" fill="#fbbf24"/>
+                      <text x="34" y="125" font-size="7.5" font-weight="700" fill="#fde047" font-family="monospace">TCK</text>
+                      <circle cx="68" cy="122" r="2" fill="#fbbf24"/>
+                      <text x="74" y="125" font-size="7.5" font-weight="700" fill="#fde047" font-family="monospace">TMS</text>
+                      <circle cx="108" cy="122" r="2" fill="#fbbf24"/>
+                      <text x="114" y="125" font-size="7.5" font-weight="700" fill="#fde047" font-family="monospace">TDI</text>
+                      <circle cx="148" cy="122" r="2" fill="#fbbf24"/>
+                      <text x="154" y="125" font-size="7.5" font-weight="700" fill="#fde047" font-family="monospace">TDO</text>
+                      <!-- Common Star GND Plane -->
+                      <rect x="14" y="148" width="152" height="26" rx="4" fill="#064e3b" stroke="#10b981" stroke-width="1"/>
+                      <circle cx="28" cy="161" r="3" fill="#22c55e"/>
+                      <text x="86" y="165" text-anchor="middle" font-size="8.5" font-weight="700" fill="#ffffff" font-family="sans-serif">Common Star GND Bus</text>
+                    </g>
                   </svg>
                 </div>
               </div>

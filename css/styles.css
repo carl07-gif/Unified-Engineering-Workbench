@@ -1065,7 +1065,7 @@ html, body {
 .diag-node-box:hover {
   transform: translateY(-2px);
 }
-.diag-node-timeout {
+.diag-node-timeout > rect:first-child {
   animation: diagTimeoutPulse 1s infinite alternate ease-in-out;
 }
 @keyframes diagTimeoutPulse {
