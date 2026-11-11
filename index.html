@@ -472,11 +472,21 @@
 
             <!-- Dual Graphical Visualizers: Speedup Vector SVG + Thread Pool Waterfall -->
             <div class="perf-charts-grid">
-              <!-- Left: Vector SVG Speedup Curve vs Amdahl's Law -->
+              <!-- Left: Dynamic Vector SVG Scaling Chart with Graph Mode Buttons -->
               <div class="perf-chart-card">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                  <h4 style="margin:0;"><i class="ti ti-chart-line" style="color:var(--color-accent); margin-right:4px;"></i>Speedup vs Worker Threads</h4>
-                  <span style="font-size:10.5px; color:var(--color-text-muted);">Ideal vs Measured vs Amdahl</span>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; flex-wrap:wrap; gap:4px;">
+                  <h4 style="margin:0; font-size:12px;" id="perfChartTitle"><i class="ti ti-chart-line" style="color:var(--color-accent); margin-right:4px;"></i>Speedup vs Worker Threads</h4>
+                  <div class="perf-graph-btn-group" id="perfGraphModeTabs">
+                    <button class="perf-graph-btn perf-graph-btn--active" data-perf-mode="speedup" title="Plot Speedup Ratio (T1/Tp)">
+                      <i class="ti ti-trending-up"></i> Speedup (T₁/Tₚ)
+                    </button>
+                    <button class="perf-graph-btn" data-perf-mode="time" title="Plot Wall-Clock Execution Time (ms)">
+                      <i class="ti ti-clock"></i> Exec Time (ms)
+                    </button>
+                    <button class="perf-graph-btn" data-perf-mode="throughput" title="Plot Solve Throughput (solves/sec)">
+                      <i class="ti ti-bolt"></i> Throughput (/s)
+                    </button>
+                  </div>
                 </div>
                 <div class="perf-speedup-svg-wrap" id="speedupSvgContainer">
                   <!-- SVG dynamically rendered here -->

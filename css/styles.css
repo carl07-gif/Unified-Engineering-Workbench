@@ -780,15 +780,15 @@ html, body {
 .perf-kpi-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
-  margin-bottom: 12px;
+  gap: 8px;
+  margin-bottom: 8px;
   flex-shrink: 0;
 }
 .perf-kpi-card {
   background: var(--color-bg-inset);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  padding: 10px 12px;
+  padding: 7px 10px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -809,7 +809,7 @@ html, body {
 .perf-kpi-card--purple::before { background: #a855f7; }
 
 .perf-kpi-label {
-  font-size: 11px;
+  font-size: 10.5px;
   color: var(--color-text-secondary);
   font-weight: 500;
   display: flex;
@@ -817,14 +817,14 @@ html, body {
   justify-content: space-between;
 }
 .perf-kpi-val {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
-  margin: 3px 0 2px;
+  margin: 2px 0 1px;
   font-variant-numeric: tabular-nums;
   color: var(--color-text-primary);
 }
 .perf-kpi-sub {
-  font-size: 10.5px;
+  font-size: 10px;
   color: var(--color-text-muted);
   display: flex;
   align-items: center;
@@ -834,28 +834,28 @@ html, body {
 .table-container {
   flex-shrink: 0;
   overflow-x: auto;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   border: 0.5px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-bg-inset);
-  min-height: 120px;
+  min-height: 105px;
 }
 
 .data-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 12px;
+  font-size: 11.5px;
   text-align: left;
 }
 .data-table th {
   background: var(--color-bg-surface);
-  padding: 8px 10px;
+  padding: 5px 8px;
   font-weight: 600;
   color: var(--color-text-secondary);
   border-bottom: 0.5px solid var(--color-border);
 }
 .data-table td {
-  padding: 8px 10px;
+  padding: 5px 8px;
   border-bottom: 0.5px solid var(--color-border);
   font-variant-numeric: tabular-nums;
 }
@@ -868,23 +868,61 @@ html, body {
   flex-shrink: 0;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: 8px;
+  margin-bottom: 8px;
 }
 .perf-chart-card {
   background: var(--color-bg-inset);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  padding: 10px 14px;
+  padding: 8px 10px;
 }
-.perf-chart-card h4 { font-size: 12px; font-weight: 600; margin-bottom: 6px; }
+.perf-chart-card h4 { font-size: 11.5px; font-weight: 600; margin-bottom: 4px; }
+
+/* Interactive Graph Mode Buttons on Performance Chart */
+.perf-graph-btn-group {
+  display: inline-flex;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+  gap: 2px;
+}
+.perf-graph-btn {
+  background: transparent;
+  border: none;
+  color: var(--color-text-secondary);
+  font-size: 10px;
+  font-weight: 500;
+  padding: 2px 7px;
+  border-radius: 2px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  transition: all 0.15s ease;
+}
+.perf-graph-btn:hover {
+  color: var(--color-text-primary);
+  background: rgba(255, 255, 255, 0.05);
+}
+.perf-graph-btn--active {
+  background: var(--color-accent);
+  color: #ffffff;
+  font-weight: 600;
+}
+.perf-graph-btn--active:hover {
+  background: var(--color-accent);
+  color: #ffffff;
+}
 
 .perf-speedup-svg-wrap {
   width: 100%;
   border-radius: var(--radius-sm);
   background: var(--color-bg-surface);
   border: 0.5px solid var(--color-border);
-  padding: 4px;
+  padding: 2px;
+  min-height: 175px;
 }
 
 /* Waterfall layout: clean block rows with title and duty cycle separated */
@@ -933,23 +971,24 @@ html, body {
 .amdahl-analytical-card {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 14px;
+  gap: 12px;
   background: var(--color-bg-inset);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  padding: 10px 14px;
-  margin-top: 10px;
+  padding: 6px 12px;
+  margin-top: 6px;
+  flex-shrink: 0;
 }
 .amdahl-formula-box {
   border-right: 0.5px solid var(--color-border);
-  padding-right: 12px;
+  padding-right: 10px;
 }
 .amdahl-stats-box {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 5px;
-  font-size: 11.5px;
+  gap: 3px;
+  font-size: 11px;
 }
 
 .hw-summary-box {
