@@ -904,20 +904,29 @@ const CadViewer = (() => {
     const halfH = ROD_H / 2;
     const xDivide = 0.42;
 
-    streamlines.forEach(st => {
-      // Streamline tracks along Top face
-      if (st.face === "top" && isNormalFacingCamera(0, 1, 0)) {
-        drawStreamlineRibbon(cx, cy, halfH, st.offsetZ, true, st.pulseOffset);
-      }
-      // Streamline tracks along Front face
-      else if (st.face === "front" && isNormalFacingCamera(0, 0, 1)) {
-        drawStreamlineRibbon(cx, cy, st.offsetY, halfW, false, st.pulseOffset);
-      }
-    });
+    if (rodShape === "cylinder") {
+      const angles = [Math.PI * 0.48, Math.PI * 0.28, Math.PI * 0.08];
+      angles.forEach((ang, idx) => {
+        const coordY = ROD_RADIUS * Math.sin(ang) * 1.01;
+        const coordZ = ROD_RADIUS * Math.cos(ang) * 1.01;
+        drawStreamlineRibbon(cx, cy, coordY, coordZ, true, (idx * 0.33));
+      });
+    } else {
+      streamlines.forEach(st => {
+        // Streamline tracks along Top face
+        if (st.face === "top" && isNormalFacingCamera(0, 1, 0)) {
+          drawStreamlineRibbon(cx, cy, halfH, st.offsetZ, true, st.pulseOffset);
+        }
+        // Streamline tracks along Front face
+        else if (st.face === "front" && isNormalFacingCamera(0, 0, 1)) {
+          drawStreamlineRibbon(cx, cy, st.offsetY, halfW, false, st.pulseOffset);
+        }
+      });
+    }
 
     function drawStreamlineRibbon(cx, cy, coordY, coordZ, isTop, pulsePhase) {
       // 1. Subtle baseline streamline path
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.12)";
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.14)";
       ctx.lineWidth = 1.0;
       ctx.beginPath();
       for (let step = 0; step <= 25; step++) {
@@ -929,41 +938,43 @@ const CadViewer = (() => {
       ctx.stroke();
 
       // 2. Animated Heat Flow Pulse Gliding Left (towards x = 0, T = 100°C)
-      const tLeft = (animTime * 0.45 + pulsePhase) % 1.0;
+      const tLeft = (animTime * 0.38 + pulsePhase) % 1.0;
       const pulseLeftX = xDivide * (1.0 - tLeft); // moves 0.42 -> 0.0
       const ptL = project(pulseLeftX, coordY, coordZ, cx, cy);
       const rgbL = getTemperatureRGB((tempAtX(pulseLeftX) - minTemp) / (maxTemp - minTemp || 1));
 
       ctx.fillStyle = "#ffffff";
       ctx.beginPath();
-      ctx.arc(ptL.x, ptL.y, 2.2 * ptL.fov, 0, Math.PI * 2);
+      ctx.arc(ptL.x, ptL.y, 2.4 * ptL.fov, 0, Math.PI * 2);
       ctx.fill();
 
-      ctx.fillStyle = `rgba(${rgbL.r}, ${rgbL.g}, ${rgbL.b}, 0.65)`;
+      ctx.fillStyle = `rgba(${rgbL.r}, ${rgbL.g}, ${rgbL.b}, 0.75)`;
       ctx.beginPath();
-      ctx.arc(ptL.x, ptL.y, 4.5 * ptL.fov, 0, Math.PI * 2);
+      ctx.arc(ptL.x, ptL.y, 4.8 * ptL.fov, 0, Math.PI * 2);
       ctx.fill();
 
       // 3. Animated Heat Flow Pulse Gliding Right (towards x = 1.0, T = 20°C)
-      const tRight = (animTime * 0.55 + pulsePhase) % 1.0;
+      const tRight = (animTime * 0.38 + pulsePhase) % 1.0;
       const pulseRightX = xDivide + (1.0 - xDivide) * tRight; // moves 0.42 -> 1.0
       const ptR = project(pulseRightX, coordY, coordZ, cx, cy);
       const rgbR = getTemperatureRGB((tempAtX(pulseRightX) - minTemp) / (maxTemp - minTemp || 1));
 
       ctx.fillStyle = "#ffffff";
       ctx.beginPath();
-      ctx.arc(ptR.x, ptR.y, 2.2 * ptR.fov, 0, Math.PI * 2);
+      ctx.arc(ptR.x, ptR.y, 2.4 * ptR.fov, 0, Math.PI * 2);
       ctx.fill();
 
-      ctx.fillStyle = `rgba(${rgbR.r}, ${rgbR.g}, ${rgbR.b}, 0.65)`;
+      ctx.fillStyle = `rgba(${rgbR.r}, ${rgbR.g}, ${rgbR.b}, 0.75)`;
       ctx.beginPath();
-      ctx.arc(ptR.x, ptR.y, 4.5 * ptR.fov, 0, Math.PI * 2);
+      ctx.arc(ptR.x, ptR.y, 4.8 * ptR.fov, 0, Math.PI * 2);
       ctx.fill();
     }
   }
 
   /* ─────────────────────────────────────────────
-     Heat Flux Vectors & Thermal Divide Ring
+     Animated Flowing Heat Flux Vectors & Thermal Divide Ring
+     Active real-time Fourier Conduction flow: q_x = -k*(dT/dx)
+     Arrows continuously glide from hot spot (x=0.42) outwards
      ───────────────────────────────────────────── */
   function drawHeatFluxVectorsAndDivide(cx, cy) {
     const halfW = ROD_W / 2;
@@ -971,52 +982,103 @@ const CadViewer = (() => {
     const xDivide = 0.42;
     const pulse = 0.5 + 0.5 * Math.sin(animTime * 4.0);
 
-    // 1. Thermal Divide Stagnation Line (q_x = 0, dT/dx = 0)
-    const p1 = project(xDivide, -halfH * 1.05, halfW * 1.05, cx, cy);
-    const p2 = project(xDivide, halfH * 1.05, halfW * 1.05, cx, cy);
-    const p3 = project(xDivide, halfH * 1.05, -halfW * 1.05, cx, cy);
+    // 1. Thermal Divide Stagnation Line / Ring (q_x = 0, dT/dx = 0)
+    const ringRadius = rodShape === "cylinder" ? ROD_RADIUS * 1.05 : halfH * 1.05;
+    if (rodShape === "cylinder") {
+      ctx.strokeStyle = `rgba(255, 110, 50, ${0.75 + 0.25 * pulse})`;
+      ctx.lineWidth = 2.2;
+      ctx.beginPath();
+      for (let s = 0; s <= 24; s++) {
+        const th = (s / 24) * Math.PI * 2;
+        const pt = project(xDivide, ringRadius * Math.sin(th), ringRadius * Math.cos(th), cx, cy);
+        if (s === 0) ctx.moveTo(pt.x, pt.y);
+        else ctx.lineTo(pt.x, pt.y);
+      }
+      ctx.stroke();
+    } else {
+      const p1 = project(xDivide, -halfH * 1.05, halfW * 1.05, cx, cy);
+      const p2 = project(xDivide, halfH * 1.05, halfW * 1.05, cx, cy);
+      const p3 = project(xDivide, halfH * 1.05, -halfW * 1.05, cx, cy);
 
-    ctx.strokeStyle = `rgba(255, 110, 50, ${0.7 + 0.3 * pulse})`;
-    ctx.lineWidth = 2.0;
-    ctx.beginPath();
-    ctx.moveTo(p1.x, p1.y);
-    ctx.lineTo(p2.x, p2.y);
-    ctx.lineTo(p3.x, p3.y);
-    ctx.stroke();
+      ctx.strokeStyle = `rgba(255, 110, 50, ${0.7 + 0.3 * pulse})`;
+      ctx.lineWidth = 2.0;
+      ctx.beginPath();
+      ctx.moveTo(p1.x, p1.y);
+      ctx.lineTo(p2.x, p2.y);
+      ctx.lineTo(p3.x, p3.y);
+      ctx.stroke();
+    }
 
-    // 2. 3D Vector Arrows along Top Ridge
-    const stations = [0.12, 0.26, 0.62, 0.80, 0.94];
-    stations.forEach(stX => {
-      const q_x = 10000.0 * stX - 4200.0;
-      const arrowLenWorld = (q_x / 5800.0) * 0.055;
+    // 2. Continuous Animated Flowing 3D Heat Flux Vector Arrows
+    // Heat conducts from hot zone (x=0.42) outwards to both cold ends:
+    // Left Stream: 3 continuously gliding arrows flowing towards x = 0 (100°C)
+    // Right Stream: 4 continuously gliding arrows flowing towards x = 1.0 (20°C)
+    const ridgeY = rodShape === "cylinder" ? ROD_RADIUS * 1.06 : halfH + 0.008;
+    const ridgeZ = rodShape === "cylinder" ? ROD_RADIUS * 0.25 : halfW;
 
-      const pBase = project(stX, halfH + 0.008, halfW, cx, cy);
-      const pTip  = project(stX + arrowLenWorld, halfH + 0.008, halfW, cx, cy);
+    // A. Left Flow Arrows (gliding from x = 0.42 down to 0.02)
+    const leftOffsets = [0.0, 0.333, 0.666];
+    leftOffsets.forEach(offset => {
+      const phase = (animTime * 0.28 + offset) % 1.0;
+      const stX = xDivide * (1.0 - phase * 0.94) + 0.02;
+      const q_x = 10000.0 * stX - 4200.0; // negative, pointing left towards 0
+      const arrowLenWorld = (q_x / 5800.0) * 0.048; // negative length (leftward)
+      const alpha = Math.sin(phase * Math.PI); // smooth fade in and fade out
+
+      drawFlowVector(stX, arrowLenWorld, ridgeY, ridgeZ, alpha, cx, cy);
+    });
+
+    // B. Right Flow Arrows (gliding from x = 0.42 up to 0.98)
+    const rightOffsets = [0.0, 0.25, 0.50, 0.75];
+    rightOffsets.forEach(offset => {
+      const phase = (animTime * 0.28 + offset) % 1.0;
+      const stX = xDivide + (0.98 - xDivide) * (phase * 0.96);
+      const q_x = 10000.0 * stX - 4200.0; // positive, pointing right towards 1.0
+      const arrowLenWorld = (q_x / 5800.0) * 0.048; // positive length (rightward)
+      const alpha = Math.sin(phase * Math.PI); // smooth fade in and fade out
+
+      drawFlowVector(stX, arrowLenWorld, ridgeY, ridgeZ, alpha, cx, cy);
+    });
+
+    function drawFlowVector(stX, arrowLenWorld, yPos, zPos, alpha, cx, cy) {
+      if (alpha <= 0.06) return;
+
+      const pBase = project(stX, yPos, zPos, cx, cy);
+      const pTip  = project(stX + arrowLenWorld, yPos, zPos, cx, cy);
 
       const normT = (tempAtX(stX) - minTemp) / (maxTemp - minTemp || 1);
       const rgb = getTemperatureRGB(normT);
-      const col = `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
+      const col = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha.toFixed(2)})`;
 
+      // Shaft
       ctx.strokeStyle = col;
-      ctx.lineWidth = 1.75;
+      ctx.lineWidth = 2.4;
       ctx.beginPath();
       ctx.moveTo(pBase.x, pBase.y);
       ctx.lineTo(pTip.x, pTip.y);
       ctx.stroke();
 
+      // Arrowhead
       const angle = Math.atan2(pTip.y - pBase.y, pTip.x - pBase.x);
-      const hLen = 6;
+      const hLen = 7.5;
       ctx.fillStyle = col;
       ctx.beginPath();
       ctx.moveTo(pTip.x, pTip.y);
-      ctx.lineTo(pTip.x - hLen * Math.cos(angle - 0.45), pTip.y - hLen * Math.sin(angle - 0.45));
-      ctx.lineTo(pTip.x - hLen * Math.cos(angle + 0.45), pTip.y - hLen * Math.sin(angle + 0.45));
+      ctx.lineTo(pTip.x - hLen * Math.cos(angle - 0.42), pTip.y - hLen * Math.sin(angle - 0.42));
+      ctx.lineTo(pTip.x - hLen * Math.cos(angle + 0.42), pTip.y - hLen * Math.sin(angle + 0.42));
       ctx.closePath();
       ctx.fill();
-    });
+
+      // Luminous energy bead at the arrowhead tip
+      ctx.fillStyle = `rgba(255, 255, 255, ${(alpha * 0.95).toFixed(2)})`;
+      ctx.beginPath();
+      ctx.arc(pTip.x, pTip.y, 2.2 * pTip.fov, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
 
   /* ─────────────────────────────────────────────
+/* ─────────────────────────────────────────────
      ANSYS Hot & Cold Spot Probe Callouts
      Guaranteed In-Bounds Clamping (Never Cut Off, Never Covering Rod)
      ───────────────────────────────────────────── */
