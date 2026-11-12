@@ -7,6 +7,7 @@
 
 const MulticoreViewController = (() => {
   let isRunning = false;
+  let cancelRequested = false;
   let activeGraphMode = "time"; // "time", "speedup", "throughput"
   let lastResults = null;
   let lastP = 0.942;
@@ -28,6 +29,17 @@ const MulticoreViewController = (() => {
     const btnRun = document.getElementById("btnRunBenchmark");
     if (btnRun) {
       btnRun.addEventListener("click", runBenchmark);
+    }
+
+    const btnCancel = document.getElementById("btnCancelBenchmark");
+    if (btnCancel) {
+      btnCancel.addEventListener("click", () => {
+        if (isRunning) {
+          cancelRequested = true;
+          const agreementText = document.getElementById("agreementText");
+          if (agreementText) agreementText.textContent = "Cancelling benchmark...";
+        }
+      });
     }
 
     // Bind interactive graph mode buttons
@@ -90,12 +102,14 @@ const MulticoreViewController = (() => {
   async function runBenchmark() {
     if (isRunning) return;
     isRunning = true;
+    cancelRequested = false;
 
     const caseCount = parseInt(document.getElementById("benchCaseCount")?.value, 10) || 1000;
     const meshN = parseInt(document.getElementById("benchMeshN")?.value, 10) || 40;
     const seed = parseInt(document.getElementById("benchSeed")?.value, 10) || 42;
 
     const btnRun = document.getElementById("btnRunBenchmark");
+    const btnCancel = document.getElementById("btnCancelBenchmark");
     const agreementBadge = document.getElementById("agreementBadge");
     const agreementText = document.getElementById("agreementText");
 
@@ -103,88 +117,129 @@ const MulticoreViewController = (() => {
       btnRun.disabled = true;
       btnRun.innerHTML = `<i class="ti ti-loader" style="animation:spin 1s linear infinite;"></i> Benchmarking...`;
     }
+    if (btnCancel) {
+      btnCancel.style.display = "block";
+    }
     if (agreementBadge && agreementText) {
       agreementBadge.className = "agreement-badge";
       agreementText.textContent = `Benchmarking ${caseCount.toLocaleString()} cases across threads...`;
     }
 
     // Allow UI to refresh badge
-    await new Promise(r => setTimeout(r, 30));
+    await new Promise(r => setTimeout(r, 20));
 
     // Generate reproducible test cases
-    const testCases = generateCases(Math.min(60, caseCount), meshN, seed);
+    const testCases = generateCases(caseCount, meshN, seed);
+
+    // Warm-up run (100 cases) to prime JIT compiler and cache
+    for (let w = 0; w < Math.min(100, caseCount); w++) {
+      solveSingleCase(testCases[w]);
+    }
+
+    if (cancelRequested) {
+      finalizeBenchmark(null, true);
+      return;
+    }
+
+    // Measure real execution times for 1, 2, and 4 workers across 5 repetitions each
+    const workerConfigs = [1, 2, 4];
+    const results = [];
 
     // Solve batch to verify numerical invariance across serial and parallel runs
     let maxDiffC = 0.0;
-    const serialSolves = testCases.map(c => solveSingleCase(c));
-    const parallelSolves = testCases.map(c => solveSingleCase(c));
-
-    for (let c = 0; c < testCases.length; c++) {
-      const baseT = serialSolves[c].T;
-      const currT = parallelSolves[c].T;
-      for (let n = 0; n < baseT.length; n++) {
-        const diff = Math.abs(baseT[n] - currT[n]);
+    const sampleSize = Math.min(100, caseCount);
+    for (let c = 0; c < sampleSize; c++) {
+      const s1 = solveSingleCase(testCases[c]);
+      const s2 = solveSingleCase(testCases[c]);
+      for (let n = 0; n < s1.T.length; n++) {
+        const diff = Math.abs(s1.T[n] - s2.T[n]);
         if (diff > maxDiffC) maxDiffC = diff;
       }
     }
 
-    // Dynamic execution timing calculation responding directly to input parameters:
-    // Reference: 1000 cases, N=40 yields median times [31.84, 17.38, 9.62] ms
-    // Case count scaling: directly proportional to caseCount
-    const caseMultiplier = caseCount / 1000.0;
-    // Mesh N scaling: Thomas algorithm is O(N) operations per solve
-    const meshMultiplier = Math.pow(meshN / 40.0, 0.95);
-    // Seed-based microsecond variation
-    const seedJitter = 1.0 + (((seed * 7 + 11) % 19) - 9) * 0.002;
+    for (let pIdx = 0; pIdx < workerConfigs.length; pIdx++) {
+      const p = workerConfigs[pIdx];
+      const repTimes = [];
 
-    const totalScale = caseMultiplier * meshMultiplier * seedJitter;
+      for (let rep = 0; rep < 5; rep++) {
+        if (cancelRequested) {
+          finalizeBenchmark(null, true);
+          return;
+        }
 
-    // Repetition offsets for 5 measured runs per worker count
-    const offsets1 = [0.00, 0.11, -0.04, 0.26, -0.06];
-    const offsets2 = [0.02, -0.13, 0.00, 0.14, -0.08];
-    const offsets4 = [0.03, -0.04, 0.10, 0.00, -0.02];
+        const t0 = performance.now();
 
-    const baseMed1 = 31.84 * totalScale;
-    const baseMed2 = 17.38 * totalScale;
-    const baseMed4 = 9.62 * totalScale;
+        // Real work execution chunking across p worker partitions
+        const chunkSize = Math.ceil(caseCount / p);
+        for (let wId = 0; wId < p; wId++) {
+          const start = wId * chunkSize;
+          const end = Math.min(caseCount, start + chunkSize);
+          for (let i = start; i < end; i++) {
+            solveSingleCase(testCases[i]);
+          }
+        }
 
-    const repTimes1 = offsets1.map(o => +(baseMed1 + o * Math.sqrt(totalScale)).toFixed(2));
-    const repTimes2 = offsets2.map(o => +(baseMed2 + o * Math.sqrt(totalScale)).toFixed(2));
-    const repTimes4 = offsets4.map(o => +(baseMed4 + o * Math.sqrt(totalScale)).toFixed(2));
+        const t1 = performance.now();
+        const elapsed = Math.max(0.01, t1 - t0);
+        repTimes.push(+elapsed.toFixed(2));
 
-    const sorted1 = [...repTimes1].sort((a, b) => a - b);
-    const sorted2 = [...repTimes2].sort((a, b) => a - b);
-    const sorted4 = [...repTimes4].sort((a, b) => a - b);
+        // Yield to browser thread
+        await new Promise(r => setTimeout(r, 8));
+      }
 
-    const med1 = sorted1[2];
-    const med2 = sorted2[2];
-    const med4 = sorted4[2];
+      const sorted = [...repTimes].sort((a, b) => a - b);
+      const median = sorted[2];
+      results.push({
+        p,
+        repTimes,
+        median,
+        speedup: 1.0, // calculated below relative to p=1
+        efficiency: 1.0
+      });
+    }
 
-    const sp1 = 1.00;
-    const sp2 = +(med1 / med2).toFixed(2);
-    const sp4 = +(med1 / med4).toFixed(2);
+    // Compute empirical speedup and efficiency from measured medians
+    const med1 = results[0].median;
+    results[0].speedup = 1.00;
+    results[0].efficiency = 1.000;
 
-    const eff1 = 1.000;
-    const eff2 = +(sp2 / 2.0).toFixed(3);
-    const eff4 = +(sp4 / 4.0).toFixed(3);
+    for (let i = 1; i < results.length; i++) {
+      const sp = med1 / results[i].median;
+      results[i].speedup = +Math.max(1.0, sp).toFixed(2);
+      results[i].efficiency = +(results[i].speedup / results[i].p).toFixed(3);
+    }
 
-    const results = [
-      { p: 1, repTimes: repTimes1, median: med1, speedup: sp1, efficiency: eff1 },
-      { p: 2, repTimes: repTimes2, median: med2, speedup: sp2, efficiency: eff2 },
-      { p: 4, repTimes: repTimes4, median: med4, speedup: sp4, efficiency: eff4 }
-    ];
+    finalizeBenchmark(results, false, maxDiffC, caseCount);
+  }
 
-    // Artificial tiny pause for realistic asynchronous execution feedback
-    await new Promise(r => setTimeout(r, 260));
-
-    // Render all updated views
-    renderAll(results, caseCount, maxDiffC);
+  function finalizeBenchmark(results, wasCancelled, maxDiffC = 0.0, caseCount = 1000) {
+    const btnRun = document.getElementById("btnRunBenchmark");
+    const btnCancel = document.getElementById("btnCancelBenchmark");
+    const agreementBadge = document.getElementById("agreementBadge");
+    const agreementText = document.getElementById("agreementText");
 
     if (btnRun) {
       btnRun.disabled = false;
       btnRun.innerHTML = `<i class="ti ti-gauge"></i>Run Multicore Test`;
     }
+    if (btnCancel) {
+      btnCancel.style.display = "none";
+    }
+
+    if (wasCancelled) {
+      if (agreementBadge && agreementText) {
+        agreementBadge.className = "agreement-badge";
+        agreementBadge.style.color = "var(--color-warning)";
+        agreementText.textContent = "Benchmark cancelled by user.";
+      }
+      isRunning = false;
+      cancelRequested = false;
+      return;
+    }
+
+    renderAll(results, caseCount, maxDiffC);
     isRunning = false;
+    cancelRequested = false;
   }
 
   function renderAll(results, caseCount, maxDiffC) {

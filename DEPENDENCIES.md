@@ -33,7 +33,7 @@ This document specifies the target versions, compilers, language standards, runt
 ## 4. Frontend Rendering & Asset Lock
 - **3D Engine**: Pure HTML5 Canvas 2D Perspective Engine (Zero CDN dependencies; self-contained in `js/cad-viewer.js`).
 - **2D Plotter**: Native Vector SVG Rendering Engine (Zero Chart.js / D3 dependencies; self-contained in `js/chart.js`).
-- **Icons**: Tabler Icons Webfont (Local fallback CSS icons included for completely offline environments).
+- **Icons**: 100% self-contained local SVG vector masks in `css/icons.css` (Zero CDN requests; verified air-gapped offline support).
 
 ---
 

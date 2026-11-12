@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Unified Engineering Workbench</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.42.0/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="css/icons.css">
   <link rel="stylesheet" href="css/styles.css">
 </head>
 
@@ -205,6 +205,9 @@
             <button class="btn btn--primary" id="btnSolve" type="button">
               <i class="ti ti-player-play" aria-hidden="true"></i>Run solver
             </button>
+            <button class="btn btn--danger-outline" id="btnCancelSolve" type="button" style="display:none;" aria-label="Cancel active thermal solver run">
+              <i class="ti ti-square" aria-hidden="true"></i>Cancel Solver
+            </button>
             <button class="btn btn--secondary" id="btnExport" type="button">
               <i class="ti ti-download" aria-hidden="true"></i>Export CSV
             </button>
@@ -377,6 +380,9 @@
 
             <button class="btn btn--primary" id="btnRunBenchmark">
               <i class="ti ti-gauge" aria-hidden="true"></i>Run Multicore Test
+            </button>
+            <button class="btn btn--danger-outline" id="btnCancelBenchmark" style="display:none; width:100%; margin-top:6px;" type="button" aria-label="Cancel active multicore benchmark">
+              <i class="ti ti-square" aria-hidden="true"></i>Cancel Benchmark
             </button>
 
             <div class="hw-summary-box">
@@ -1004,6 +1010,7 @@
 
   <script src="js/fem-solver.js"></script>
   <script src="js/chart.js"></script>
+  <script src="js/cad-parsers.js"></script>
   <script src="js/cad-viewer.js"></script>
   <script src="js/multicore-view.js"></script>
   <script src="js/embedded-view.js"></script>

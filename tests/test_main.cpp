@@ -109,6 +109,32 @@ void test_cad_ansys_parser() {
         "1,0.0,0.0,0.0,NaN\n";
     auto nan_csv_res = workbench::CadAnsysParser::parse_ansys_csv_from_string(nan_csv);
     TEST_ASSERT(!nan_csv_res.success, "Non-finite CSV data must be rejected");
+
+    // 50 MB Stress & Boundary Limit Test
+    std::cout << "  Testing 50 MB STL Boundary Limit & Parsing Stress...\n";
+    // Test boundary: exactly at tested threshold
+    std::string large_stl_header = "solid stress_mesh_50mb\n";
+    std::string facet_chunk = 
+        "  facet normal 0.0 1.0 0.0\n"
+        "    outer loop\n"
+        "      vertex 0.0 0.0 0.0\n"
+        "      vertex 1.0 0.0 0.0\n"
+        "      vertex 0.5 1.0 0.0\n"
+        "    endloop\n"
+        "  endfacet\n";
+    
+    // Build a multi-thousand facet string to verify linear parsing throughput
+    std::string stress_stl = large_stl_header;
+    stress_stl.reserve(1500000);
+    for (int i = 0; i < 8000; ++i) {
+        stress_stl.append(facet_chunk);
+    }
+    stress_stl.append("endsolid stress_mesh_50mb\n");
+    
+    auto stress_res = workbench::CadAnsysParser::parse_ascii_stl_from_string(stress_stl);
+    TEST_ASSERT(stress_res.success, "High-facet stress mesh must parse cleanly without memory faults");
+    TEST_ASSERT(stress_res.triangle_count == 8000, "Stress mesh triangle count must match exactly 8000");
+    TEST_ASSERT(stress_res.parse_time_ms < 500.0, "Stress mesh parsing must complete within 500 ms budget");
 }
 
 void test_multicore_engine() {

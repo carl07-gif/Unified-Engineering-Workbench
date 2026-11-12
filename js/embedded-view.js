@@ -163,15 +163,41 @@ const EmbeddedViewController = (() => {
     if (btnSafety) btnSafety.addEventListener("click", () => switchSubtab(btnSafety, contentSafety));
   }
 
+  let pollStartTime = Date.now();
+
+  function computeCrc16(str) {
+    let crc = 0xFFFF;
+    for (let i = 0; i < str.length; i++) {
+      crc ^= str.charCodeAt(i);
+      for (let j = 0; j < 8; j++) {
+        if (crc & 1) crc = (crc >> 1) ^ 0xA001;
+        else crc = crc >> 1;
+      }
+    }
+    return (crc & 0xFFFF).toString(16).toUpperCase().padStart(4, '0');
+  }
+
   function startPolling() {
     if (pollInterval) clearInterval(pollInterval);
     pollInterval = setInterval(() => {
+      const elapsedSec = (Date.now() - pollStartTime) / 1000.0;
       devicesState.forEach(d => {
         if (d.status === "connected") {
           d.seq += 1;
-          d.voltage += (Math.random() - 0.5) * 0.01;
-          d.temp += (Math.random() - 0.5) * 0.2;
-          d.current += (Math.random() - 0.5) * 2.0;
+          if (d.id === "mcu") {
+            d.voltage = +(3.16 + 0.012 * Math.sin(elapsedSec * 0.8)).toFixed(3);
+            d.temp = +(43.6 + 0.8 * Math.sin(elapsedSec * 0.25)).toFixed(1);
+            d.current = +(180.0 + 3.5 * Math.sin(elapsedSec * 1.5)).toFixed(1);
+          } else if (d.id === "fpga") {
+            d.voltage = +(0.90 + 0.004 * Math.sin(elapsedSec * 1.1)).toFixed(3);
+            d.temp = +(50.9 + 1.2 * Math.sin(elapsedSec * 0.3)).toFixed(1);
+            d.current = +(427.0 + 5.0 * Math.sin(elapsedSec * 2.0)).toFixed(1);
+          } else if (d.id === "jtag") {
+            d.voltage = +(3.34 + 0.006 * Math.sin(elapsedSec * 0.5)).toFixed(3);
+            d.temp = +(36.1 + 0.5 * Math.sin(elapsedSec * 0.2)).toFixed(1);
+            d.current = +(56.7 + 1.2 * Math.sin(elapsedSec * 1.0)).toFixed(1);
+          }
+          d.crc16 = computeCrc16(`${d.id}-${d.seq}-${d.voltage}-${d.temp}`);
         }
       });
       renderDeviceCards();

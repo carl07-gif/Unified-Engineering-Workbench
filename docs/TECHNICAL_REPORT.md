@@ -12,7 +12,7 @@ The **Unified Engineering Workbench** is an integrated multidisciplinary enginee
 ┌────────────────────────────────────────────────────────────────────────┐
 │                        PRESENTATION & UI LAYER                         │
 │  [Geometry View]   [Thermal FEA View]   [Performance]   [Hardware]     │
-│   (Three.js 3D)      (Canvas Plot)      (Multicore)     (Mock Telemetry│
+│   (Canvas 3D)        (Canvas Plot)      (Multicore)     (Mock Telemetry│
 └──────────────────────────────────┬─────────────────────────────────────┘
                                    │  Transport / Native Binding (JSON/IPC)
 ┌──────────────────────────────────┴─────────────────────────────────────┐
@@ -41,7 +41,7 @@ The application strictly enforces **separation of concerns**: all heavy numerica
 - **ANSYS Nodal Temperature CSV**: Expects `node_id,x_m,y_m,z_m,temperature_C`. Rejects non-finite values, malformed lines, or empty rows. Computes min, max, and mean temperatures for colormap normalization.
 
 ### 2.2 Interactive 3D Visualization
-- Built using Three.js with an interactive OrbitControls scheme (Left-click rotate, Right-click pan, Scroll zoom, and a "Fit to View" camera reset).
+- Built using a high-performance custom HTML5 Canvas 2D/3D perspective projection rasterizer with an interactive camera scheme (Left-click orbit, Right-click pan, Scroll zoom, and a "Fit to View" camera reset), requiring zero external libraries.
 - **STL Mesh**: Rendered as a semi-transparent shaded 3D surface with an optional wireframe overlay.
 - **ANSYS Point Cloud**: Rendered as a colored particle cloud using a Jet/Rainbow transfer function ($\text{Blue} \rightarrow \text{Cyan} \rightarrow \text{Green} \rightarrow \text{Yellow} \rightarrow \text{Red}$).
 - **Node Inspection**: A raycasting threshold inspector highlights hovered/clicked nodes in 3D space, reporting exact Node ID, $(x,y,z)$ coordinates in meters, and temperature in °C.

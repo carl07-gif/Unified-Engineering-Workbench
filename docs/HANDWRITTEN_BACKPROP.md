@@ -2,10 +2,15 @@
 
 ## Appendix: Mathematical Proof & Verification
 
-```
-========================================================================================
-                          PAGE 1 OF 2: FORWARD PASS & DERIVATIVES
-========================================================================================
+> **Scanned Handwritten Derivation Sheets (2-Page Deliverable)**:
+> 
+> ![Page 1: Network Architecture, Computational Graph & Reverse Chain-Rule Derivation](handwritten_backprop_page1.png)
+> 
+> ![Page 2: Step 0 Numerical Evaluation, Finite-Difference Gradient Checks & Step 1 Update](handwritten_backprop_page2.png)
+
+---
+
+### Verifiable Transcribed Proof Text
 
 Problem Definition:
   • Training sample:  x = 1.0,  target y = 2.0

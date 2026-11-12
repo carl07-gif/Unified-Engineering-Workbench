@@ -1391,119 +1391,42 @@ const CadViewer = (() => {
   }
 
   /* ─────────────────────────────────────────────
-     ASCII STL Parser
+     ASCII STL & ANSYS CSV Dataset Ingestion (Modular CadParsers Delegator)
      ───────────────────────────────────────────── */
   function loadSTLString(text) {
-    try {
-      const lines = text.split("\n");
-      const tris = [];
-      let inSolid = false;
-      let solidName = "solid";
-      let verts = [];
+    const res = (typeof CadParsers !== "undefined")
+      ? CadParsers.parseASCIIStl(text)
+      : { success: false, error: "CadParsers module not loaded" };
 
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i].trim();
-        if (!line) continue;
-        const lower = line.toLowerCase();
+    if (!res.success) return res;
 
-        if (!inSolid) {
-          if (lower.startsWith("solid")) {
-            inSolid = true;
-            solidName = line.substring(5).trim() || "solid";
-            continue;
-          } else {
-            throw new Error("File must begin with 'solid' keyword.");
-          }
-        }
-
-        if (lower.startsWith("endsolid")) break;
-
-        if (lower.startsWith("vertex")) {
-          const parts = line.split(/\s+/).slice(1).map(Number);
-          if (parts.length === 3 && parts.every(Number.isFinite)) {
-            verts.push({ x: parts[0], y: parts[1], z: parts[2] });
-          }
-        }
-
-        if (lower.startsWith("endfacet")) {
-          if (verts.length === 3) {
-            tris.push({ v1: verts[0], v2: verts[1], v3: verts[2] });
-          }
-          verts = [];
-        }
-      }
-
-      if (tris.length === 0) throw new Error("Zero valid triangles found.");
-      stlTriangles = tris;
-      return { success: true, count: tris.length, name: solidName };
-    } catch (err) {
-      return { success: false, error: err.message };
-    }
+    stlTriangles = res.triangles;
+    return { success: true, count: res.count, name: res.name };
   }
 
-  /* ─────────────────────────────────────────────
-     ANSYS CSV Parser
-     ───────────────────────────────────────────── */
   function loadAnsysCSVString(text) {
-    try {
-      const lines = text.split("\n");
-      const nodes = [];
-      let headerFound = false;
-      let minT = Infinity, maxT = -Infinity;
-      let maxN = null, minN = null;
+    const res = (typeof CadParsers !== "undefined")
+      ? CadParsers.parseAnsysCSV(text)
+      : { success: false, error: "CadParsers module not loaded" };
 
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i].trim();
-        if (!line || line.startsWith("#")) continue;
+    if (!res.success) return res;
 
-        if (!headerFound) {
-          const lower = line.toLowerCase();
-          if (!lower.includes("node_id") || !lower.includes("temperature")) {
-            throw new Error("Invalid header: expected 'node_id,x_m,y_m,z_m,temperature_C'");
-          }
-          headerFound = true;
-          continue;
-        }
+    ansysNodes = res.nodes;
+    minTemp = res.minTemp;
+    maxTemp = res.maxTemp;
+    maxTempNode = res.maxTempNode;
+    minTempNode = res.minTempNode;
 
-        const parts = line.split(",").map(s => s.trim());
-        if (parts.length < 5) continue;
-
-        const id = parseInt(parts[0], 10);
-        const x = parseFloat(parts[1]);
-        const y = parseFloat(parts[2]);
-        const z = parseFloat(parts[3]);
-        const T = parseFloat(parts[4]);
-
-        if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z) || !Number.isFinite(T)) {
-          throw new Error(`Non-finite numerical data on line ${i + 1}`);
-        }
-
-        const nodeObj = { id, x, y, z, T };
-        if (T < minT) { minT = T; minN = nodeObj; }
-        if (T > maxT) { maxT = T; maxN = nodeObj; }
-        nodes.push(nodeObj);
-      }
-
-      if (nodes.length === 0) throw new Error("No data rows found in CSV.");
-      ansysNodes = nodes;
-      minTemp = minT;
-      maxTemp = maxT;
-      maxTempNode = maxN;
-      minTempNode = minN;
-
-      const legMin = document.getElementById("legendMin");
-      const legMid = document.getElementById("legendMid");
-      const legMax = document.getElementById("legendMax");
-      if (legMin && legMid && legMax) {
-        legMin.textContent = `${minT.toFixed(1)} °C`;
-        legMid.textContent = `${((minT + maxT) / 2).toFixed(1)} °C`;
-        legMax.textContent = `${maxT.toFixed(1)} °C`;
-      }
-
-      return { success: true, count: nodes.length, minT, maxT };
-    } catch (err) {
-      return { success: false, error: err.message };
+    const legMin = document.getElementById("legendMin");
+    const legMid = document.getElementById("legendMid");
+    const legMax = document.getElementById("legendMax");
+    if (legMin && legMid && legMax) {
+      legMin.textContent = `${minTemp.toFixed(1)} °C`;
+      legMid.textContent = `${((minTemp + maxTemp) / 2).toFixed(1)} °C`;
+      legMax.textContent = `${maxTemp.toFixed(1)} °C`;
     }
+
+    return { success: true, count: res.count, minTemp, maxTemp };
   }
 
   function setEdges(enable) {

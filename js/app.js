@@ -267,7 +267,24 @@ document.addEventListener("DOMContentLoaded", () => {
       progressFill.style.backgroundColor = "var(--color-accent)";
     }
 
+    let solveCancelled = false;
+    const btnCancelSolve = document.getElementById("btnCancelSolve");
+    if (btnCancelSolve) {
+      btnCancelSolve.style.display = "inline-flex";
+      btnCancelSolve.onclick = () => {
+        solveCancelled = true;
+        if (btnSolve) {
+          btnSolve.classList.remove("btn--running");
+          btnSolve.innerHTML = `<i class="ti ti-player-play" aria-hidden="true"></i>Run solver`;
+        }
+        btnCancelSolve.style.display = "none";
+        if (statusText) statusText.textContent = "Thermal solve cancelled by user.";
+        if (statusState) statusState.textContent = "Cancelled";
+      };
+    }
+
     setTimeout(() => {
+      if (solveCancelled) return;
       try {
         // 1. Solve chosen N
         const femRes = FEMSolver.solve(params);
@@ -314,6 +331,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         if (statusState) statusState.textContent = "Ready";
 
+        if (btnCancelSolve) btnCancelSolve.style.display = "none";
         // Distinct success state on button
         if (btnSolve) {
           btnSolve.classList.remove("btn--running");
