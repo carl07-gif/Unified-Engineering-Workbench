@@ -1,6 +1,6 @@
 # Unified Engineering Workbench
 
-A cross-disciplinary engineering workbench prototype for **PASS Science Works R&D Internship 2026–2027**.  
+A cross-disciplinary engineering workbench prototype  
 Target platform: **Windows 11 x64**.
 
 ---
