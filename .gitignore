@@ -13,3 +13,6 @@ bin/
 # IDE caches
 .vs/
 *.user
+
+# Temporary test scratch scripts
+scratch/
