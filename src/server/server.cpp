@@ -447,15 +447,15 @@ int main(int argc, char* argv[]) {
     svr.set_mount_point("/data", (root_dir + "/data").c_str());
     svr.set_mount_point("/results", (root_dir + "/results").c_str());
 
-    // 10. Watchdog thread for client heartbeat auto-exit
+    // 10. Watchdog thread for client heartbeat auto-exit (5-minute safety watchdog)
     std::thread watchdog([&svr]() {
-        // Wait 15 seconds after start before enforcing heartbeat
-        std::this_thread::sleep_for(std::chrono::seconds(15));
+        // Wait 60 seconds after start before enforcing heartbeat
+        std::this_thread::sleep_for(std::chrono::seconds(60));
         while (true) {
-            std::this_thread::sleep_for(std::chrono::seconds(2));
+            std::this_thread::sleep_for(std::chrono::seconds(5));
             if (g_heartbeat_initialized) {
                 int64_t diff = current_time_ms() - g_last_heartbeat_ms.load();
-                if (diff > 12000) { // 12 seconds with no heartbeat
+                if (diff > 300000) { // 300 seconds (5 minutes) with no heartbeat
                     std::cout << "[Watchdog] Client disconnected (no heartbeat for " << diff / 1000 
                               << "s). Terminating C++ server cleanly to prevent orphan processes.\n";
                     svr.stop();

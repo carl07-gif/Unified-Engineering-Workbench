@@ -397,9 +397,13 @@ const CadViewer = (() => {
             grad.addColorStop(1, colB);
             ctx.fillStyle = grad;
             ctx.fill();
+            // Micro-stroke with matching gradient to eliminate subpixel raster seams
+            ctx.strokeStyle = grad;
+            ctx.lineWidth = 0.5;
+            ctx.stroke();
 
             if (showWireframe && sl % 4 === 0) {
-              ctx.strokeStyle = "rgba(0, 0, 0, 0.12)";
+              ctx.strokeStyle = "rgba(0, 0, 0, 0.15)";
               ctx.lineWidth = 0.5;
               ctx.stroke();
             }
@@ -498,14 +502,24 @@ const CadViewer = (() => {
 
   function drawCylinderEdges(cx, cy) {
     ctx.save();
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.35)";
-    ctx.lineWidth = 1.0;
-    const p1 = CadCamera.project(0, ROD_RADIUS, 0, cx, cy);
-    const p2 = CadCamera.project(ROD_L, ROD_RADIUS, 0, cx, cy);
-    ctx.beginPath();
-    ctx.moveTo(p1.x, p1.y);
-    ctx.lineTo(p2.x, p2.y);
-    ctx.stroke();
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
+    ctx.lineWidth = 0.75;
+    // Transverse FEA element rings
+    const ringStep = Math.max(1, Math.floor(NUM_SEGMENTS / 8));
+    for (let s = 0; s <= NUM_SEGMENTS; s += ringStep) {
+      const x = s * (ROD_L / NUM_SEGMENTS);
+      ctx.beginPath();
+      let started = false;
+      for (let sl = 0; sl <= 32; sl++) {
+        const th = (sl / 32) * Math.PI * 2;
+        const ny = Math.cos(th), nz = Math.sin(th);
+        if (!CadCamera.isNormalFacingCamera(0, ny, nz)) continue;
+        const p = CadCamera.project(x, ROD_RADIUS * ny, ROD_RADIUS * nz, cx, cy);
+        if (!started) { ctx.moveTo(p.x, p.y); started = true; }
+        else { ctx.lineTo(p.x, p.y); }
+      }
+      ctx.stroke();
+    }
     ctx.restore();
   }
 
@@ -550,25 +564,33 @@ const CadViewer = (() => {
 
   function drawSurfaceStreamlines(cx, cy) {
     ctx.save();
-    const halfY = (rodShape === "cylinder" ? ROD_RADIUS : ROD_H / 2) * 1.02;
     const xPeak = 0.42;
 
-    const tracks = [-0.012, 0, 0.012];
-    tracks.forEach((zOff, tIdx) => {
+    const angles = rodShape === "cylinder" ? [-0.35, 0, 0.35] : [-0.012, 0, 0.012];
+    angles.forEach((val, tIdx) => {
+      let surfY, surfZ;
+      if (rodShape === "cylinder") {
+        surfY = ROD_RADIUS * Math.cos(val) * 1.005;
+        surfZ = ROD_RADIUS * Math.sin(val) * 1.005;
+      } else {
+        surfY = (ROD_H / 2) * 1.005;
+        surfZ = val;
+      }
+
       // Left flow (0.42 -> 0.0)
       for (let i = 0; i < 2; i++) {
         const phase = (animTime * 0.45 + i * 0.5 + tIdx * 0.18) % 1.0;
         const xHead = xPeak - phase * xPeak;
         const xTail = Math.min(xPeak, xHead + 0.045);
-        const p1 = CadCamera.project(xHead, halfY, zOff, cx, cy);
-        const p2 = CadCamera.project(xTail, halfY, zOff, cx, cy);
+        const p1 = CadCamera.project(xHead, surfY, surfZ, cx, cy);
+        const p2 = CadCamera.project(xTail, surfY, surfZ, cx, cy);
 
         const grad = ctx.createLinearGradient(p1.x, p1.y, p2.x, p2.y);
         grad.addColorStop(0, "rgba(56, 189, 248, 0.95)");
         grad.addColorStop(1, "rgba(56, 189, 248, 0)");
 
         ctx.strokeStyle = grad;
-        ctx.lineWidth = 2.0;
+        ctx.lineWidth = 1.8;
         ctx.beginPath();
         ctx.moveTo(p1.x, p1.y);
         ctx.lineTo(p2.x, p2.y);
@@ -580,15 +602,15 @@ const CadViewer = (() => {
         const phase = (animTime * 0.52 + i * 0.35 + tIdx * 0.14) % 1.0;
         const xHead = xPeak + phase * (ROD_L - xPeak);
         const xTail = Math.max(xPeak, xHead - 0.05);
-        const p1 = CadCamera.project(xHead, halfY, zOff, cx, cy);
-        const p2 = CadCamera.project(xTail, halfY, zOff, cx, cy);
+        const p1 = CadCamera.project(xHead, surfY, surfZ, cx, cy);
+        const p2 = CadCamera.project(xTail, surfY, surfZ, cx, cy);
 
         const grad = ctx.createLinearGradient(p1.x, p1.y, p2.x, p2.y);
         grad.addColorStop(0, "rgba(249, 115, 22, 0.95)");
         grad.addColorStop(1, "rgba(249, 115, 22, 0)");
 
         ctx.strokeStyle = grad;
-        ctx.lineWidth = 2.0;
+        ctx.lineWidth = 1.8;
         ctx.beginPath();
         ctx.moveTo(p1.x, p1.y);
         ctx.lineTo(p2.x, p2.y);
@@ -721,7 +743,6 @@ const CadViewer = (() => {
   }
 
   async function loadSTLString(text) {
-    // 1. Try C++17 REST backend parser if online
     if (typeof ApiClient !== "undefined" && ApiClient.isOnline()) {
       try {
         const cppRes = await ApiClient.parseSTL(text);
@@ -734,19 +755,15 @@ const CadViewer = (() => {
           }));
           return { success: true, count: cppRes.triangle_count || stlTriangles.length, name: cppRes.solid_name || "solid", backend: "C++17 Parser" };
         }
+        return { success: false, error: cppRes.error_message || cppRes.error || "C++ parser failed to parse STL", backend: "C++17 Parser" };
       } catch (err) {
-        console.warn("[CadViewer] C++ STL parser error, falling back to local:", err);
+        return { success: false, error: err.message || "C++ parser error", backend: "C++17 Parser" };
       }
     }
-    // 2. Local parser
-    const res = CadParsers.parseASCIIStl(text);
-    if (!res.success) return res;
-    stlTriangles = res.triangles;
-    return { success: true, count: res.count, name: res.name, backend: "Local JS Parser" };
+    return { success: false, error: "Backend Offline: C++17 REST backend is not connected. Run Launch.bat or workbench_server.exe.", backend: "None" };
   }
 
   async function loadAnsysCSVString(text) {
-    // 1. Try C++17 REST backend parser if online
     if (typeof ApiClient !== "undefined" && ApiClient.isOnline()) {
       try {
         const cppRes = await ApiClient.parseANSYS(text);
@@ -756,7 +773,7 @@ const CadViewer = (() => {
             x: n.x,
             y: n.y,
             z: n.z,
-            temp: n.temp
+            temp: n.temp ?? n.T
           }));
           minTemp = cppRes.min_temp;
           maxTemp = cppRes.max_temp;
@@ -764,19 +781,12 @@ const CadViewer = (() => {
           maxTempNode = { id: cppRes.max_temp_node_id, temp: cppRes.max_temp };
           return { success: true, count: cppRes.node_count || ansysNodes.length, minTemp, maxTemp, backend: "C++17 Parser" };
         }
+        return { success: false, error: cppRes.error_message || cppRes.error || "C++ parser failed to parse ANSYS CSV", backend: "C++17 Parser" };
       } catch (err) {
-        console.warn("[CadViewer] C++ ANSYS parser error, falling back to local:", err);
+        return { success: false, error: err.message || "C++ parser error", backend: "C++17 Parser" };
       }
     }
-    // 2. Local parser
-    const res = CadParsers.parseAnsysCSV(text);
-    if (!res.success) return res;
-    ansysNodes = res.nodes;
-    minTemp = res.minTemp;
-    maxTemp = res.maxTemp;
-    minTempNode = res.minTempNode;
-    maxTempNode = res.maxTempNode;
-    return { success: true, count: res.count, minTemp, maxTemp, backend: "Local JS Parser" };
+    return { success: false, error: "Backend Offline: C++17 REST backend is not connected. Run Launch.bat or workbench_server.exe.", backend: "None" };
   }
 
   function setEdges(enable) { showEdges = enable; }

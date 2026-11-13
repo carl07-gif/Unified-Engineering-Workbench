@@ -5,7 +5,14 @@
             "name": "Run Unified Engineering Workbench",
             "type": "node-terminal",
             "request": "launch",
-            "command": "\"${workspaceFolder}\\Launch.bat\"",
+            "command": "cmd.exe /c Launch.bat",
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "Launch C++ Server (Direct)",
+            "type": "node-terminal",
+            "request": "launch",
+            "command": "cmd.exe /c workbench_server.exe 7474 .",
             "cwd": "${workspaceFolder}"
         }
     ]

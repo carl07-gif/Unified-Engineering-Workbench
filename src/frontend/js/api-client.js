@@ -117,8 +117,8 @@ const ApiClient = (() => {
   async function parseSTL(content) {
     const res = await fetch(`${API_BASE}/api/parse/stl`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content })
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+      body: content
     });
     const data = await res.json();
     if (!res.ok || !data.success) {
@@ -133,8 +133,8 @@ const ApiClient = (() => {
   async function parseANSYS(content) {
     const res = await fetch(`${API_BASE}/api/parse/ansys`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content })
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+      body: content
     });
     const data = await res.json();
     if (!res.ok || !data.success) {

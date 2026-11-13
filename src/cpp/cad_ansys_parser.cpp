@@ -305,13 +305,28 @@ std::string CadAnsysParser::to_json(const STLParseResult& res) {
     ss << "{";
     ss << "\"success\":" << (res.success ? "true" : "false") << ",";
     if (!res.success) {
-        ss << "\"error\":\"" << res.error_message << "\"";
+        ss << "\"error\":\"" << res.error_message << "\",";
+        ss << "\"error_message\":\"" << res.error_message << "\"";
     } else {
         ss << "\"solid_name\":\"" << res.solid_name << "\",";
         ss << "\"triangle_count\":" << res.triangle_count << ",";
         ss << "\"bbox\":{\"min\":[" << res.bbox.min.x << "," << res.bbox.min.y << "," << res.bbox.min.z << "],";
         ss << "\"max\":[" << res.bbox.max.x << "," << res.bbox.max.y << "," << res.bbox.max.z << "],";
         ss << "\"center\":[" << res.bbox.center().x << "," << res.bbox.center().y << "," << res.bbox.center().z << "]},";
+        
+        // Structured triangles array
+        ss << "\"triangles\":[";
+        for (size_t i = 0; i < res.triangles.size(); ++i) {
+            const auto& t = res.triangles[i];
+            ss << "{\"normal\":{\"x\":" << t.normal.x << ",\"y\":" << t.normal.y << ",\"z\":" << t.normal.z << "},"
+               << "\"v1\":{\"x\":" << t.v1.x << ",\"y\":" << t.v1.y << ",\"z\":" << t.v1.z << "},"
+               << "\"v2\":{\"x\":" << t.v2.x << ",\"y\":" << t.v2.y << ",\"z\":" << t.v2.z << "},"
+               << "\"v3\":{\"x\":" << t.v3.x << ",\"y\":" << t.v3.y << ",\"z\":" << t.v3.z << "}}";
+            if (i + 1 < res.triangles.size()) ss << ",";
+        }
+        ss << "],";
+
+        // Flat vertices buffer
         ss << "\"vertices\":[";
         for (size_t i = 0; i < res.triangles.size(); ++i) {
             const auto& t = res.triangles[i];
@@ -323,7 +338,6 @@ std::string CadAnsysParser::to_json(const STLParseResult& res) {
         ss << "],\"normals\":[";
         for (size_t i = 0; i < res.triangles.size(); ++i) {
             const auto& t = res.triangles[i];
-            // Normal per vertex (3 vertices share same facet normal)
             for (int k = 0; k < 3; ++k) {
                 ss << t.normal.x << "," << t.normal.y << "," << t.normal.z;
                 if (k < 2 || i + 1 < res.triangles.size()) ss << ",";
@@ -341,12 +355,15 @@ std::string CadAnsysParser::to_json(const AnsysCSVParseResult& res) {
     ss << "{";
     ss << "\"success\":" << (res.success ? "true" : "false") << ",";
     if (!res.success) {
-        ss << "\"error\":\"" << res.error_message << "\"";
+        ss << "\"error\":\"" << res.error_message << "\",";
+        ss << "\"error_message\":\"" << res.error_message << "\"";
     } else {
         ss << "\"node_count\":" << res.node_count << ",";
         ss << "\"min_temp\":" << res.min_temp_C << ",";
         ss << "\"max_temp\":" << res.max_temp_C << ",";
         ss << "\"mean_temp\":" << res.mean_temp_C << ",";
+        ss << "\"min_temp_node_id\":" << res.min_temp_node_id << ",";
+        ss << "\"max_temp_node_id\":" << res.max_temp_node_id << ",";
         ss << "\"bbox\":{\"min\":[" << res.bbox.min.x << "," << res.bbox.min.y << "," << res.bbox.min.z << "],";
         ss << "\"max\":[" << res.bbox.max.x << "," << res.bbox.max.y << "," << res.bbox.max.z << "],";
         ss << "\"center\":[" << res.bbox.center().x << "," << res.bbox.center().y << "," << res.bbox.center().z << "]},";
@@ -354,7 +371,7 @@ std::string CadAnsysParser::to_json(const AnsysCSVParseResult& res) {
         for (size_t i = 0; i < res.nodes.size(); ++i) {
             const auto& n = res.nodes[i];
             ss << "{\"id\":" << n.node_id << ",\"x\":" << n.x_m << ",\"y\":" << n.y_m 
-               << ",\"z\":" << n.z_m << ",\"T\":" << n.temperature_C << "}";
+               << ",\"z\":" << n.z_m << ",\"T\":" << n.temperature_C << ",\"temp\":" << n.temperature_C << "}";
             if (i + 1 < res.nodes.size()) ss << ",";
         }
         ss << "]";
