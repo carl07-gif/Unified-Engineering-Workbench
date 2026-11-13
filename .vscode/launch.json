@@ -5,13 +5,15 @@
             "name": "1. Run Packaged Workbench (Launch.bat)",
             "type": "node-terminal",
             "request": "launch",
-            "command": "${workspaceFolder}/Launch.bat"
+            "command": "\"${workspaceFolder}\\Launch.bat\"",
+            "cwd": "${workspaceFolder}"
         },
         {
             "name": "2. Run Packaged Application (Launch.exe)",
             "type": "node-terminal",
             "request": "launch",
-            "command": "${workspaceFolder}/Launch.exe"
+            "command": "\"${workspaceFolder}\\Launch.exe\"",
+            "cwd": "${workspaceFolder}"
         },
         {
             "name": "3. Launch Workbench (Microsoft Edge - Windows 11)",

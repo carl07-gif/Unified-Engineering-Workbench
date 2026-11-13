@@ -1,26 +1,50 @@
 @echo off
-setlocal
-title Unified Engineering Workbench Launcher
+setlocal EnableDelayedExpansion
+chcp 65001 >nul 2>&1
+title Unified Engineering Workbench
 
 echo ========================================================
-echo        UNIFIED ENGINEERING WORKBENCH (Windows 11)        
+echo        UNIFIED ENGINEERING WORKBENCH (Windows 11)
 echo ========================================================
 echo.
-echo Launching application in your default web browser...
 
+:: Resolve index.html path relative to this bat file (handles spaces in path)
 set "HTML_PATH=%~dp0index.html"
+set "CHROME=C:\Program Files\Google\Chrome\Application\chrome.exe"
+set "EDGE=C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
+set "EDGE2=C:\Program Files\Microsoft\Edge\Application\msedge.exe"
 
-:: 1. Launch via default Windows association
-start "" "%HTML_PATH%"
+echo Starting workbench at: %HTML_PATH%
+echo.
 
-:: 2. Fallback check: if default association fails or window didn't open
-if errorlevel 1 (
-    echo Attempting direct browser launch via Microsoft Edge...
-    start msedge "%HTML_PATH%"
+:: Try Chrome first
+if exist "%CHROME%" (
+    echo Launching in Google Chrome...
+    start "" "%CHROME%" "%HTML_PATH%"
+    goto :done
 )
 
+:: Try Edge (x86 path)
+if exist "%EDGE%" (
+    echo Launching in Microsoft Edge...
+    start "" "%EDGE%" "%HTML_PATH%"
+    goto :done
+)
+
+:: Try Edge (default path)
+if exist "%EDGE2%" (
+    echo Launching in Microsoft Edge...
+    start "" "%EDGE2%" "%HTML_PATH%"
+    goto :done
+)
+
+:: Final fallback: Windows shell open (default browser)
+echo Launching in default browser...
+start "" "%HTML_PATH%"
+
+:done
 echo.
-echo Workbench started successfully.
-echo You may keep this window open or close it at any time.
-timeout /t 3 >nul
-exit
+echo Workbench launched successfully!
+echo You can close this window.
+timeout /t 2 /nobreak >nul 2>&1
+exit /b 0
