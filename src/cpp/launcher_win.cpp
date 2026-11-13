@@ -82,9 +82,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         ZeroMemory(&pi, sizeof(pi));
 
         wchar_t cmdBuf[1024];
-        wcsncpy_s(cmdBuf, serverCmd.c_str(), _countof(cmdBuf) - 1);
+        ZeroMemory(cmdBuf, sizeof(cmdBuf));
+        wcsncpy(cmdBuf, serverCmd.c_str(), 1023);
 
-        if (CreateProcessW(NULL, cmdBuf, NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, appDir.c_str(), &si, &pi)) {
+        // CREATE_NEW_CONSOLE with SW_HIDE creates a fully independent, invisible process
+        // that is not terminated when Launch.exe exits after opening the browser.
+        DWORD creationFlags = CREATE_NEW_CONSOLE;
+        if (CreateProcessW(NULL, cmdBuf, NULL, NULL, FALSE, creationFlags, NULL, appDir.c_str(), &si, &pi)) {
             CloseHandle(pi.hProcess);
             CloseHandle(pi.hThread);
         }

@@ -14,7 +14,7 @@ This document specifies the target versions, compilers, language standards, runt
 ## 2. Compiler & Language Standards
 | Component | Standard / Runtime | Minimum Version | Tested & Locked Version |
 | :--- | :--- | :--- | :--- |
-| **C++ Core Engine** | ISO C++17 (`/std:c++17` or `-std=c++17`) | CMake 3.16+ | MSVC 19.38 / GCC 13.2 / Clang 17 |
+| **C++ Core Engine** | ISO C++17 (`/std:c++17` or `-std=c++17`) | CMake 3.16+ | MSVC 19.38 / GCC 13.0+ / Clang 17 |
 | **C++ HTTP Transport** | Header-only HTTP Server (`cpp-httplib`) | C++17 / WinSock2 | `cpp-httplib` v0.66.0 (MIT License) |
 | **Windows Launcher** | Win32 native / WinMain (`ShellExecuteW`) | Windows API | MSVC / MinGW / Clang (Zero runtime) |
 | **Frontend Presentation** | HTML5, CSS3, ES2020 JavaScript | Modern Web Standards | Microsoft Edge 120+ / Chrome 120+ |

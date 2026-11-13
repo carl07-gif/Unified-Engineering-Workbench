@@ -351,8 +351,8 @@ MulticoreBenchmarkReport MulticoreEngine::run_benchmark(int case_count,
 
     // Persist real measured benchmark results safely via atomic file replacement (only for full benchmark runs)
     if (write_csv && case_count >= 500 && !report.cancelled) {
-        std::string tmp_csv = "results/multicore_benchmark.tmp";
-        std::string final_csv = "results/multicore_benchmark.csv";
+        std::string tmp_csv = (case_count >= 5000) ? "results/multicore_benchmark_10k.tmp" : "results/multicore_benchmark.tmp";
+        std::string final_csv = (case_count >= 5000) ? "results/multicore_benchmark_10k.csv" : "results/multicore_benchmark.csv";
         std::ofstream out_csv(tmp_csv);
         if (out_csv.is_open()) {
             out_csv << std::fixed;

@@ -105,7 +105,15 @@ int main(int argc, char* argv[]) {
 
     std::string cmd = argv[1];
     if (cmd == "--benchmark") {
-        auto report = workbench::MulticoreEngine::run_benchmark(1000, 40, 42);
+        int case_count = 1000;
+        int mesh_size = 40;
+        if (argc >= 3) {
+            try { case_count = std::stoi(argv[2]); } catch (...) {}
+        }
+        if (argc >= 4) {
+            try { mesh_size = std::stoi(argv[3]); } catch (...) {}
+        }
+        auto report = workbench::MulticoreEngine::run_benchmark(case_count, mesh_size, 42);
         std::cout << workbench::MulticoreEngine::to_json(report) << "\n";
     } else if (cmd == "--backprop") {
         auto report = workbench::BackpropEngine::run_training(100, 0.1);

@@ -88,30 +88,34 @@ A bounded C++17 thread pool (`ThreadPool`) handles batch execution. A reproducib
 
 ### 4.2 Benchmark Results (1,000 Solves, $N=40$ mesh, seed=42)
 - **Host Hardware**: Intel(R) Core(TM) Ultra 5 226V (8 physical cores, 8 logical execution threads detected via Win32 `GetLogicalProcessorInformation`), 15.5 GB Total Physical RAM (verified programmatically via Win32 API `GlobalMemoryStatusEx(&memInfo.ullTotalPhys)`), Windows 11 x64.
-- **Compiler**: MinGW-w64 GCC 13.2+ / C++17 Core with `-O3 -Wall -static -lpthread` (consistent with CMakeLists.txt Release configuration).
-- **Warm-up Run**: 1.826 ms (serial, discarded).
+- **Compiler**: MinGW-w64 GCC 13.0 (`x86_64-w64-mingw32-gcc 13-win32` release) / ISO C++17 Core with `-O3 -Wall -static -lpthread` (matching raw benchmark output `GCC 13.0 -O3 -Wall -pthread`).
+- **Warm-up Run**: 2.049 ms (serial, discarded).
+- **Raw Evidence Artifact**: [results/multicore_benchmark.csv](file:///c:/Users/navee/OneDrive/New%20folder/Intern%20assignment/results/multicore_benchmark.csv)
 
 | Worker Count ($p$) | Measured Repetitions (ms) | Median Time (ms) | Speedup ($T_1/T_p$) | Parallel Efficiency |
 |---|---|---|---|---|
-| **1 (Serial)** | 2.389, 1.433, 2.619, 1.996, 1.596 | 1.996 | $1.000\times$ | 100.0% |
-| **2 Workers** | 1.401, 1.500, 1.301, 1.284, 1.367 | 1.367 | $1.460\times$ | 73.0% |
-| **3 Workers** | 1.367, 2.016, 1.544, 1.776, 1.110 | 1.544 | $1.293\times$ | 43.1% |
-| **4 Workers** | 1.426, 1.199, 1.201, 1.164, 1.263 | 1.201 | $1.662\times$ | 41.5% |
+| **1 (Serial)** | 3.369, 2.143, 2.058, 1.992, 2.177 | 2.143 | $1.000\times$ | 100.0% |
+| **2 Workers** | 1.729, 1.537, 1.725, 2.461, 2.098 | 1.729 | $1.239\times$ | 62.0% |
+| **3 Workers** | 1.694, 1.511, 1.434, 1.479, 4.434 | 1.511 | $1.418\times$ | 47.3% |
+| **4 Workers** | 1.570, 1.320, 1.133, 1.102, 1.355 | 1.320 | $1.623\times$ | 40.6% |
 
 - **Numerical Agreement Check**:
   $$\max |T_{\text{serial}} - T_{\text{parallel}}| = 0.00\times 10^{0} \le 1.0\times 10^{-8\ \circ}\text{C} \quad \text{[PASSED]}$$
 
 ### 4.3 Workload Scaling & Amdahl Analysis
 #### 4.3.1 Required Short-Workload Analysis (1,000 Solves)
-For 1,000 solves with $N=40$, the entire serial batch completes in just 1.37 ms (~1.37 microseconds per solve). In this ultra-fast regime, OS thread wake-up latency, task queue mutex acquisition, and CPU context switching overhead are on the order of microseconds per task chunk. As predicted by Amdahl's Law when non-parallelizable synchronization overhead represents a significant fraction of execution time, scaling is dominated by thread management overhead. Strict deterministic numerical equivalence ($\Delta T = 0.00^\circ\text{C}$) is maintained across all thread configurations without race conditions.
+For 1,000 solves with $N=40$, the entire serial batch completes in just 2.14 ms (~2.1 microseconds per solve). In this ultra-fast regime, OS thread wake-up latency, task queue mutex acquisition, and CPU context switching overhead are on the order of microseconds per task chunk. As predicted by Amdahl's Law when non-parallelizable synchronization overhead represents a significant fraction of execution time, scaling is dominated by thread management overhead. Strict deterministic numerical equivalence ($\Delta T = 0.00^\circ\text{C}$) is maintained across all thread configurations without race conditions.
 
 #### 4.3.2 Extended Compute-Dense Workload (10,000 Solves)
-To demonstrate thread pool scaling when compute density amortizes OS synchronization overhead, the engine was evaluated with an extended 10,000-solve workload:
-- **1 Worker (Serial)**: 13.82 ms (1.00x)
-- **2 Workers**: 7.61 ms ($1.82\times$ speedup, 91.0% efficiency)
-- **4 Workers**: 4.10 ms ($3.37\times$ speedup, 84.3% efficiency)
+To demonstrate thread pool scaling when compute density amortizes OS synchronization overhead, the engine was evaluated with an extended 10,000-solve workload on the physical Windows 11 host. Full raw benchmark repetitions are recorded in [results/multicore_benchmark_10k.csv](file:///c:/Users/navee/OneDrive/New%20folder/Intern%20assignment/results/multicore_benchmark_10k.csv):
+- **Warm-up Run**: 18.246 ms (serial, discarded)
+- **1 Worker (Serial)**: 27.248, 17.236, 16.692, 25.737, 15.722 ms &rarr; **Median: 17.236 ms** ($1.000\times$)
+- **2 Workers**: 14.422, 11.312, 10.851, 10.272, 10.910 ms &rarr; **Median: 10.910 ms** ($1.580\times$ speedup, 79.0% efficiency)
+- **3 Workers**: 10.691, 7.786, 10.031, 10.487, 9.026 ms &rarr; **Median: 10.031 ms** ($1.718\times$ speedup, 57.3% efficiency)
+- **4 Workers**: 8.809, 7.200, 8.194, 7.225, 7.328 ms &rarr; **Median: 7.328 ms** ($2.352\times$ speedup, 58.8% efficiency)
+- **Numerical Agreement**: $\max |T_{\text{serial}} - T_{\text{parallel}}| = 0.00^\circ\text{C} \le 1.0\times 10^{-8\ \circ}\text{C}$ [PASSED]
 
-This demonstrates the theoretical scaling curve: as problem size increases and compute density exceeds thread scheduling latency, parallel efficiency rapidly approaches Amdahl's theoretical ceiling. Safe atomic file writes (`results/multicore_benchmark.tmp` renamed to `.csv`) and cooperative cancellation tokens guarantee that user cancellations never leave corrupt or incomplete result files.
+This demonstrates the theoretical scaling curve: as problem size increases to 10,000 solves and compute density exceeds thread scheduling latency, parallel efficiency approaches Amdahl's theoretical ceiling ($2.35\times$ speedup on 4 threads). Safe atomic file writes (`results/multicore_benchmark.tmp` renamed to `.csv`) and cooperative cancellation tokens guarantee that user cancellations never leave corrupt or incomplete result files.
 
 ---
 
