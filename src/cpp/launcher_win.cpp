@@ -38,7 +38,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             CloseHandle(pi.hProcess);
             CloseHandle(pi.hThread);
             // Brief wait for socket bind
-            Sleep(250);
+            Sleep(500);
         }
     }
 

@@ -9,8 +9,9 @@ echo ========================================================
 echo.
 
 set "APP_DIR=%~dp0"
-set "SERVER_EXE=%APP_DIR%workbench_server.exe"
-set "HTML_PATH=%APP_DIR%src\frontend\index.html"
+if "%APP_DIR:~-1%"=="\" set "APP_DIR=%APP_DIR:~0,-1%"
+set "SERVER_EXE=%APP_DIR%\workbench_server.exe"
+set "HTML_PATH=%APP_DIR%\src\frontend\index.html"
 set "CHROME=C:\Program Files\Google\Chrome\Application\chrome.exe"
 set "EDGE=C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
 set "EDGE2=C:\Program Files\Microsoft\Edge\Application\msedge.exe"
@@ -18,7 +19,7 @@ set "EDGE2=C:\Program Files\Microsoft\Edge\Application\msedge.exe"
 :: 1. Start C++17 HTTP Server if available
 if exist "%SERVER_EXE%" (
     echo Starting native C++17 REST backend on 127.0.0.1:7474...
-    start "" /B "%SERVER_EXE%" 7474 "%APP_DIR%"
+    start "Unified Engineering Workbench Backend" /MIN "%SERVER_EXE%" 7474 "%APP_DIR%"
     timeout /t 1 /nobreak >nul 2>&1
     set "TARGET_URL=http://127.0.0.1:7474/index.html"
 ) else (

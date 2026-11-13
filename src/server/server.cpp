@@ -97,6 +97,15 @@ int main(int argc, char* argv[]) {
     }
     if (argc > 2) {
         root_dir = argv[2];
+        // Strip trailing quotes, slashes and whitespace to avoid Windows CLI escaping bugs
+        while (!root_dir.empty() && (root_dir.back() == '"' || root_dir.back() == '\'' || 
+                                     root_dir.back() == '\\' || root_dir.back() == '/' ||
+                                     root_dir.back() == ' ' || root_dir.back() == '\t')) {
+            root_dir.pop_back();
+        }
+    }
+    if (root_dir.empty()) {
+        root_dir = ".";
     }
 
     std::cout << "========================================================\n";
@@ -394,18 +403,45 @@ int main(int argc, char* argv[]) {
         }
     });
 
-    // 9. Static Files Mount (Serve src/frontend if present, fallback to root_dir)
+    // 9. Static Files Mount & Explicit HTML Handlers
     std::string frontend_dir = root_dir + "/src/frontend";
     std::ifstream test_fe(frontend_dir + "/index.html");
-    if (test_fe.is_open()) {
-        test_fe.close();
-        std::cout << "   Static directory: " << frontend_dir << " (mounted to /)\n";
-        svr.set_mount_point("/", frontend_dir.c_str());
-        svr.set_mount_point("/src/frontend", frontend_dir.c_str());
+    if (!test_fe.is_open()) {
+        frontend_dir = "src/frontend";
     } else {
-        std::cout << "   Static directory: " << root_dir << " (mounted to /)\n";
-        svr.set_mount_point("/", root_dir.c_str());
+        test_fe.close();
     }
+
+    auto serve_index = [&root_dir, &frontend_dir](const httplib::Request&, httplib::Response& res) {
+        set_cors_headers(res);
+        std::vector<std::string> candidates = {
+            frontend_dir + "/index.html",
+            root_dir + "/src/frontend/index.html",
+            "src/frontend/index.html",
+            root_dir + "/index.html",
+            "index.html"
+        };
+        for (const auto& c : candidates) {
+            std::ifstream f(c, std::ios::binary);
+            if (f.is_open()) {
+                std::string content((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+                res.set_content(content, "text/html; charset=utf-8");
+                return;
+            }
+        }
+        res.status = 404;
+        res.set_content("<h1>404 Not Found - Unified Engineering Workbench</h1>", "text/html");
+    };
+
+    svr.Get("/", serve_index);
+    svr.Get("/index.html", serve_index);
+    svr.Get("/src/frontend/index.html", serve_index);
+
+    std::cout << "   Static directory: " << frontend_dir << " (mounted to /)\n";
+    svr.set_mount_point("/", frontend_dir.c_str());
+    svr.set_mount_point("/src/frontend", frontend_dir.c_str());
+    svr.set_mount_point("/css", (frontend_dir + "/css").c_str());
+    svr.set_mount_point("/js", (frontend_dir + "/js").c_str());
     svr.set_mount_point("/assets", (root_dir + "/assets").c_str());
     svr.set_mount_point("/docs", (root_dir + "/docs").c_str());
     svr.set_mount_point("/data", (root_dir + "/data").c_str());
