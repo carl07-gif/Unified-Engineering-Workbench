@@ -68,7 +68,7 @@ Double-click **`Launch.exe`** (or `Launch.bat`) in the root directory.
 │   ├── invalid_ansys.csv       # Negative test CSV
 │   └── DATA_PROVENANCE.md      # Schemas, units, origins, and limits
 ├── tests/
-│   └── test_main.cpp           # Complete C++ unit test suite (38 positive, negative, and numerical tests)
+│   └── test_main.cpp           # Complete C++ unit test suite (49 positive, negative, boundary, and numerical tests)
 ├── results/
 │   ├── mesh_convergence_plot.png       # High-res O(h²) error convergence plot
 │   ├── temperature_profile_N80.png     # High-res T(x) FEA vs analytical profile plot
@@ -171,7 +171,7 @@ Total development effort: **46.0 hours**:
 | **Task D: Multicore Thread Pool Engine** | Persistent C++17 `ThreadPool`, chunking, $\Delta T \le 10^{-8\ \circ}\text{C}$ check | **7.0 hrs** | `src/cpp/multicore_engine.*`, `results/multicore_benchmark.csv` |
 | **Task E: Embedded Hardware Integration** | Pin-voltage table, JTAG TAP state machine, C++ mock adapters | **6.0 hrs** | `src/cpp/embedded_mocks.*`, block diagram |
 | **Task F: Handwritten Backpropagation** | Reverse-mode calculus derivation, finite-difference verification | **5.0 hrs** | `src/cpp/backprop_engine.*`, `docs/HANDWRITTEN_BACKPROP.md` |
-| **C++ REST Server & Testing** | `cpp-httplib` v0.66.0 transport (`src/server/server.cpp`), 36 CTest tests | **6.0 hrs** | `src/server/server.cpp`, `CMakeLists.txt`, `tests/test_main.cpp` |
+| **C++ REST Server & Testing** | `cpp-httplib` v0.66.0 transport (`src/server/server.cpp`), 49 CTest unit tests (100% passing) | **6.0 hrs** | `src/server/server.cpp`, `CMakeLists.txt`, `tests/test_main.cpp` |
 | **TOTAL VERIFIED EFFORT** | **Multi-disciplinary engineering workbench prototype** | **46.0 hrs** | **100% Offline, Self-Contained Deliverable** |
 
 

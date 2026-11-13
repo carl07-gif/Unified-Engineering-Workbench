@@ -7,6 +7,11 @@
 namespace workbench {
 
 double ThermalRodSolver::exact_temperature(double x, const ThermalRodParams& p) noexcept {
+    if (!std::isfinite(x) || !std::isfinite(p.L) || !std::isfinite(p.k) || 
+        !std::isfinite(p.q) || !std::isfinite(p.T0) || !std::isfinite(p.TL) || 
+        p.L <= 0.0 || p.k <= 0.0) {
+        return 0.0;
+    }
     // T_exact(x) = T0 + (TL - T0)*(x/L) + [q/(2k)]*x*(L - x)
     return p.T0 + (p.TL - p.T0) * (x / p.L) + (p.q / (2.0 * p.k)) * x * (p.L - x);
 }
@@ -45,7 +50,13 @@ ThermalSolveResult ThermalRodSolver::solve(const ThermalRodParams& p, const std:
         return res;
     }
 
-    // Parameter validation
+    // Parameter validation: strictly reject non-finite values (NaN, +/-Inf)
+    if (!std::isfinite(p.L) || !std::isfinite(p.k) || !std::isfinite(p.q) ||
+        !std::isfinite(p.T0) || !std::isfinite(p.TL) || !std::isfinite(p.A)) {
+        res.success = false;
+        res.error_message = "All solver parameters (L, k, q, T0, TL, A) must be finite real numbers. NaN and Infinity are strictly rejected.";
+        return res;
+    }
     if (p.N < 1) {
         res.success = false;
         res.error_message = "Element count N must be at least 1.";

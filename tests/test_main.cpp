@@ -62,10 +62,25 @@ void test_thermal_fea() {
     auto res80 = workbench::ThermalRodSolver::solve(p);
     TEST_ASSERT(std::abs(res80.max_midpoint_error - 0.01953125) < 1e-4, "Midpoint error for N=80 should be 0.0195 C");
 
-    // Negative validation test
+    // Negative validation tests
     p.N = 0;
     auto res_bad = workbench::ThermalRodSolver::solve(p);
     TEST_ASSERT(!res_bad.success, "Solve with N=0 must fail validation");
+
+    p.N = 80;
+    p.q = std::numeric_limits<double>::quiet_NaN();
+    auto res_nan_q = workbench::ThermalRodSolver::solve(p);
+    TEST_ASSERT(!res_nan_q.success, "Solve with q=NaN must be rejected");
+
+    p.q = 10000.0;
+    p.T0 = std::numeric_limits<double>::infinity();
+    auto res_inf_t0 = workbench::ThermalRodSolver::solve(p);
+    TEST_ASSERT(!res_inf_t0.success, "Solve with T0=Inf must be rejected");
+
+    p.T0 = 100.0;
+    p.TL = -std::numeric_limits<double>::infinity();
+    auto res_inf_tl = workbench::ThermalRodSolver::solve(p);
+    TEST_ASSERT(!res_inf_tl.success, "Solve with TL=-Inf must be rejected");
 }
 
 void test_cad_ansys_parser() {
@@ -149,6 +164,41 @@ void test_cad_ansys_parser() {
     auto dup_csv_res = workbench::CadAnsysParser::parse_ansys_csv_from_string(dup_csv);
     TEST_ASSERT(!dup_csv_res.success, "CSV with duplicate node_id must be rejected");
 
+    // Negative Test: Incomplete facet normal components
+    std::string incomplete_norm_stl = 
+        "solid inc_norm\n"
+        "  facet normal 0.0 1.0\n"
+        "    outer loop\n"
+        "      vertex 0.0 0.0 0.0\n"
+        "      vertex 1.0 0.0 0.0\n"
+        "      vertex 0.0 1.0 0.0\n"
+        "    endloop\n"
+        "  endfacet\n"
+        "endsolid inc_norm\n";
+    auto inc_norm_res = workbench::CadAnsysParser::parse_ascii_stl_from_string(incomplete_norm_stl);
+    TEST_ASSERT(!inc_norm_res.success, "STL with incomplete facet normal coordinates must be rejected");
+
+    // Negative Test: NaN facet normal
+    std::string nan_norm_stl = 
+        "solid nan_norm\n"
+        "  facet normal NaN 0.0 1.0\n"
+        "    outer loop\n"
+        "      vertex 0.0 0.0 0.0\n"
+        "      vertex 1.0 0.0 0.0\n"
+        "      vertex 0.0 1.0 0.0\n"
+        "    endloop\n"
+        "  endfacet\n"
+        "endsolid nan_norm\n";
+    auto nan_norm_res = workbench::CadAnsysParser::parse_ascii_stl_from_string(nan_norm_stl);
+    TEST_ASSERT(!nan_norm_res.success, "STL with NaN facet normal must be rejected");
+
+    // Negative Test: Incomplete CSV row (missing columns)
+    std::string incomplete_row_csv = 
+        "node_id,x_m,y_m,z_m,temperature_C\n"
+        "1,0.0,0.0\n";
+    auto inc_row_res = workbench::CadAnsysParser::parse_ansys_csv_from_string(incomplete_row_csv);
+    TEST_ASSERT(!inc_row_res.success, "CSV with incomplete record (< 5 columns) must be rejected");
+
     // Negative Test: Oversized buffer exceeding 50 MB limit
     std::string oversized_buffer(51 * 1024 * 1024, 'x');
     auto over_stl_res = workbench::CadAnsysParser::parse_ascii_stl_from_string(oversized_buffer);
@@ -220,6 +270,21 @@ void test_multicore_engine() {
     }
 
     TEST_ASSERT(max_diff <= 1e-8, "Serial and parallel solutions must match within 1e-8 C");
+
+    // Test cancellation token during benchmark
+    std::atomic<bool> cancel_flag{true};
+    int progress_cb_val = 0;
+    auto cancelled_report = workbench::MulticoreEngine::run_benchmark(100, 20, 42, &cancel_flag, [&](int p) { progress_cb_val = p; }, /*write_csv=*/false);
+    TEST_ASSERT(cancelled_report.cancelled, "Benchmark with active cancel token must report cancelled");
+
+    // Test completed benchmark with progress reaching 100%
+    std::atomic<bool> no_cancel{false};
+    int max_progress = 0;
+    auto full_report = workbench::MulticoreEngine::run_benchmark(50, 20, 42, &no_cancel, [&](int p) { if (p > max_progress) max_progress = p; }, /*write_csv=*/false);
+    TEST_ASSERT(!full_report.cancelled, "Normal benchmark run must not be marked cancelled");
+    TEST_ASSERT(max_progress == 100, "Progress callback must reach 100% upon benchmark completion");
+    TEST_ASSERT(full_report.physical_cores >= 1, "Physical core count must be detected (>= 1)");
+    TEST_ASSERT(full_report.ram_gb > 0.0, "Host RAM must be detected (> 0 GB)");
 }
 
 void test_embedded_mocks() {

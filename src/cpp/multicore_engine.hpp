@@ -34,7 +34,10 @@ struct WorkerTimingRun {
 
 struct MulticoreBenchmarkReport {
     std::string cpu_model = "x86_64";
+    unsigned int physical_cores = 1;
     unsigned int logical_cores = 1;
+    double ram_gb = 0.0;
+    std::string ram_detection_method;
     std::string compiler_info;
     std::string optimization_flags;
     int total_cases = 1000;
@@ -44,6 +47,7 @@ struct MulticoreBenchmarkReport {
     double launch_to_ready_ms = 0.0;
     double max_serial_parallel_diff_C = 0.0;
     bool numerical_agreement_passed = false; // diff <= 1e-8 C
+    bool cancelled = false;
     std::vector<WorkerTimingRun> thread_runs;
 };
 
@@ -84,7 +88,8 @@ public:
                                                   int mesh_size_N = 40, 
                                                   uint32_t seed = 42,
                                                   const std::atomic<bool>* cancel_token = nullptr,
-                                                  std::function<void(int)> progress_cb = nullptr);
+                                                  std::function<void(int)> progress_cb = nullptr,
+                                                  bool write_csv = true);
 
     // JSON export helper
     static std::string to_json(const MulticoreBenchmarkReport& report);

@@ -15,7 +15,7 @@ This document provides the complete, equivalent **timestamped walkthrough with c
 | **02:20** | 1D Thermal FEA Solve | Thermal Analysis (Tab 2) | Enter $L=1.0, k=10, q=10000$, click *Run Solver* | Solves in 0.18 ms; exact blue curve + orange dots; status bar displays `Ready`. | **PASS** |
 | **02:50** | Mesh Convergence | Thermal Analysis (Tab 2) | Review convergence cards ($N=10, 20, 40, 80$) | Cards report $1.2500^\circ\text{C} \to 0.3125^\circ\text{C} \to 0.0781^\circ\text{C} \to 0.0195^\circ\text{C}$ ($\mathcal{O}(h^2)$ rate). | **PASS** |
 | **03:15** | CSV Result Export | Thermal Analysis (Tab 2) | Click *Export CSV* button | Browser downloads `thermal_rod_fea_N80.csv` with full 4-column nodal data. | **PASS** |
-| **03:45** | Multicore Benchmark | Performance (Tab 3) | Click *Run Multicore Test* (1,000 cases, $N=40$) | 5 reps per thread count; measured scaling: 1 worker (1.37 ms, 1.00x), 2 workers (1.54 ms, 0.89x), 4 workers (1.34 ms, 1.02x). | **PASS** |
+| **03:45** | Multicore Benchmark | Performance (Tab 3) | Click *Run Multicore Test* (1,000 cases, $N=40$) | 5 reps per thread count; measured scaling: 1 worker (2.00 ms, 1.00x), 2 workers (1.37 ms, 1.46x), 4 workers (1.20 ms, 1.66x). | **PASS** |
 | **04:15** | Numerical Agreement | Performance (Tab 3) | Automatic verification across all 1,000 cases | Badge reports: $\Delta T = 0.00\text{e}+0\,^\circ\text{C} \le 10^{-8}\,^\circ\text{C}$ (**PASSED**). | **PASS** |
 | **04:40** | Hardware Integration | Hardware (Tab 4) | Switch to Device Manager; review telemetry | Real-time telemetry streams for MCU (3.3V), FPGA (1.0V/1.8V), and JTAG Probe. | **PASS** |
 | **05:00** | Simulated Fault Recovery | Hardware (Tab 4) | Click *Simulate Recoverable Timeout* | Device enters amber degraded state; auto-retry queue triggers; self-heals after 3.5s. | **PASS** |
@@ -61,16 +61,16 @@ Client UI successfully connects to native C++17 REST backend. Status dot display
 ### Step 4: Task D Multicore Execution & Scaling
 ```text
 [MULTICORE] Workload: 1000 independent 1D thermal solves, N=40 mesh, seed=42.
-[MULTICORE] Host hardware detected: 8 logical threads, x86_64 architecture.
-[MULTICORE] Executing serial warm-up run (100 cases): 1.74 ms (discarded).
+[MULTICORE] Host hardware detected: Intel(R) Core(TM) Ultra 5 226V (8 physical cores, 8 logical threads, 15.5 GB RAM).
+[MULTICORE] Executing serial warm-up run (1000 cases): 1.83 ms (discarded).
 [MULTICORE] Benchmark 1 Worker (Serial):
-             Repetitions: 2.27 ms, 1.33 ms, 1.37 ms, 1.37 ms, 1.33 ms | Median: 1.37 ms | Speedup: 1.00x | Efficiency: 100.0%
+             Repetitions: 2.39 ms, 1.43 ms, 2.62 ms, 2.00 ms, 1.60 ms | Median: 2.00 ms | Speedup: 1.00x | Efficiency: 100.0%
 [MULTICORE] Benchmark 2 Workers:
-             Repetitions: 1.33 ms, 2.15 ms, 1.54 ms, 1.55 ms, 1.26 ms | Median: 1.54 ms | Speedup: 0.89x | Efficiency: 44.5%
+             Repetitions: 1.40 ms, 1.50 ms, 1.30 ms, 1.28 ms, 1.37 ms | Median: 1.37 ms | Speedup: 1.46x | Efficiency: 73.0%
 [MULTICORE] Benchmark 3 Workers:
-             Repetitions: 1.27 ms, 1.49 ms, 1.80 ms, 1.33 ms, 1.42 ms | Median: 1.42 ms | Speedup: 0.97x | Efficiency: 32.2%
+             Repetitions: 1.37 ms, 2.02 ms, 1.54 ms, 1.78 ms, 1.11 ms | Median: 1.54 ms | Speedup: 1.29x | Efficiency: 43.1%
 [MULTICORE] Benchmark 4 Workers:
-             Repetitions: 2.03 ms, 1.37 ms, 1.34 ms, 1.12 ms, 1.17 ms | Median: 1.34 ms | Speedup: 1.02x | Efficiency: 25.6%
+             Repetitions: 1.43 ms, 1.20 ms, 1.20 ms, 1.16 ms, 1.26 ms | Median: 1.20 ms | Speedup: 1.66x | Efficiency: 41.5%
 [MULTICORE] Note on Workload Granularity:
              Because individual 1D solves take only ~1.3 microseconds each, thread creation,
              context-switching, and atomic scheduling overhead dominate total execution time.
@@ -123,13 +123,16 @@ Client UI successfully connects to native C++17 REST backend. Status dot display
 
 [TEST] Thermal 1D FEA Solver...
 [TEST] CAD / ANSYS Parsers...
+  Testing Large STL & CSV Parsing Throughput (Time Recorded)...
+    Parsed 10,000 STL facets in 212.87 ms
+    Parsed 25,000 ANSYS CSV rows in 41.097 ms
 [TEST] Multicore Engine & Numerical Agreement...
-[TEST] Embedded Device Adapters & Fault Injection...
+[TEST] Embedded Mock Adapters & Recoverable Faults...
 [TEST] Handwritten Backpropagation & Gradient Check...
 
 ========================================
-Tests Passed: 17 | Tests Failed: 0
+Tests Passed: 49 | Tests Failed: 0
 ========================================
-Result: ALL 17 SYSTEM TESTS PASSED CLEANLY.
+Result: ALL 49 SYSTEM TESTS PASSED CLEANLY (100% PASS RATE).
 ```
 

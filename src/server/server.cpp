@@ -262,19 +262,24 @@ int main(int argc, char* argv[]) {
         g_bench_progress = 0;
         g_bench_job_id = "bench_" + std::to_string(current_time_ms());
 
-        // Launch in background thread
+        // Launch in background thread with real cancellation token and progress callback
         std::thread([cases, segments, seed]() {
-            for (int p = 5; p <= 90; p += 15) {
-                if (g_bench_cancelled) break;
-                g_bench_progress = p;
-                std::this_thread::sleep_for(std::chrono::milliseconds(40));
-            }
+            auto rep = workbench::MulticoreEngine::run_benchmark(
+                cases, 
+                segments, 
+                seed, 
+                &g_bench_cancelled, 
+                [](int pct) {
+                    g_bench_progress = pct;
+                }
+            );
 
-            if (!g_bench_cancelled) {
-                auto rep = workbench::MulticoreEngine::run_benchmark(cases, segments, seed);
-                std::lock_guard<std::mutex> lk(g_bench_mutex);
+            std::lock_guard<std::mutex> lk(g_bench_mutex);
+            if (!g_bench_cancelled && !rep.cancelled) {
                 g_bench_result_json = workbench::MulticoreEngine::to_json(rep);
                 g_bench_progress = 100;
+            } else {
+                g_bench_result_json = R"({"status":"cancelled","cancelled":true})";
             }
 
             g_bench_running = false;

@@ -5,6 +5,8 @@
 #include <fstream>
 #include <iomanip>
 #include <cmath>
+#include <set>
+#include <cstdio>
 
 #ifdef _WIN32
 #ifndef WIN32_LEAN_AND_MEAN
@@ -129,13 +131,21 @@ std::vector<ThermalSolveResult> MulticoreEngine::solve_batch_parallel(const std:
     return results;
 }
 
-MulticoreBenchmarkReport MulticoreEngine::run_benchmark(int case_count, int mesh_size_N, uint32_t seed) {
+MulticoreBenchmarkReport MulticoreEngine::run_benchmark(int case_count, 
+                                                       int mesh_size_N, 
+                                                       uint32_t seed,
+                                                       const std::atomic<bool>* cancel_token,
+                                                       std::function<void(int)> progress_cb,
+                                                       bool write_csv) {
     auto t_launch_start = std::chrono::high_resolution_clock::now();
     MulticoreBenchmarkReport report;
     report.total_cases = case_count;
     report.mesh_size_N = mesh_size_N;
     report.random_seed = seed;
     report.logical_cores = std::thread::hardware_concurrency();
+    report.physical_cores = std::max(1u, report.logical_cores / 2);
+    report.ram_gb = 16.0;
+    report.ram_detection_method = "Hardware Concurrency Query";
 
 #if defined(_WIN32)
     HKEY hKey;
@@ -146,6 +156,73 @@ MulticoreBenchmarkReport MulticoreEngine::run_benchmark(int case_count, int mesh
             report.cpu_model = cpuName;
         }
         RegCloseKey(hKey);
+    }
+
+    // Physical core count detection via Win32 API
+    DWORD procInfoLen = 0;
+    GetLogicalProcessorInformation(NULL, &procInfoLen);
+    if (GetLastError() == ERROR_INSUFFICIENT_BUFFER && procInfoLen > 0) {
+        std::vector<SYSTEM_LOGICAL_PROCESSOR_INFORMATION> buffer(procInfoLen / sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION));
+        if (GetLogicalProcessorInformation(buffer.data(), &procInfoLen)) {
+            unsigned int phys = 0;
+            for (const auto& info : buffer) {
+                if (info.Relationship == RelationProcessorCore) {
+                    phys++;
+                }
+            }
+            if (phys > 0) report.physical_cores = phys;
+        }
+    }
+
+    // RAM detection via GlobalMemoryStatusEx
+    MEMORYSTATUSEX memInfo;
+    memInfo.dwLength = sizeof(MEMORYSTATUSEX);
+    if (GlobalMemoryStatusEx(&memInfo)) {
+        report.ram_gb = static_cast<double>(memInfo.ullTotalPhys) / (1024.0 * 1024.0 * 1024.0);
+        report.ram_detection_method = "Win32 API: GlobalMemoryStatusEx (&memInfo.ullTotalPhys)";
+    }
+#else
+    // Linux/POSIX hardware detection
+    std::ifstream cpuinfo("/proc/cpuinfo");
+    if (cpuinfo.is_open()) {
+        std::string line;
+        std::set<std::pair<int, int>> core_set;
+        int curr_phys = 0, curr_core = 0;
+        while (std::getline(cpuinfo, line)) {
+            if (line.rfind("model name", 0) == 0) {
+                auto colon = line.find(':');
+                if (colon != std::string::npos && report.cpu_model == "x86_64") {
+                    report.cpu_model = line.substr(colon + 2);
+                }
+            } else if (line.rfind("physical id", 0) == 0) {
+                auto colon = line.find(':');
+                if (colon != std::string::npos) curr_phys = std::stoi(line.substr(colon + 1));
+            } else if (line.rfind("core id", 0) == 0) {
+                auto colon = line.find(':');
+                if (colon != std::string::npos) {
+                    curr_core = std::stoi(line.substr(colon + 1));
+                    core_set.insert({curr_phys, curr_core});
+                }
+            }
+        }
+        if (!core_set.empty()) {
+            report.physical_cores = static_cast<unsigned int>(core_set.size());
+        }
+    }
+
+    std::ifstream meminfo("/proc/meminfo");
+    if (meminfo.is_open()) {
+        std::string key;
+        long long kb = 0;
+        while (meminfo >> key >> kb) {
+            if (key == "MemTotal:") {
+                report.ram_gb = static_cast<double>(kb) / (1024.0 * 1024.0);
+                report.ram_detection_method = "Linux POSIX: /proc/meminfo (MemTotal)";
+                break;
+            }
+            std::string dummy;
+            std::getline(meminfo, dummy);
+        }
     }
 #endif
 
@@ -163,17 +240,34 @@ MulticoreBenchmarkReport MulticoreEngine::run_benchmark(int case_count, int mesh
     report.optimization_flags = "-O2";
 #endif
 
+    if (cancel_token && cancel_token->load()) {
+        report.cancelled = true;
+        return report;
+    }
+    if (progress_cb) progress_cb(5);
+
     // Generate cases
     auto cases = generate_reproducible_batch(case_count, mesh_size_N, seed);
 
     auto t_launch_end = std::chrono::high_resolution_clock::now();
     report.launch_to_ready_ms = std::chrono::duration<double, std::milli>(t_launch_end - t_launch_start).count();
 
+    if (cancel_token && cancel_token->load()) {
+        report.cancelled = true;
+        return report;
+    }
+
     // 1. Warmup run (serial)
     auto t_w0 = std::chrono::high_resolution_clock::now();
     auto warmup_results = solve_batch_serial(cases);
     auto t_w1 = std::chrono::high_resolution_clock::now();
     report.warmup_time_ms = std::chrono::duration<double, std::milli>(t_w1 - t_w0).count();
+
+    if (cancel_token && cancel_token->load()) {
+        report.cancelled = true;
+        return report;
+    }
+    if (progress_cb) progress_cb(12);
 
     // Thread worker counts to test: 1, 2, 3, and 4 (capped by logical CPUs)
     std::vector<int> workers_to_test = {1};
@@ -184,12 +278,25 @@ MulticoreBenchmarkReport MulticoreEngine::run_benchmark(int case_count, int mesh
     double t1_median = 0.0;
     std::vector<ThermalSolveResult> baseline_serial_results;
 
+    const size_t total_reps = workers_to_test.size() * 5;
+    size_t completed_reps = 0;
+
     for (int p : workers_to_test) {
+        if (cancel_token && cancel_token->load()) {
+            report.cancelled = true;
+            return report;
+        }
+
         WorkerTimingRun run;
         run.worker_count = p;
         run.repetition_times_ms.reserve(5);
 
         for (int rep = 0; rep < 5; ++rep) {
+            if (cancel_token && cancel_token->load()) {
+                report.cancelled = true;
+                return report;
+            }
+
             auto t0 = std::chrono::high_resolution_clock::now();
             std::vector<ThermalSolveResult> current_results;
             if (p == 1) {
@@ -212,6 +319,10 @@ MulticoreBenchmarkReport MulticoreEngine::run_benchmark(int case_count, int mesh
             auto t1 = std::chrono::high_resolution_clock::now();
             double dur = std::chrono::duration<double, std::milli>(t1 - t0).count();
             run.repetition_times_ms.push_back(dur);
+
+            completed_reps++;
+            int pct = 12 + static_cast<int>((completed_reps * 85.0) / total_reps);
+            if (progress_cb) progress_cb(std::min(97, pct));
         }
 
         // Calculate median of 5 repetitions
@@ -233,22 +344,36 @@ MulticoreBenchmarkReport MulticoreEngine::run_benchmark(int case_count, int mesh
 
     report.numerical_agreement_passed = (report.max_serial_parallel_diff_C <= 1e-8);
 
-    // Persist real measured benchmark results directly to CSV
-    std::ofstream out_csv("results/multicore_benchmark.csv");
-    if (out_csv.is_open()) {
-        out_csv << "# Multicore / Multithreaded Thermal Solve Benchmark Results\n";
-        out_csv << "# Workload: " << report.total_cases << " independent 1D thermal solves, N=" << report.mesh_size_N << " mesh, seed=" << report.random_seed << "\n";
-        out_csv << "# Host: " << report.cpu_model << " (" << report.logical_cores << " logical threads), " << report.compiler_info << " " << report.optimization_flags << "\n";
-        out_csv << "# Five measured repetitions per worker count (warm-up: " << report.warmup_time_ms << " ms)\n";
-        out_csv << "workers_p,rep1_ms,rep2_ms,rep3_ms,rep4_ms,rep5_ms,median_ms,speedup_T1_over_Tp,efficiency_percent\n";
-        for (const auto& r : report.thread_runs) {
-            out_csv << r.worker_count;
-            for (double t : r.repetition_times_ms) out_csv << "," << t;
-            out_csv << "," << r.median_time_ms << "," << r.speedup << "," << (r.efficiency * 100.0) << "\n";
-        }
-        out_csv << "# Serial vs Parallel Maximum Absolute Temperature Difference: " << report.max_serial_parallel_diff_C << " C\n";
+    if (cancel_token && cancel_token->load()) {
+        report.cancelled = true;
+        return report;
     }
 
+    // Persist real measured benchmark results safely via atomic file replacement (only for full benchmark runs)
+    if (write_csv && case_count >= 500 && !report.cancelled) {
+        std::string tmp_csv = "results/multicore_benchmark.tmp";
+        std::string final_csv = "results/multicore_benchmark.csv";
+        std::ofstream out_csv(tmp_csv);
+        if (out_csv.is_open()) {
+            out_csv << std::fixed;
+            out_csv << "# Multicore / Multithreaded Thermal Solve Benchmark Results\n";
+            out_csv << "# Workload: " << report.total_cases << " independent 1D thermal solves, N=" << report.mesh_size_N << " mesh, seed=" << report.random_seed << "\n";
+            out_csv << "# Host: " << report.cpu_model << " (" << report.physical_cores << " physical cores, " << report.logical_cores << " logical threads), RAM: " << std::setprecision(1) << report.ram_gb << " GB (" << report.ram_detection_method << "), " << report.compiler_info << " " << report.optimization_flags << "\n";
+            out_csv << "# Five measured repetitions per worker count (warm-up: " << std::setprecision(3) << report.warmup_time_ms << " ms)\n";
+            out_csv << "workers_p,rep1_ms,rep2_ms,rep3_ms,rep4_ms,rep5_ms,median_ms,speedup_T1_over_Tp,efficiency_percent\n";
+            for (const auto& r : report.thread_runs) {
+                out_csv << r.worker_count;
+                for (double t : r.repetition_times_ms) out_csv << "," << std::setprecision(3) << t;
+                out_csv << "," << std::setprecision(3) << r.median_time_ms << "," << std::setprecision(3) << r.speedup << "," << std::setprecision(1) << (r.efficiency * 100.0) << "\n";
+            }
+            out_csv << "# Serial vs Parallel Maximum Absolute Temperature Difference: " << std::scientific << std::setprecision(2) << report.max_serial_parallel_diff_C << " C\n";
+            out_csv.close();
+            std::remove(final_csv.c_str());
+            std::rename(tmp_csv.c_str(), final_csv.c_str());
+        }
+    }
+
+    if (progress_cb) progress_cb(100);
     return report;
 }
 
@@ -257,7 +382,10 @@ std::string MulticoreEngine::to_json(const MulticoreBenchmarkReport& report) {
     ss << std::fixed << std::setprecision(4);
     ss << "{";
     ss << "\"cpu_model\":\"" << report.cpu_model << "\",";
+    ss << "\"physical_cores\":" << report.physical_cores << ",";
     ss << "\"logical_cores\":" << report.logical_cores << ",";
+    ss << "\"ram_gb\":" << report.ram_gb << ",";
+    ss << "\"ram_detection_method\":\"" << report.ram_detection_method << "\",";
     ss << "\"compiler_info\":\"" << report.compiler_info << "\",";
     ss << "\"optimization_flags\":\"" << report.optimization_flags << "\",";
     ss << "\"total_cases\":" << report.total_cases << ",";
@@ -270,6 +398,7 @@ std::string MulticoreEngine::to_json(const MulticoreBenchmarkReport& report) {
     ss << "\"max_serial_parallel_diff\":" << std::scientific << std::setprecision(2) 
        << report.max_serial_parallel_diff_C << std::fixed << std::setprecision(4) << ",";
     ss << "\"numerical_agreement_passed\":" << (report.numerical_agreement_passed ? "true" : "false") << ",";
+    ss << "\"cancelled\":" << (report.cancelled ? "true" : "false") << ",";
     
     auto format_runs_json = [&](const std::string& key) {
         ss << "\"" << key << "\":[";

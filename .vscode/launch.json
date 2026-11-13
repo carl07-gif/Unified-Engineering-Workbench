@@ -2,6 +2,20 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Launch Workbench (Microsoft Edge - Windows 11)",
+            "type": "node-terminal",
+            "request": "launch",
+            "command": "cmd.exe /c Launch.bat",
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "Launch Workbench (Google Chrome)",
+            "type": "node-terminal",
+            "request": "launch",
+            "command": "cmd.exe /c Launch.bat",
+            "cwd": "${workspaceFolder}"
+        },
+        {
             "name": "Run Unified Engineering Workbench",
             "type": "node-terminal",
             "request": "launch",
@@ -13,6 +27,13 @@
             "type": "node-terminal",
             "request": "launch",
             "command": "cmd.exe /c workbench_server.exe 7474 .",
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "Run All C++ Unit Tests",
+            "type": "node-terminal",
+            "request": "launch",
+            "command": "cmd.exe /c workbench_tests.exe",
             "cwd": "${workspaceFolder}"
         }
     ]

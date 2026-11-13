@@ -208,8 +208,13 @@ const MulticoreViewController = (() => {
                 // Update hardware specs in DOM if available
                 const hwCpu = document.getElementById("hwCpuModel");
                 if (hwCpu && rep.cpu_model) hwCpu.textContent = rep.cpu_model;
+                const hwPhys = document.getElementById("hwPhysCores");
+                if (hwPhys && rep.physical_cores) hwPhys.textContent = `${rep.physical_cores} Physical Cores`;
                 const hwRam = document.getElementById("hwRamInfo");
-                if (hwRam && rep.ram_gb) hwRam.textContent = `${rep.ram_gb} GB RAM`;
+                if (hwRam && rep.ram_gb) {
+                  hwRam.textContent = `${Number(rep.ram_gb).toFixed(1)} GB RAM`;
+                  if (rep.ram_detection_method) hwRam.title = rep.ram_detection_method;
+                }
                 const hwCores = document.getElementById("hwCores");
                 if (hwCores && rep.logical_cores) {
                   hwCores.textContent = `${rep.logical_cores} Logical Threads`;
