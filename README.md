@@ -81,7 +81,8 @@ Double-click **`Launch.exe`** (or `Launch.bat`) in the root directory.
 │   ├── thermal_fea_N80.csv             # Full nodal results for N=80
 │   ├── midpoint_errors.csv             # Midpoint errors (1.25 -> 0.0195 C)
 │   ├── mesh_convergence.csv            # N=10, 20, 40, 80 convergence table
-│   ├── multicore_benchmark.csv         # 1, 2, 3, 4 worker thread timing & speedup
+│   ├── multicore_benchmark.csv         # 1, 2, 3, 4 worker thread timing & speedup (1,000 solves)
+│   ├── multicore_benchmark_10k.csv     # Extended 10,000-solve compute-dense scaling evidence
 │   └── backpropagation_training.csv    # 100-step verified training history
 ├── docs/
 │   ├── TECHNICAL_REPORT.md     # 6-page comprehensive technical report

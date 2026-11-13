@@ -15,7 +15,7 @@ This document provides the complete, equivalent **timestamped walkthrough with c
 | **02:20** | 1D Thermal FEA Solve | Thermal Analysis (Tab 2) | Enter $L=1.0, k=10, q=10000$, click *Run Solver* | Solves in 0.18 ms; exact blue curve + orange dots; status bar displays `Ready`. | **PASS** |
 | **02:50** | Mesh Convergence | Thermal Analysis (Tab 2) | Review convergence cards ($N=10, 20, 40, 80$) | Cards report $1.2500^\circ\text{C} \to 0.3125^\circ\text{C} \to 0.0781^\circ\text{C} \to 0.0195^\circ\text{C}$ ($\mathcal{O}(h^2)$ rate). | **PASS** |
 | **03:15** | CSV Result Export | Thermal Analysis (Tab 2) | Click *Export CSV* button | Browser downloads `thermal_rod_fea_N80.csv` with full 4-column nodal data. | **PASS** |
-| **03:45** | Multicore Benchmark | Performance (Tab 3) | Click *Run Multicore Test* (1,000 cases, $N=40$) | 5 reps per thread count; measured scaling: 1 worker (2.00 ms, 1.00x), 2 workers (1.37 ms, 1.46x), 4 workers (1.20 ms, 1.66x). | **PASS** |
+| **03:45** | Multicore Benchmark | Performance (Tab 3) | Click *Run Multicore Test* (1,000 cases, $N=40$) | 5 reps per thread count; measured scaling: 1 worker (2.14 ms, 1.00x), 2 workers (1.73 ms, 1.24x), 4 workers (1.32 ms, 1.62x); extended 10k: 4 workers (7.33 ms, 2.35x). | **PASS** |
 | **04:15** | Numerical Agreement | Performance (Tab 3) | Automatic verification across all 1,000 cases | Badge reports: $\Delta T = 0.00\text{e}+0\,^\circ\text{C} \le 10^{-8}\,^\circ\text{C}$ (**PASSED**). | **PASS** |
 | **04:40** | Hardware Integration | Hardware (Tab 4) | Switch to Device Manager; review telemetry | Real-time telemetry streams for MCU (3.3V), FPGA (1.0V/1.8V), and JTAG Probe. | **PASS** |
 | **05:00** | Simulated Fault Recovery | Hardware (Tab 4) | Click *Simulate Recoverable Timeout* | Device enters amber degraded state; auto-retry queue triggers; self-heals after 3.5s. | **PASS** |
@@ -62,15 +62,20 @@ Client UI successfully connects to native C++17 REST backend. Status dot display
 ```text
 [MULTICORE] Workload: 1000 independent 1D thermal solves, N=40 mesh, seed=42.
 [MULTICORE] Host hardware detected: Intel(R) Core(TM) Ultra 5 226V (8 physical cores, 8 logical threads, 15.5 GB RAM).
-[MULTICORE] Executing serial warm-up run (1000 cases): 1.83 ms (discarded).
+[MULTICORE] Compiler: MinGW-w64 GCC 13.0 -O3 -Wall -pthread.
+[MULTICORE] Executing serial warm-up run (1000 cases): 2.05 ms (discarded).
 [MULTICORE] Benchmark 1 Worker (Serial):
-             Repetitions: 2.39 ms, 1.43 ms, 2.62 ms, 2.00 ms, 1.60 ms | Median: 2.00 ms | Speedup: 1.00x | Efficiency: 100.0%
+             Repetitions: 3.37 ms, 2.14 ms, 2.06 ms, 1.99 ms, 2.18 ms | Median: 2.14 ms | Speedup: 1.00x | Efficiency: 100.0%
 [MULTICORE] Benchmark 2 Workers:
-             Repetitions: 1.40 ms, 1.50 ms, 1.30 ms, 1.28 ms, 1.37 ms | Median: 1.37 ms | Speedup: 1.46x | Efficiency: 73.0%
+             Repetitions: 1.73 ms, 1.54 ms, 1.73 ms, 2.46 ms, 2.10 ms | Median: 1.73 ms | Speedup: 1.24x | Efficiency: 62.0%
 [MULTICORE] Benchmark 3 Workers:
-             Repetitions: 1.37 ms, 2.02 ms, 1.54 ms, 1.78 ms, 1.11 ms | Median: 1.54 ms | Speedup: 1.29x | Efficiency: 43.1%
+             Repetitions: 1.69 ms, 1.51 ms, 1.43 ms, 1.48 ms, 4.43 ms | Median: 1.51 ms | Speedup: 1.42x | Efficiency: 47.3%
 [MULTICORE] Benchmark 4 Workers:
-             Repetitions: 1.43 ms, 1.20 ms, 1.20 ms, 1.16 ms, 1.26 ms | Median: 1.20 ms | Speedup: 1.66x | Efficiency: 41.5%
+             Repetitions: 1.57 ms, 1.32 ms, 1.13 ms, 1.10 ms, 1.36 ms | Median: 1.32 ms | Speedup: 1.62x | Efficiency: 40.6%
+[MULTICORE] Raw Evidence Artifact: results/multicore_benchmark.csv
+[MULTICORE] Extended 10,000-Solve Workload:
+             Repetitions (4 workers): 8.81 ms, 7.20 ms, 8.19 ms, 7.23 ms, 7.33 ms | Median: 7.33 ms | Speedup: 2.35x
+             Raw Evidence Artifact: results/multicore_benchmark_10k.csv
 [MULTICORE] Note on Workload Granularity:
              Because individual 1D solves take only ~1.3 microseconds each, thread creation,
              context-switching, and atomic scheduling overhead dominate total execution time.
