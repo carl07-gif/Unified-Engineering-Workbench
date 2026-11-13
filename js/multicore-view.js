@@ -13,11 +13,11 @@ const MulticoreViewController = (() => {
   let lastP = 0.942;
   let lastCaseCount = 1000;
 
-  // Calibrated reference benchmark dataset strictly matching TECHNICAL_REPORT.md (1,000 Solves, N=40)
+  // Calibrated reference benchmark dataset strictly matching TECHNICAL_REPORT.md and results/multicore_benchmark.csv
   const defaultResults = [
-    { p: 1, repTimes: [31.84, 31.95, 31.80, 32.10, 31.78], median: 31.84, speedup: 1.00, efficiency: 1.000 },
-    { p: 2, repTimes: [17.40, 17.25, 17.38, 17.52, 17.30], median: 17.38, speedup: 1.83, efficiency: 0.916 },
-    { p: 4, repTimes: [9.65, 9.58, 9.72, 9.62, 9.60], median: 9.62, speedup: 3.31, efficiency: 0.828 }
+    { p: 1, repTimes: [18.30, 18.54, 18.94, 17.88, 18.29], median: 18.30, speedup: 1.000, efficiency: 1.000 },
+    { p: 2, repTimes: [10.01, 10.22, 9.13, 10.90, 10.52], median: 10.22, speedup: 1.791, efficiency: 0.895 },
+    { p: 4, repTimes: [5.42, 5.56, 5.52, 5.50, 5.72], median: 5.52, speedup: 3.315, efficiency: 0.829 }
   ];
 
   function init() {

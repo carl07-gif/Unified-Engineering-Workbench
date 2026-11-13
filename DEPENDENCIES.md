@@ -15,18 +15,24 @@ This document specifies the target versions, compilers, language standards, runt
 | Component | Standard / Runtime | Minimum Version | Tested & Locked Version |
 | :--- | :--- | :--- | :--- |
 | **C++ Core Engine** | ISO C++17 (`/std:c++17` or `-std=c++17`) | CMake 3.16+ | MSVC 19.38 / GCC 13.2 / Clang 17 |
-| **Windows Launcher** | Win32 / .NET Framework (Native GUI) | .NET 4.0 (Windows Built-in) | .NET Framework 4.8.1 (`csc.exe 14.8`) |
+| **C++ HTTP Transport** | Header-only HTTP Server (`cpp-httplib`) | C++17 / WinSock2 | `cpp-httplib` v0.66.0 (MIT License) |
+| **Windows Launcher** | Win32 native / WinMain (`ShellExecuteW`) | Windows API | MSVC / MinGW / Clang (Zero runtime) |
 | **Frontend Presentation** | HTML5, CSS3, ES2020 JavaScript | Modern Web Standards | Microsoft Edge 120+ / Chrome 120+ |
 
 ---
 
 ## 3. Runtime Dependencies & Zero-Install Policy
-- **External C++ Dependencies**: **None (Zero Third-Party C++ Libraries)**.
+- **Embedded C++ HTTP Transport Library**:
+  - `cpp-httplib` v0.66.0 (MIT License, single header `src/server/httplib.h`).
+  - Native socket transport on loopback (`127.0.0.1`), linked with `ws2_32.lib` on Windows.
+  - Zero external package managers (no Conan, no vcpkg, no boost required).
+  - License notice preserved in `LICENSE_CPP_HTTPLIB.txt`.
+- **Pure Numerical C++ Core**:
   - All numerical linear algebra (Thomas tridiagonal $\mathcal{O}(N)$ solver), ASCII STL parser, ANSYS CSV parser, thread pool, and backpropagation engine use standard C++17 library headers (`<vector>`, `<cmath>`, `<thread>`, `<mutex>`, `<chrono>`, `<fstream>`, `<sstream>`).
 - **External Python / Node / Pip / NPM Dependencies**: **None**.
   - No Python runtime, no Node.js runtime, and no package manager is required.
 - **Redistributable C++ Runtime**:
-  - The C++ code is compiled with standard Windows CRT linkage (`ucrtbase.dll` / `msvcp140.dll`), which is pre-installed on all Windows 10 and Windows 11 systems.
+  - The C++ code is compiled with standard Windows CRT linkage (`ucrtbase.dll` / `msvcp140.dll`), which is pre-installed on all Windows 10 and Windows 11 systems. Static linkage (`/MT` on MSVC, `-static` on GCC/MinGW) is also fully supported.
 
 ---
 

@@ -2,8 +2,16 @@
 #include <random>
 #include <algorithm>
 #include <sstream>
+#include <fstream>
 #include <iomanip>
 #include <cmath>
+
+#ifdef _WIN32
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+#endif
 
 namespace workbench {
 
@@ -129,6 +137,18 @@ MulticoreBenchmarkReport MulticoreEngine::run_benchmark(int case_count, int mesh
     report.random_seed = seed;
     report.logical_cores = std::thread::hardware_concurrency();
 
+#if defined(_WIN32)
+    HKEY hKey;
+    if (RegOpenKeyExA(HKEY_LOCAL_MACHINE, "HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0", 0, KEY_READ, &hKey) == ERROR_SUCCESS) {
+        char cpuName[256] = {0};
+        DWORD bufSize = sizeof(cpuName);
+        if (RegQueryValueExA(hKey, "ProcessorNameString", NULL, NULL, (LPBYTE)cpuName, &bufSize) == ERROR_SUCCESS) {
+            report.cpu_model = cpuName;
+        }
+        RegCloseKey(hKey);
+    }
+#endif
+
 #if defined(_MSC_VER)
     report.compiler_info = "MSVC " + std::to_string(_MSC_VER);
     report.optimization_flags = "/O2 /W4 /EHsc";
@@ -212,6 +232,23 @@ MulticoreBenchmarkReport MulticoreEngine::run_benchmark(int case_count, int mesh
     }
 
     report.numerical_agreement_passed = (report.max_serial_parallel_diff_C <= 1e-8);
+
+    // Persist real measured benchmark results directly to CSV
+    std::ofstream out_csv("results/multicore_benchmark.csv");
+    if (out_csv.is_open()) {
+        out_csv << "# Multicore / Multithreaded Thermal Solve Benchmark Results\n";
+        out_csv << "# Workload: " << report.total_cases << " independent 1D thermal solves, N=" << report.mesh_size_N << " mesh, seed=" << report.random_seed << "\n";
+        out_csv << "# Host: " << report.cpu_model << " (" << report.logical_cores << " logical threads), " << report.compiler_info << " " << report.optimization_flags << "\n";
+        out_csv << "# Five measured repetitions per worker count (warm-up: " << report.warmup_time_ms << " ms)\n";
+        out_csv << "workers_p,rep1_ms,rep2_ms,rep3_ms,rep4_ms,rep5_ms,median_ms,speedup_T1_over_Tp,efficiency_percent\n";
+        for (const auto& r : report.thread_runs) {
+            out_csv << r.worker_count;
+            for (double t : r.repetition_times_ms) out_csv << "," << t;
+            out_csv << "," << r.median_time_ms << "," << r.speedup << "," << (r.efficiency * 100.0) << "\n";
+        }
+        out_csv << "# Serial vs Parallel Maximum Absolute Temperature Difference: " << report.max_serial_parallel_diff_C << " C\n";
+    }
+
     return report;
 }
 

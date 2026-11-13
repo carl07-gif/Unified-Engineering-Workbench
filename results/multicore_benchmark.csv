@@ -1,10 +1,9 @@
 # Multicore / Multithreaded Thermal Solve Benchmark Results
-# Workload: 1,000 independent 1D thermal solves, N=40 mesh, reproducible seed=42
-# Host: x86_64 CPU (8 logical threads), Windows 11, MSVC /O2 /W4 C++17
-# Five measured repetitions per worker count (warm-up: 32.4 ms)
+# Workload: 1,000 independent 1D thermal solves (8 iterations = 8,000 total), N=80 mesh, seed=42
+# Host: Intel(R) Core(TM) Ultra 5 226V (8 logical threads, 16 GB RAM), Windows 11
+# Five measured repetitions per worker count (warm-up: 15.1 ms)
 workers_p,rep1_ms,rep2_ms,rep3_ms,rep4_ms,rep5_ms,median_ms,speedup_T1_over_Tp,efficiency_percent
-1,31.84,31.95,31.80,32.10,31.78,31.84,1.000,100.0
-2,17.40,17.25,17.38,17.52,17.30,17.38,1.832,91.6
-4,9.65,9.58,9.72,9.62,9.60,9.62,3.310,82.8
+1,18.3,18.54,18.94,17.88,18.29,18.30,1.000,100.0
+2,10.01,10.22,9.13,10.9,10.52,10.22,1.791,89.5
+4,5.42,5.56,5.52,5.5,5.72,5.52,3.315,82.9
 # Serial vs Parallel Maximum Absolute Temperature Difference: 0.00e+00 C (Threshold <= 1e-8 C: PASSED)
-

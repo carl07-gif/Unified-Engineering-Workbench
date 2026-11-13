@@ -89,16 +89,16 @@ This confirms the asymptotic $\mathcal{O}(h^2)$ convergence rate of linear finit
 ### 4.1 Implementation & Workload Generator
 A bounded C++17 thread pool (`ThreadPool`) handles batch execution. A reproducible pseudo-random batch generator using `std::mt19937` with a fixed seed produces identical sets of thermal problems with varied $k \in [2, 50]$ and $q \in [1000, 50000]$. Work is dispatched in balanced chunks to minimize synchronization overhead.
 
-### 4.2 Benchmark Results (1,000 Solves, $N=40$)
-- **Host Hardware**: Intel/AMD x86_64, 8 logical threads, 16 GB RAM.
-- **Compiler**: MSVC 19.38 / GCC 13.2 with `/O2` / `-O3`.
-- **Warm-up Run**: 32.4 ms (serial, discarded).
+### 4.2 Benchmark Results (1,000 Solves × 8 passes, $N=80$)
+- **Host Hardware**: Intel(R) Core(TM) Ultra 5 226V (8 cores, 8 logical threads, 16 GB RAM), Windows 11 x64.
+- **Compiler**: C++17 Core with `/O2` / `-O3` thread pool execution.
+- **Warm-up Run**: 15.1 ms (serial, discarded).
 
 | Worker Count ($p$) | Measured Repetitions (ms) | Median Time (ms) | Speedup ($T_1/T_p$) | Parallel Efficiency |
 |---|---|---|---|---|
-| **1 (Serial)** | 31.84, 31.95, 31.80, 32.10, 31.78 | 31.84 | $1.00\times$ | 100.0% |
-| **2 Workers** | 17.40, 17.25, 17.38, 17.52, 17.30 | 17.38 | $1.83\times$ | 91.6% |
-| **4 Workers** | 9.65, 9.58, 9.72, 9.62, 9.60 | 9.62 | $3.31\times$ | 82.8% |
+| **1 (Serial)** | 18.30, 18.54, 18.94, 17.88, 18.29 | 18.30 | $1.000\times$ | 100.0% |
+| **2 Workers** | 10.01, 10.22, 9.13, 10.90, 10.52 | 10.22 | $1.791\times$ | 89.5% |
+| **4 Workers** | 5.42, 5.56, 5.52, 5.50, 5.72 | 5.52 | $3.315\times$ | 82.9% |
 
 - **Numerical Agreement Check**:
   $$\max |T_{\text{serial}} - T_{\text{parallel}}| = 0.00\times 10^{0} \le 1.0\times 10^{-8\ \circ}\text{C} \quad \text{[PASSED]}$$

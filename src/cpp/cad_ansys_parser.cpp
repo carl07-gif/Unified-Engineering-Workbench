@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cctype>
 #include <iomanip>
+#include <unordered_set>
 
 namespace workbench {
 
@@ -142,6 +143,11 @@ STLParseResult CadAnsysParser::parse_ascii_stl_from_string(const std::string& co
         }
 
         if (in_facet && lower.rfind("endfacet", 0) == 0) {
+            if (in_loop) {
+                res.success = false;
+                res.error_message = "Missing 'endloop' before 'endfacet' at line " + std::to_string(line_num);
+                return res;
+            }
             in_facet = false;
             res.bbox.update(current_tri.v1);
             res.bbox.update(current_tri.v2);
@@ -200,6 +206,7 @@ AnsysCSVParseResult CadAnsysParser::parse_ansys_csv_from_string(const std::strin
     size_t line_num = 0;
     bool header_found = false;
     double sum_temp = 0.0;
+    std::unordered_set<int> seen_ids;
 
     while (std::getline(stream, line)) {
         line_num++;
@@ -242,6 +249,12 @@ AnsysCSVParseResult CadAnsysParser::parse_ansys_csv_from_string(const std::strin
             if (!node.is_valid()) {
                 res.success = false;
                 res.error_message = "Non-finite or invalid number at line " + std::to_string(line_num);
+                return res;
+            }
+
+            if (!seen_ids.insert(node.node_id).second) {
+                res.success = false;
+                res.error_message = "Duplicate node_id " + std::to_string(node.node_id) + " detected at line " + std::to_string(line_num);
                 return res;
             }
 

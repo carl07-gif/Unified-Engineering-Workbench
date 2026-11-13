@@ -14,7 +14,7 @@ else()
 endif()
 
 # Core include directories
-include_directories(src/cpp)
+include_directories(src/cpp src/server)
 
 # Core library
 add_library(workbench_core STATIC
@@ -25,22 +25,34 @@ add_library(workbench_core STATIC
     src/cpp/backprop_engine.cpp
 )
 
-# Main CLI & Local Backend Server Executable
+# C++17 Embedded HTTP Server (Transport Layer)
+add_executable(workbench_server
+    src/server/server.cpp
+)
+target_link_libraries(workbench_server PRIVATE workbench_core)
+if(WIN32)
+    target_link_libraries(workbench_server PRIVATE ws2_32)
+endif()
+
+# Main CLI & Internal Verification Executable
 add_executable(workbench_backend
     src/cpp/main.cpp
 )
 target_link_libraries(workbench_backend PRIVATE workbench_core)
 
-# Standalone Test Suite Executable
+# Standalone Test Suite Executable & CTest Registration
+enable_testing()
 add_executable(workbench_tests
     tests/test_main.cpp
 )
 target_link_libraries(workbench_tests PRIVATE workbench_core)
+add_test(NAME CoreUnitAndNumericalTests COMMAND workbench_tests)
 
 # Launcher executable for one-click Windows target
 if(WIN32)
     add_executable(Launch
         src/cpp/launcher_win.cpp
     )
+    target_link_libraries(Launch PRIVATE ws2_32)
 endif()
 

@@ -11,10 +11,19 @@ All automated code assistance and scaffolding were logged with exact versioned m
 | `anthropic/claude-3-5-sonnet-20241022` | Anthropic (API) | Initial FEA & C++ thread pool scaffolding | Unit tests (`tests/test_main.cpp`), GCC/Clang/MSVC builds |
 | `google/gemini-2.5-pro-exp` | Google DeepMind | Technical report synthesis & math verification | KaTeX derivations, finite-difference gradient checks |
 | `openai/gpt-4o` | OpenAI (API) | Cross-validation & edge-case stress prompts | Independent analytical checks, ASCII STL parsing edge cases |
+| `imagen-3.0` | Google DeepMind (API) | Visual synthesis of handwritten notebook sheets | Rendered `handwritten_backprop_page1.png` & `page2.png` |
 
 ---
 
-## 2. Architectural Decisions & AI Recommendation Audits
+## 2. Full Disclosure on Handwritten Proof Assets (`docs/handwritten_backprop_*.png`)
+> [!NOTE]
+> **Asset Provenance & Verification Defense**:
+> All underlying calculus, chain-rule sensitivities ($\frac{\partial J}{\partial c}, \frac{\partial J}{\partial v}, \frac{\partial J}{\partial z}, \frac{\partial J}{\partial w}, \frac{\partial J}{\partial b}$), forward-pass numerical evaluations ($z=0.5, h=0.462117, J=1.182542$), simultaneous updates ($w=0.6209, b=0.1209, v=1.0711, c=0.1538$), and finite-difference proofs ($|\text{error}| \le 3.24 \times 10^{-11}$) were derived analytically and are transcribed line-by-line in `docs/HANDWRITTEN_BACKPROP.md`.
+> The visual sheet images (`docs/handwritten_backprop_page1.png` and `page2.png`) were digitally generated via diffusion image generation prompts representing lined notebook pages. The developer is fully prepared to reproduce the entire derivation live on whiteboard or physical paper during interview verification.
+
+---
+
+## 3. Architectural Decisions & AI Recommendation Audits
 
 ### 2.1 Major Architectural Override: Rejection of Three.js in Favor of Pure Canvas
 > [!IMPORTANT]
