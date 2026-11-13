@@ -2,38 +2,45 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Launch Workbench (Microsoft Edge - Windows 11)",
+            "name": "One-Click Launch Workbench (Launch.exe)",
+            "type": "node-terminal",
+            "request": "launch",
+            "command": "cmd.exe /c Launch.exe",
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "One-Click Launch Workbench (Launch.bat)",
             "type": "node-terminal",
             "request": "launch",
             "command": "cmd.exe /c Launch.bat",
             "cwd": "${workspaceFolder}"
         },
         {
-            "name": "Launch Workbench (Google Chrome)",
-            "type": "node-terminal",
-            "request": "launch",
-            "command": "cmd.exe /c Launch.bat",
-            "cwd": "${workspaceFolder}"
-        },
-        {
-            "name": "Run Unified Engineering Workbench",
-            "type": "node-terminal",
-            "request": "launch",
-            "command": "cmd.exe /c Launch.bat",
-            "cwd": "${workspaceFolder}"
-        },
-        {
-            "name": "Launch C++ Server (Direct)",
+            "name": "Start C++ HTTP Backend Server (Port 7474)",
             "type": "node-terminal",
             "request": "launch",
             "command": "cmd.exe /c workbench_server.exe 7474 .",
             "cwd": "${workspaceFolder}"
         },
         {
-            "name": "Run All C++ Unit Tests",
+            "name": "Run All 49 C++ Unit Tests",
             "type": "node-terminal",
             "request": "launch",
             "command": "cmd.exe /c workbench_tests.exe",
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "Run Multicore Benchmark (1,000 cases)",
+            "type": "node-terminal",
+            "request": "launch",
+            "command": "cmd.exe /c workbench_backend.exe --benchmark 1000 40",
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "Run Extended Multicore Benchmark (10,000 cases)",
+            "type": "node-terminal",
+            "request": "launch",
+            "command": "cmd.exe /c workbench_backend.exe --benchmark 10000 40",
             "cwd": "${workspaceFolder}"
         }
     ]

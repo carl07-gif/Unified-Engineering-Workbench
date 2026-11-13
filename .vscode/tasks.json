@@ -2,31 +2,45 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "CMake: Configure",
+            "label": "One-Click Launch Workbench",
             "type": "shell",
-            "command": "cmake -B build -S .",
-            "group": "build",
-            "problemMatcher": []
-        },
-        {
-            "label": "CMake: Build All",
-            "type": "shell",
-            "command": "cmake --build build --config Release",
+            "command": "cmd.exe /c Launch.bat",
             "group": {
                 "kind": "build",
                 "isDefault": true
             },
-            "dependsOn": ["CMake: Configure"],
-            "problemMatcher": ["$msCompile"]
+            "problemMatcher": []
         },
         {
-            "label": "Run Unit Tests",
+            "label": "Run All 49 C++ Unit Tests",
             "type": "shell",
-            "command": "${workspaceFolder}/build/workbench_tests.exe",
-            "group": "test",
-            "dependsOn": ["CMake: Build All"],
+            "command": "cmd.exe /c workbench_tests.exe",
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Run Multicore Benchmark (1,000 Cases)",
+            "type": "shell",
+            "command": "cmd.exe /c workbench_backend.exe --benchmark 1000 40",
+            "group": "none",
+            "problemMatcher": []
+        },
+        {
+            "label": "Run Extended Benchmark (10,000 Cases)",
+            "type": "shell",
+            "command": "cmd.exe /c workbench_backend.exe --benchmark 10000 40",
+            "group": "none",
+            "problemMatcher": []
+        },
+        {
+            "label": "CMake: Configure & Build All",
+            "type": "shell",
+            "command": "cmake -B build -S . && cmake --build build --config Release",
+            "group": "build",
             "problemMatcher": []
         }
     ]
 }
-
