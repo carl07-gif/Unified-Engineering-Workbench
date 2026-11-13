@@ -19,34 +19,22 @@ const CadCloudView = (() => {
   }
 
   function getTemperatureRGBContinuous(val) {
-    const v = Math.max(0, Math.min(1, val));
-    // High-fidelity smooth Turbo/ANSYS rainbow scientific colormap
-    let r, g, b;
-    if (v < 0.20) {
-      const t = v / 0.20;
-      r = Math.round(30 + 10 * t);
-      g = Math.round(60 + 160 * t);
-      b = Math.round(230 + 25 * t);
-    } else if (v < 0.45) {
-      const t = (v - 0.20) / 0.25;
-      r = Math.round(40 + 30 * t);
-      g = Math.round(220 + 20 * t);
-      b = Math.round(255 * (1 - t * 0.85));
-    } else if (v < 0.70) {
-      const t = (v - 0.45) / 0.25;
-      r = Math.round(70 + 185 * t);
-      g = Math.round(240 - 20 * (1 - t));
-      b = Math.round(38 * (1 - t));
-    } else if (v < 0.88) {
-      const t = (v - 0.70) / 0.18;
-      r = Math.round(255);
-      g = Math.round(220 * (1 - t * 0.55));
-      b = 0;
+    let r = 0, g = 0, b = 0;
+    if (val < 0.2) {
+      const f = val / 0.2;
+      r = 0; g = Math.round(220 * f); b = 255;
+    } else if (val < 0.4) {
+      const f = (val - 0.2) / 0.2;
+      r = 0; g = 220 + Math.round(35 * (1 - f)); b = Math.round(255 * (1 - f));
+    } else if (val < 0.65) {
+      const f = (val - 0.4) / 0.25;
+      r = Math.round(255 * f); g = 255; b = 0;
+    } else if (val < 0.85) {
+      const f = (val - 0.65) / 0.2;
+      r = 255; g = Math.round(255 * (1 - f * 0.6)); b = 0;
     } else {
-      const t = (v - 0.88) / 0.12;
-      r = Math.round(255 - 35 * t);
-      g = Math.round(100 * (1 - t * 0.8));
-      b = Math.round(20 * t);
+      const f = (val - 0.85) / 0.15;
+      r = 255; g = Math.round(102 * (1 - f)); b = Math.round(30 * f);
     }
     return { r, g, b };
   }

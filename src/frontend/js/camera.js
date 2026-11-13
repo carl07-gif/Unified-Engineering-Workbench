@@ -89,13 +89,10 @@ const CadCamera = (() => {
   }
 
   function isNormalFacingCamera(nx, ny, nz) {
-    // Vector from target to camera in world coordinates
-    const cosY = Math.cos(rotY), sinY = Math.sin(rotY);
-    const cosX = Math.cos(rotX), sinX = Math.sin(rotX);
-    const vx = sinY * cosX;
-    const vy = sinX;
-    const vz = -cosY * cosX;
-    return (nx * vx + ny * vy + nz * vz) > 0.001;
+    const x1 = nx * Math.cos(rotY) + nz * Math.sin(rotY);
+    const z1 = -nx * Math.sin(rotY) + nz * Math.cos(rotY);
+    const z2 = ny * Math.sin(rotX) + z1 * Math.cos(rotX);
+    return z2 < -0.01;
   }
 
   function fitToView() {
