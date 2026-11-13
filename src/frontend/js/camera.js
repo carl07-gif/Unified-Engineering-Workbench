@@ -92,7 +92,7 @@ const CadCamera = (() => {
     const x1 = nx * Math.cos(rotY) + nz * Math.sin(rotY);
     const z1 = -nx * Math.sin(rotY) + nz * Math.cos(rotY);
     const z2 = ny * Math.sin(rotX) + z1 * Math.cos(rotX);
-    return z2 < -0.01;
+    return z2 > 0.005;
   }
 
   function fitToView() {
