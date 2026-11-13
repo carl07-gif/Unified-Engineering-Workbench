@@ -518,17 +518,24 @@ html, body {
 .step-min { color: #40c4ff; font-weight: 600; }
 
 .node-tooltip {
-  position: absolute;
-  background: rgba(20, 20, 19, 0.94);
-  color: #fff;
-  border: 0.5px solid var(--color-accent);
-  border-radius: var(--radius-sm);
-  padding: 6px 10px;
+  position: fixed;
+  min-width: 260px;
+  max-width: 310px;
+  background: rgba(10, 12, 20, 0.96);
+  color: #e2e8f0;
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  border-radius: 8px;
+  padding: 9px 12px 8px;
   font-size: 11px;
+  line-height: 1.55;
   pointer-events: none;
-  z-index: 20;
-  box-shadow: var(--shadow-md);
+  z-index: 999;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.65), 0 0 0 1px rgba(56,189,248,0.1);
+  backdrop-filter: blur(6px);
+  transition: opacity 0.08s;
 }
+.node-tooltip[hidden] { display: none; }
+.tooltip-body table td { padding: 1px 0; vertical-align: top; }
 .tooltip-header { font-weight: 600; color: var(--color-accent); margin-bottom: 2px; }
 
 .viewport-controls-hint {

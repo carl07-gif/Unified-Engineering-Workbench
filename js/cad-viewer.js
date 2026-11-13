@@ -1274,112 +1274,191 @@ const CadViewer = (() => {
     const cx = (canvas.width / dpr) / 2;
     const cy = (canvas.height / dpr) / 2;
 
-    // 1. Continuous Rod Tracking
-    // Sample along the rod from x = 0 to x = ROD_L (1.0m)
+    // ── Full-rod continuous tracking ──────────────────────────────────────────
+    // Use 200 samples to cover the entire rod length including both end-caps.
+    // Then fine-refine with 40 sub-steps around the coarse best to get sub-mm precision.
+    const SAMPLES = 200;
     let bestX = null;
     let minRodDist = Infinity;
-    const SAMPLES = 60;
 
     for (let s = 0; s <= SAMPLES; s++) {
       const sx = (s / SAMPLES) * ROD_L;
       const pt = project(sx, 0, 0, cx, cy);
       const d = Math.hypot(pt.x - mx, pt.y - my);
-      if (d < minRodDist) {
-        minRodDist = d;
-        bestX = sx;
-      }
+      if (d < minRodDist) { minRodDist = d; bestX = sx; }
     }
 
-    // Fine-tune search around bestX
-    if (bestX !== null && minRodDist < 120) {
-      let refinedX = bestX;
-      let fineMinDist = minRodDist;
-      for (let step = -10; step <= 10; step++) {
-        const xTry = Math.max(0, Math.min(ROD_L, bestX + step * 0.003));
+    // Fine-tune: ±40 sub-steps of 0.5 mm around coarse best
+    if (bestX !== null && minRodDist < 300) {
+      const stepSize = ROD_L / SAMPLES / 2;          // half the coarse interval
+      for (let step = -40; step <= 40; step++) {
+        const xTry = Math.max(0, Math.min(ROD_L, bestX + step * stepSize));
         const pt = project(xTry, 0, 0, cx, cy);
         const d = Math.hypot(pt.x - mx, pt.y - my);
-        if (d < fineMinDist) {
-          fineMinDist = d;
-          refinedX = xTry;
-        }
+        if (d < minRodDist) { minRodDist = d; bestX = xTry; }
       }
-      bestX = refinedX;
-      minRodDist = fineMinDist;
     }
 
-    // Project test point at bestX to get screen radius
+    // ── Determine screen-space hit radius from actual rod cross-section ───────
+    // Use the LARGER of cylinder-radius and half-width so square rod is fully covered.
+    const halfW = Math.max(ROD_W, ROD_H) / 2;
     const pCenter = bestX !== null ? project(bestX, 0, 0, cx, cy) : null;
-    const screenRadius = pCenter ? Math.max(16, ROD_RADIUS * zoom * pCenter.fov * 1.5) : 24;
-    const hoverThreshold = screenRadius + 24; // comfortably covers the full rod surface
+    const crossSectionPx = pCenter
+      ? Math.max(halfW, ROD_RADIUS) * zoom * pCenter.fov
+      : 24;
+    // Generous threshold: cross-section diameter + 20 px finger padding
+    const hoverThreshold = crossSectionPx * 2.0 + 20;
 
     if (bestX !== null && minRodDist <= hoverThreshold) {
       hoveredX = bestX;
 
-      // Find nearest discrete ANSYS/FEA node if any
-      let nearestNode = null;
-      let minNodeDx = Infinity;
-      ansysNodes.forEach(n => {
-        const dx = Math.abs(n.x - bestX);
-        if (dx < minNodeDx) {
-          minNodeDx = dx;
-          nearestNode = n;
-        }
-      });
-      hoveredNode = (minNodeDx <= 0.04) ? nearestNode : null;
+      // ── Compute actual thermal parameters ────────────────────────────────
+      let L  = currentThermalParams ? currentThermalParams.L  : ROD_L;
+      let k  = currentThermalParams ? currentThermalParams.k  : 10.0;
+      let q  = currentThermalParams ? currentThermalParams.q  : 10000.0;
+      let T0 = currentThermalParams ? currentThermalParams.T0 : 100.0;
+      let TL = currentThermalParams ? currentThermalParams.TL : 20.0;
+      if (!L || L <= 0) { L = ROD_L; }
+      if (!k || k <= 0) { k = 10.0; }
 
-      // Position Tooltip with smart viewport bounds clamping
-      nodeTooltip.hidden = false;
-      const tipX = Math.min(window.innerWidth - 270, Math.max(10, mx + 20));
-      const tipY = Math.min(window.innerHeight - 200, Math.max(10, my - 25));
-      nodeTooltip.style.left = `${tipX}px`;
-      nodeTooltip.style.top  = `${tipY}px`;
+      // dT/dx = (TL-T0)/L + q/(2k) * (L - 2x)
+      const dT_dx = (TL - T0) / L + (q / (2.0 * k)) * (L - 2.0 * bestX);
+      // Fourier flux: q_x = -k * dT/dx
+      const flux = -k * dT_dx;
 
-      // Exact temperature at this continuous station
+      // Cross-section dimensions for coordinates display
+      const halfH_disp = rodShape === "cylinder" ? ROD_RADIUS : ROD_H / 2;
+      const halfW_disp = rodShape === "cylinder" ? ROD_RADIUS : ROD_W / 2;
+
+      // Fraction along rod
+      const fracPct = (bestX / L * 100).toFixed(1);
+
+      // Temperature at this station
       const T = tempAtX(bestX);
       const normT = (T - minTemp) / (maxTemp - minTemp || 1);
       const rgb = getTemperatureRGB(normT);
 
-      // Analytical temperature gradient: dT/dx = -80 + 500*(1 - 2x) = 420 - 1000*x
-      const dT_dx = 420.0 - 1000.0 * bestX;
-      // Fourier conductive heat flux: q_x = -k * dT/dx (with k = 10 W/m-K)
-      const flux = -10.0 * dT_dx;
-
-      let fluxLabel = "";
-      if (Math.abs(flux) < 50) {
-        fluxLabel = "⭐ Stagnation Point (q_x ≈ 0)";
+      // Heat-flux direction label (uses actual flux sign, not hardcoded)
+      let fluxDir = "";
+      if (Math.abs(flux) < 10) {
+        fluxDir = "⭐ Near Stagnation (q_x ≈ 0)";
       } else if (flux < 0) {
-        fluxLabel = "← Leftward (outflow to 100°C)";
+        fluxDir = `← Leftward → T₀ = ${T0.toFixed(0)}°C end`;
       } else {
-        fluxLabel = "→ Rightward (outflow to 20°C)";
+        fluxDir = `→ Rightward → T_L = ${TL.toFixed(0)}°C end`;
       }
 
+      // Thermal peak: dT/dx = 0 → x_peak = (TL-T0)/L / (q/k) + L/2
+      let xPeak = L / 2;
+      if (q !== 0) {
+        xPeak = L / 2 + (k * (T0 - TL)) / (q * L);
+        xPeak = Math.max(0, Math.min(L, xPeak));
+      }
+      const Tpeak = tempAtX(xPeak);
+
+      // Region status
       let regionStatus = "";
-      if (Math.abs(bestX - 0.42) <= 0.035) {
-        regionStatus = "🏆 Thermal Divide Peak (Tmax = 188.2°C, dT/dx = 0)";
-      } else if (bestX <= 0.15) {
-        regionStatus = "🔥 Hot Conduction Influx (Near T₀ = 100°C boundary)";
-      } else if (bestX >= 0.85) {
-        regionStatus = "❄️ Cold Conduction Heat Sink (Toward T_L = 20°C)";
+      if (Math.abs(bestX - xPeak) <= L * 0.04) {
+        regionStatus = `🏆 Thermal Peak — Tmax = ${Tpeak.toFixed(2)}°C, dT/dx ≈ 0`;
+      } else if (bestX <= L * 0.15) {
+        regionStatus = `🔥 Hot Boundary Zone — Near T₀ = ${T0.toFixed(0)}°C`;
+      } else if (bestX >= L * 0.85) {
+        regionStatus = `❄️ Cold Boundary Zone — Near T_L = ${TL.toFixed(0)}°C`;
+      } else if (bestX < xPeak) {
+        regionStatus = `📈 Rising Gradient Region (dT/dx > 0)`;
       } else {
-        regionStatus = "⚡ Steady-State Fourier Internal Conduction";
+        regionStatus = `📉 Falling Gradient Region (dT/dx < 0)`;
       }
 
-      const nodeIdDisplay = nearestNode ? `Node ID: ${nearestNode.id}` : `Station #${Math.round(bestX * 80)}`;
+      // Nearest ANSYS / FEA node
+      let nearestNode = null;
+      let minNodeDx = Infinity;
+      ansysNodes.forEach(n => {
+        const dx = Math.abs(n.x - bestX);
+        if (dx < minNodeDx) { minNodeDx = dx; nearestNode = n; }
+      });
+      hoveredNode = (minNodeDx <= ROD_L / NUM_SEGMENTS) ? nearestNode : null;
+
+      // Node / station label
+      const stationNum = Math.round(bestX / L * NUM_SEGMENTS);
+      const nodeLabel  = nearestNode
+        ? `Node ID: ${nearestNode.id}`
+        : `FEA Station #${stationNum} / ${NUM_SEGMENTS}`;
+
+      // Percentage colour bar fill
+      const pctFill = Math.round(normT * 100);
+      const barColor = `rgb(${rgb.r},${rgb.g},${rgb.b})`;
+
+      // ── Tooltip HTML ─────────────────────────────────────────────────────
+      nodeTooltip.hidden = false;
+      // Smart positioning: flip left if near right edge, flip up if near bottom
+      const TIP_W = 290, TIP_H = 220;
+      let tipX = mx + 18;
+      let tipY = my - 30;
+      if (tipX + TIP_W > window.innerWidth  - 10) tipX = mx - TIP_W - 10;
+      if (tipY + TIP_H > window.innerHeight - 10) tipY = my - TIP_H - 10;
+      tipX = Math.max(6, tipX);
+      tipY = Math.max(6, tipY);
+      nodeTooltip.style.left  = `${tipX}px`;
+      nodeTooltip.style.top   = `${tipY}px`;
+      nodeTooltip.style.width = `${TIP_W}px`;
 
       nodeTooltipBody.innerHTML = `
-        <div style="font-weight:700; color:#38bdf8; font-size:11.5px; margin-bottom:5px; border-bottom:1px solid rgba(255,255,255,0.15); padding-bottom:3px; display:flex; justify-content:space-between; align-items:center;">
-          <span>Node / Surface Inspection</span>
-          <span style="font-size:10.5px; color:#94a3b8; font-weight:600;">x = ${bestX.toFixed(3)} m (${(bestX / ROD_L * 100).toFixed(1)}%)</span>
+        <div style="font-weight:700;color:#38bdf8;font-size:11.5px;margin-bottom:5px;
+                    border-bottom:1px solid rgba(255,255,255,0.15);padding-bottom:4px;
+                    display:flex;justify-content:space-between;align-items:center;">
+          <span>🔬 Node / Surface Inspection</span>
+          <span style="font-size:10px;color:#94a3b8;">${fracPct}% along rod</span>
         </div>
-        <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">
-          <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:rgb(${rgb.r},${rgb.g},${rgb.b}); box-shadow:0 0 6px rgb(${rgb.r},${rgb.g},${rgb.b});"></span>
-          <strong style="color:#ffffff; font-size:12px;">${nodeIdDisplay}</strong>
+
+        <!-- colour swatch + label -->
+        <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px;">
+          <span style="display:inline-block;width:12px;height:12px;border-radius:50%;
+                       background:${barColor};box-shadow:0 0 7px ${barColor};flex-shrink:0;"></span>
+          <strong style="color:#fff;font-size:12px;">${nodeLabel}</strong>
         </div>
-        <div><strong>Coordinates:</strong> (${bestX.toFixed(3)}, ${(rodShape === "cylinder" ? ROD_RADIUS : ROD_H / 2).toFixed(3)}, 0.000) m</div>
-        <div style="margin:2px 0;"><strong>Temperature:</strong> <span style="color:#ff8a65; font-size:14px; font-weight:700;">${T.toFixed(2)} °C</span></div>
-        <div style="margin:2px 0;"><strong>Heat Flux:</strong> <span style="font-family:var(--font-mono); font-weight:700; color:#a7f3d0;">${Math.abs(flux).toFixed(1)} W/m²</span> <span style="font-size:10.5px; color:#cbd5e1;">(${fluxLabel})</span></div>
-        <div><strong>Gradient (dT/dx):</strong> <span style="font-family:var(--font-mono);">${dT_dx >= 0 ? "+" : ""}${dT_dx.toFixed(1)} °C/m</span></div>
-        <div style="font-size:10px; color:rgba(255,255,255,0.7); margin-top:4px; padding-top:3px; border-top:1px solid rgba(255,255,255,0.1);">
+
+        <!-- mini temperature bar -->
+        <div style="background:rgba(255,255,255,0.08);border-radius:4px;height:6px;margin-bottom:6px;overflow:hidden;">
+          <div style="width:${pctFill}%;height:100%;background:linear-gradient(90deg,#3b82f6,#22c55e,#eab308,#f97316,#ef4444);transition:width 0.1s;"></div>
+        </div>
+
+        <!-- data rows -->
+        <table style="width:100%;border-collapse:collapse;font-size:11px;line-height:1.65;">
+          <tr>
+            <td style="color:#94a3b8;white-space:nowrap;padding-right:8px;">Position</td>
+            <td style="font-family:var(--font-mono);color:#e2e8f0;">x = ${bestX.toFixed(4)} m</td>
+          </tr>
+          <tr>
+            <td style="color:#94a3b8;white-space:nowrap;padding-right:8px;">Coordinates</td>
+            <td style="font-family:var(--font-mono);color:#e2e8f0;">(${bestX.toFixed(3)}, ±${halfH_disp.toFixed(3)}, ±${halfW_disp.toFixed(3)}) m</td>
+          </tr>
+          <tr>
+            <td style="color:#94a3b8;white-space:nowrap;padding-right:8px;">Temperature</td>
+            <td><span style="color:#ff8a65;font-size:14px;font-weight:700;">${T.toFixed(2)} °C</span>
+                <span style="color:#94a3b8;font-size:10px;"> / max ${Tpeak.toFixed(1)}°C</span></td>
+          </tr>
+          <tr>
+            <td style="color:#94a3b8;white-space:nowrap;padding-right:8px;">Heat Flux</td>
+            <td style="font-family:var(--font-mono);color:#a7f3d0;font-weight:700;">${Math.abs(flux).toFixed(1)} W/m²
+                <span style="color:#cbd5e1;font-weight:400;font-size:10px;"> ${fluxDir}</span></td>
+          </tr>
+          <tr>
+            <td style="color:#94a3b8;white-space:nowrap;padding-right:8px;">Gradient dT/dx</td>
+            <td style="font-family:var(--font-mono);color:#fde68a;">${dT_dx >= 0 ? "+" : ""}${dT_dx.toFixed(2)} °C/m</td>
+          </tr>
+          <tr>
+            <td style="color:#94a3b8;white-space:nowrap;padding-right:8px;">k · A</td>
+            <td style="font-family:var(--font-mono);color:#c4b5fd;">${k.toFixed(1)} W/m·K × ${(halfH_disp * halfW_disp * (rodShape==="cylinder"?Math.PI:4)).toFixed(5)} m²</td>
+          </tr>
+          <tr>
+            <td style="color:#94a3b8;white-space:nowrap;padding-right:8px;">Source q″</td>
+            <td style="font-family:var(--font-mono);color:#fdba74;">${q.toFixed(0)} W/m³</td>
+          </tr>
+        </table>
+
+        <div style="font-size:10px;color:rgba(255,255,255,0.65);margin-top:5px;
+                    padding-top:4px;border-top:1px solid rgba(255,255,255,0.1);">
           ${regionStatus}
         </div>
       `;
