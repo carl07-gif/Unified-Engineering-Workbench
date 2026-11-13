@@ -358,12 +358,17 @@ std::string CadAnsysParser::to_json(const AnsysCSVParseResult& res) {
         ss << "\"error\":\"" << res.error_message << "\",";
         ss << "\"error_message\":\"" << res.error_message << "\"";
     } else {
+        int min_id = 0, max_id = 0;
+        for (const auto& n : res.nodes) {
+            if (n.temperature_C <= res.min_temp_C) min_id = n.node_id;
+            if (n.temperature_C >= res.max_temp_C) max_id = n.node_id;
+        }
         ss << "\"node_count\":" << res.node_count << ",";
         ss << "\"min_temp\":" << res.min_temp_C << ",";
         ss << "\"max_temp\":" << res.max_temp_C << ",";
         ss << "\"mean_temp\":" << res.mean_temp_C << ",";
-        ss << "\"min_temp_node_id\":" << res.min_temp_node_id << ",";
-        ss << "\"max_temp_node_id\":" << res.max_temp_node_id << ",";
+        ss << "\"min_temp_node_id\":" << min_id << ",";
+        ss << "\"max_temp_node_id\":" << max_id << ",";
         ss << "\"bbox\":{\"min\":[" << res.bbox.min.x << "," << res.bbox.min.y << "," << res.bbox.min.z << "],";
         ss << "\"max\":[" << res.bbox.max.x << "," << res.bbox.max.y << "," << res.bbox.max.z << "],";
         ss << "\"center\":[" << res.bbox.center().x << "," << res.bbox.center().y << "," << res.bbox.center().z << "]},";
