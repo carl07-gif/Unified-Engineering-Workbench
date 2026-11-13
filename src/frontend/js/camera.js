@@ -6,9 +6,9 @@
 "use strict";
 
 const CadCamera = (() => {
-  let rotX = 0.40;    // Pitch
-  let rotY = -0.58;   // Yaw
-  let zoom = 330;     // Scale
+  let rotX = 0.42;    // Pitch
+  let rotY = -0.62;   // Yaw
+  let zoom = 380;     // Scale
   let panX = 0;
   let panY = 15;
 
@@ -89,16 +89,18 @@ const CadCamera = (() => {
   }
 
   function isNormalFacingCamera(nx, ny, nz) {
-    const x1 = nx * Math.cos(rotY) + nz * Math.sin(rotY);
-    const z1 = -nx * Math.sin(rotY) + nz * Math.cos(rotY);
-    const z2 = ny * Math.sin(rotX) + z1 * Math.cos(rotX);
-    return z2 < -0.01;
+    const cosY = Math.cos(rotY), sinY = Math.sin(rotY);
+    const cosX = Math.cos(rotX), sinX = Math.sin(rotX);
+    const vx = sinY * cosX;
+    const vy = sinX;
+    const vz = -cosY * cosX;
+    return (nx * vx + ny * vy + nz * vz) > 0.001;
   }
 
   function fitToView() {
-    rotX = 0.40;
-    rotY = -0.58;
-    zoom = 330;
+    rotX = 0.42;
+    rotY = -0.62;
+    zoom = 380;
     panX = 0;
     panY = 15;
   }

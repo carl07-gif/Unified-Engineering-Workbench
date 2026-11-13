@@ -23,9 +23,9 @@ const CadViewer = (() => {
   let minTempNode = null;
 
   let ROD_L = 1.0;
-  let ROD_W = 0.05;
-  let ROD_H = 0.05;
-  const ROD_RADIUS = 0.028;
+  let ROD_W = 0.08;
+  let ROD_H = 0.08;
+  const ROD_RADIUS = 0.045;
   let NUM_SEGMENTS = 40;
   let currentThermalParams = null;
 
@@ -183,26 +183,55 @@ const CadViewer = (() => {
     const halfH = ROD_H / 2;
     const dx = ROD_L / NUM_SEGMENTS;
 
-    function getShade(n) {
-      const dot = Math.max(0, n.x * lightDir.x + n.y * lightDir.y + n.z * lightDir.z);
-      return 0.35 + 0.65 * dot;
+    function getShade(nx, ny, nz) {
+      const dot = Math.max(0, nx * lightDir.x + ny * lightDir.y + nz * lightDir.z);
+      return 0.38 + 0.62 * dot;
     }
+
+    const faces = [
+      { name: "top",    nx: 0,  ny: 1,  nz: 0,  shade: getShade(0, 1, 0) },
+      { name: "bottom", nx: 0,  ny: -1, nz: 0,  shade: getShade(0, -1, 0) },
+      { name: "front",  nx: 0,  ny: 0,  nz: 1,  shade: getShade(0, 0, 1) },
+      { name: "back",   nx: 0,  ny: 0,  nz: -1, shade: getShade(0, 0, -1) }
+    ];
 
     for (let s = 0; s < NUM_SEGMENTS; s++) {
       const xA = s * dx;
       const xB = (s + 1) * dx;
-      const midX = (xA + xB) / 2;
-      const normT = (CadCloudView.evalTemp(midX, currentThermalParams, ansysNodes) - minTemp) / (maxTemp - minTemp || 1);
-      const rgb = CadCloudView.getTemperatureRGB(normT);
+      const normTA = (CadCloudView.evalTemp(xA, currentThermalParams, ansysNodes) - minTemp) / (maxTemp - minTemp || 1);
+      const normTB = (CadCloudView.evalTemp(xB, currentThermalParams, ansysNodes) - minTemp) / (maxTemp - minTemp || 1);
+      const rgbA = CadCloudView.getTemperatureRGB(normTA);
+      const rgbB = CadCloudView.getTemperatureRGB(normTB);
 
-      // Top face (y = +halfH)
-      if (CadCamera.isNormalFacingCamera(0, 1, 0)) {
-        const p1 = CadCamera.project(xA, halfH, halfW, cx, cy);
-        const p2 = CadCamera.project(xB, halfH, halfW, cx, cy);
-        const p3 = CadCamera.project(xB, halfH, -halfW, cx, cy);
-        const p4 = CadCamera.project(xA, halfH, -halfW, cx, cy);
+      faces.forEach(f => {
+        if (!CadCamera.isNormalFacingCamera(f.nx, f.ny, f.nz)) return;
+
+        let p1, p2, p3, p4;
+        if (f.name === "top") {
+          p1 = CadCamera.project(xA, halfH, halfW, cx, cy);
+          p2 = CadCamera.project(xB, halfH, halfW, cx, cy);
+          p3 = CadCamera.project(xB, halfH, -halfW, cx, cy);
+          p4 = CadCamera.project(xA, halfH, -halfW, cx, cy);
+        } else if (f.name === "bottom") {
+          p1 = CadCamera.project(xA, -halfH, -halfW, cx, cy);
+          p2 = CadCamera.project(xB, -halfH, -halfW, cx, cy);
+          p3 = CadCamera.project(xB, -halfH, halfW, cx, cy);
+          p4 = CadCamera.project(xA, -halfH, halfW, cx, cy);
+        } else if (f.name === "front") {
+          p1 = CadCamera.project(xA, -halfH, halfW, cx, cy);
+          p2 = CadCamera.project(xB, -halfH, halfW, cx, cy);
+          p3 = CadCamera.project(xB, halfH, halfW, cx, cy);
+          p4 = CadCamera.project(xA, halfH, halfW, cx, cy);
+        } else {
+          p1 = CadCamera.project(xA, halfH, -halfW, cx, cy);
+          p2 = CadCamera.project(xB, halfH, -halfW, cx, cy);
+          p3 = CadCamera.project(xB, -halfH, -halfW, cx, cy);
+          p4 = CadCamera.project(xA, -halfH, -halfW, cx, cy);
+        }
+
         const depth = (p1.depth + p2.depth + p3.depth + p4.depth) / 4;
-        const color = CadCloudView.getLitColorString(rgb, getShade({ x: 0, y: 1, z: 0 }));
+        const colA = CadCloudView.getLitColorString(rgbA, f.shade);
+        const colB = CadCloudView.getLitColorString(rgbB, f.shade);
 
         drawables.push({
           type: "face",
@@ -214,59 +243,93 @@ const CadViewer = (() => {
             ctx.lineTo(p3.x, p3.y);
             ctx.lineTo(p4.x, p4.y);
             ctx.closePath();
-            ctx.fillStyle = color;
+
+            const grad = ctx.createLinearGradient(p1.x, p1.y, p2.x, p2.y);
+            grad.addColorStop(0, colA);
+            grad.addColorStop(1, colB);
+            ctx.fillStyle = grad;
             ctx.fill();
+
             if (showWireframe) {
-              ctx.strokeStyle = "rgba(0, 0, 0, 0.15)";
+              ctx.strokeStyle = "rgba(0, 0, 0, 0.20)";
               ctx.lineWidth = 0.5;
               ctx.stroke();
             }
           }
         });
-      }
+      });
+    }
 
-      // Front face (z = +halfW)
-      if (CadCamera.isNormalFacingCamera(0, 0, 1)) {
-        const p1 = CadCamera.project(xA, -halfH, halfW, cx, cy);
-        const p2 = CadCamera.project(xB, -halfH, halfW, cx, cy);
-        const p3 = CadCamera.project(xB, halfH, halfW, cx, cy);
-        const p4 = CadCamera.project(xA, halfH, halfW, cx, cy);
-        const depth = (p1.depth + p2.depth + p3.depth + p4.depth) / 4;
-        const color = CadCloudView.getLitColorString(rgb, getShade({ x: 0, y: 0, z: 1 }));
+    // Left End Cap (x = 0, T = T0 = 100°C)
+    if (CadCamera.isNormalFacingCamera(-1, 0, 0)) {
+      const p1 = CadCamera.project(0, -halfH, -halfW, cx, cy);
+      const p2 = CadCamera.project(0, -halfH, halfW, cx, cy);
+      const p3 = CadCamera.project(0, halfH, halfW, cx, cy);
+      const p4 = CadCamera.project(0, halfH, -halfW, cx, cy);
+      const depth = (p1.depth + p2.depth + p3.depth + p4.depth) / 4;
+      const normT0 = (CadCloudView.evalTemp(0, currentThermalParams, ansysNodes) - minTemp) / (maxTemp - minTemp || 1);
+      const col0 = CadCloudView.getLitColorString(CadCloudView.getTemperatureRGB(normT0), getShade(-1, 0, 0));
 
-        drawables.push({
-          type: "face",
-          depth,
-          draw: (ctx) => {
-            ctx.beginPath();
-            ctx.moveTo(p1.x, p1.y);
-            ctx.lineTo(p2.x, p2.y);
-            ctx.lineTo(p3.x, p3.y);
-            ctx.lineTo(p4.x, p4.y);
-            ctx.closePath();
-            ctx.fillStyle = color;
-            ctx.fill();
-            if (showWireframe) {
-              ctx.strokeStyle = "rgba(0, 0, 0, 0.15)";
-              ctx.lineWidth = 0.5;
-              ctx.stroke();
-            }
-          }
-        });
-      }
+      drawables.push({
+        type: "cap",
+        depth,
+        draw: (ctx) => {
+          ctx.beginPath();
+          ctx.moveTo(p1.x, p1.y);
+          ctx.lineTo(p2.x, p2.y);
+          ctx.lineTo(p3.x, p3.y);
+          ctx.lineTo(p4.x, p4.y);
+          ctx.closePath();
+          ctx.fillStyle = col0;
+          ctx.fill();
+          ctx.strokeStyle = "rgba(0, 0, 0, 0.35)";
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
+      });
+    }
+
+    // Right End Cap (x = ROD_L, T = TL = 20°C)
+    if (CadCamera.isNormalFacingCamera(1, 0, 0)) {
+      const p1 = CadCamera.project(ROD_L, -halfH, halfW, cx, cy);
+      const p2 = CadCamera.project(ROD_L, -halfH, -halfW, cx, cy);
+      const p3 = CadCamera.project(ROD_L, halfH, -halfW, cx, cy);
+      const p4 = CadCamera.project(ROD_L, halfH, halfW, cx, cy);
+      const depth = (p1.depth + p2.depth + p3.depth + p4.depth) / 4;
+      const normTL = (CadCloudView.evalTemp(ROD_L, currentThermalParams, ansysNodes) - minTemp) / (maxTemp - minTemp || 1);
+      const colL = CadCloudView.getLitColorString(CadCloudView.getTemperatureRGB(normTL), getShade(1, 0, 0));
+
+      drawables.push({
+        type: "cap",
+        depth,
+        draw: (ctx) => {
+          ctx.beginPath();
+          ctx.moveTo(p1.x, p1.y);
+          ctx.lineTo(p2.x, p2.y);
+          ctx.lineTo(p3.x, p3.y);
+          ctx.lineTo(p4.x, p4.y);
+          ctx.closePath();
+          ctx.fillStyle = colL;
+          ctx.fill();
+          ctx.strokeStyle = "rgba(0, 0, 0, 0.35)";
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
+      });
     }
   }
 
   function generateSolidCylinder(cx, cy, lightDir, drawables) {
     const dx = ROD_L / NUM_SEGMENTS;
-    const slices = 24;
+    const slices = 32;
 
     for (let s = 0; s < NUM_SEGMENTS; s++) {
       const xA = s * dx;
       const xB = (s + 1) * dx;
-      const midX = (xA + xB) / 2;
-      const normT = (CadCloudView.evalTemp(midX, currentThermalParams, ansysNodes) - minTemp) / (maxTemp - minTemp || 1);
-      const rgb = CadCloudView.getTemperatureRGB(normT);
+      const normTA = (CadCloudView.evalTemp(xA, currentThermalParams, ansysNodes) - minTemp) / (maxTemp - minTemp || 1);
+      const normTB = (CadCloudView.evalTemp(xB, currentThermalParams, ansysNodes) - minTemp) / (maxTemp - minTemp || 1);
+      const rgbA = CadCloudView.getTemperatureRGB(normTA);
+      const rgbB = CadCloudView.getTemperatureRGB(normTB);
 
       for (let sl = 0; sl < slices; sl++) {
         const th1 = (sl / slices) * Math.PI * 2;
@@ -283,7 +346,11 @@ const CadViewer = (() => {
 
         const depth = (p1.depth + p2.depth + p3.depth + p4.depth) / 4;
         const dot = Math.max(0, ny * lightDir.y + nz * lightDir.z);
-        const color = CadCloudView.getLitColorString(rgb, 0.35 + 0.65 * dot);
+        const diffuse = 0.38 + 0.62 * dot;
+        const spec = Math.pow(Math.max(0, ny * 0.92 + nz * 0.38), 12) * 0.35;
+
+        const colA = CadCloudView.getLitColorString(rgbA, diffuse + spec);
+        const colB = CadCloudView.getLitColorString(rgbB, diffuse + spec);
 
         drawables.push({
           type: "cyl_face",
@@ -295,28 +362,102 @@ const CadViewer = (() => {
             ctx.lineTo(p3.x, p3.y);
             ctx.lineTo(p4.x, p4.y);
             ctx.closePath();
-            ctx.fillStyle = color;
+
+            const grad = ctx.createLinearGradient(p1.x, p1.y, p2.x, p2.y);
+            grad.addColorStop(0, colA);
+            grad.addColorStop(1, colB);
+            ctx.fillStyle = grad;
             ctx.fill();
+
+            if (showWireframe && sl % 4 === 0) {
+              ctx.strokeStyle = "rgba(0, 0, 0, 0.15)";
+              ctx.lineWidth = 0.5;
+              ctx.stroke();
+            }
           }
         });
       }
     }
+
+    // Solid Left Cap Disk (x = 0, T = T0 = 100°C)
+    if (CadCamera.isNormalFacingCamera(-1, 0, 0)) {
+      const pCenter = CadCamera.project(0, 0, 0, cx, cy);
+      const capPoints = [];
+      for (let sl = 0; sl < slices; sl++) {
+        const th = (sl / slices) * Math.PI * 2;
+        capPoints.push(CadCamera.project(0, ROD_RADIUS * Math.cos(th), ROD_RADIUS * Math.sin(th), cx, cy));
+      }
+      const normT0 = (CadCloudView.evalTemp(0, currentThermalParams, ansysNodes) - minTemp) / (maxTemp - minTemp || 1);
+      const dot0 = Math.max(0, -1 * lightDir.x);
+      const col0 = CadCloudView.getLitColorString(CadCloudView.getTemperatureRGB(normT0), 0.38 + 0.62 * dot0);
+
+      drawables.push({
+        type: "cyl_cap",
+        depth: pCenter.depth,
+        draw: (ctx) => {
+          ctx.beginPath();
+          ctx.moveTo(capPoints[0].x, capPoints[0].y);
+          for (let i = 1; i < capPoints.length; i++) {
+            ctx.lineTo(capPoints[i].x, capPoints[i].y);
+          }
+          ctx.closePath();
+          ctx.fillStyle = col0;
+          ctx.fill();
+          ctx.strokeStyle = "rgba(0, 0, 0, 0.35)";
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
+      });
+    }
+
+    // Solid Right Cap Disk (x = ROD_L, T = TL = 20°C)
+    if (CadCamera.isNormalFacingCamera(1, 0, 0)) {
+      const pCenter = CadCamera.project(ROD_L, 0, 0, cx, cy);
+      const capPoints = [];
+      for (let sl = 0; sl < slices; sl++) {
+        const th = (sl / slices) * Math.PI * 2;
+        capPoints.push(CadCamera.project(ROD_L, ROD_RADIUS * Math.cos(th), ROD_RADIUS * Math.sin(th), cx, cy));
+      }
+      const normTL = (CadCloudView.evalTemp(ROD_L, currentThermalParams, ansysNodes) - minTemp) / (maxTemp - minTemp || 1);
+      const dotL = Math.max(0, 1 * lightDir.x);
+      const colL = CadCloudView.getLitColorString(CadCloudView.getTemperatureRGB(normTL), 0.38 + 0.62 * dotL);
+
+      drawables.push({
+        type: "cyl_cap",
+        depth: pCenter.depth,
+        draw: (ctx) => {
+          ctx.beginPath();
+          ctx.moveTo(capPoints[0].x, capPoints[0].y);
+          for (let i = 1; i < capPoints.length; i++) {
+            ctx.lineTo(capPoints[i].x, capPoints[i].y);
+          }
+          ctx.closePath();
+          ctx.fillStyle = colL;
+          ctx.fill();
+          ctx.strokeStyle = "rgba(0, 0, 0, 0.35)";
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
+      });
+    }
   }
 
   function drawSquareRodEdges(cx, cy) {
+    if (!showEdges) return;
     const halfW = ROD_W / 2;
     const halfH = ROD_H / 2;
     ctx.save();
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.35)";
-    ctx.lineWidth = 1.2;
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.40)";
+    ctx.lineWidth = 1.0;
 
     const corners = [
       { y: halfH, z: halfW },
       { y: halfH, z: -halfW },
-      { y: -halfH, z: halfW },
-      { y: -halfH, z: -halfW }
+      { y: -halfH, z: -halfW },
+      { y: -halfH, z: halfW }
     ];
 
+    // 4 Longitudinal edges
     corners.forEach(c => {
       const p1 = CadCamera.project(0, c.y, c.z, cx, cy);
       const p2 = CadCamera.project(ROD_L, c.y, c.z, cx, cy);
@@ -325,6 +466,20 @@ const CadViewer = (() => {
       ctx.lineTo(p2.x, p2.y);
       ctx.stroke();
     });
+
+    // End cap perimeter edges
+    [0, ROD_L].forEach(x => {
+      ctx.beginPath();
+      const pStart = CadCamera.project(x, corners[0].y, corners[0].z, cx, cy);
+      ctx.moveTo(pStart.x, pStart.y);
+      for (let i = 1; i < corners.length; i++) {
+        const p = CadCamera.project(x, corners[i].y, corners[i].z, cx, cy);
+        ctx.lineTo(p.x, p.y);
+      }
+      ctx.closePath();
+      ctx.stroke();
+    });
+
     ctx.restore();
   }
 
@@ -409,19 +564,63 @@ const CadViewer = (() => {
 
   function drawThermalProbes(cx, cy, viewW, viewH) {
     const xPeak = 0.42;
-    const pMax = CadCamera.project(xPeak, ROD_H / 2, 0, cx, cy);
+    const yPeak = rodShape === "cylinder" ? ROD_RADIUS : ROD_H / 2;
+    const pMax = CadCamera.project(xPeak, yPeak, 0, cx, cy);
     const pMin = CadCamera.project(ROD_L, 0, 0, cx, cy);
 
     ctx.save();
-    ctx.font = "bold 11px sans-serif";
 
-    // Max probe
-    ctx.fillStyle = "#ef4444";
-    ctx.fillText(`▲ MAX: ${maxTemp.toFixed(1)}°C`, pMax.x - 35, pMax.y - 25);
+    function drawPillBadge(px, py, label, value, subtext, color, alignLeft, offsetY) {
+      ctx.font = "bold 11px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+      const fullText = `${label} ${value}`;
+      const textW = ctx.measureText(fullText).width;
+      const badgeW = textW + 28;
+      const badgeH = 22;
+      const bx = alignLeft ? px + 18 : px - badgeW - 18;
+      const by = py + offsetY;
 
-    // Min probe
-    ctx.fillStyle = "#3b82f6";
-    ctx.fillText(`▼ MIN: ${minTemp.toFixed(1)}°C`, pMin.x + 10, pMin.y + 15);
+      // Pointer line
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(px, py);
+      const elbowX = alignLeft ? px + 10 : px - 10;
+      ctx.lineTo(elbowX, by + badgeH / 2);
+      ctx.lineTo(alignLeft ? bx : bx + badgeW, by + badgeH / 2);
+      ctx.stroke();
+
+      // Pin circle on surface
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(px, py, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+
+      // Badge background pill
+      ctx.fillStyle = "rgba(15, 23, 42, 0.90)";
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.roundRect(bx, by, badgeW, badgeH, 6);
+      ctx.fill();
+      ctx.stroke();
+
+      // Badge dot indicator
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(bx + 10, by + badgeH / 2, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Badge text
+      ctx.fillStyle = "#f8fafc";
+      ctx.fillText(fullText, bx + 19, by + 15);
+    }
+
+    drawPillBadge(pMax.x, pMax.y, "MAX:", `${maxTemp.toFixed(1)}°C`, "x=0.42m", "#ef4444", false, -36);
+    drawPillBadge(pMin.x, pMin.y, "MIN:", `${minTemp.toFixed(1)}°C`, "x=1.0m", "#38bdf8", true, 14);
+
     ctx.restore();
   }
 
