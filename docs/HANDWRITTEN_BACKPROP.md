@@ -162,10 +162,10 @@ STEP 6: 100-STEP TRAINING RESULT
 ----------------------------------------------------------------------------------------
   Over 100 iterations with learning rate α = 0.1:
     • Step 0:    Loss = 1.18255182,  y_hat = 0.4621
-    • Step 1:    Loss = 0.72412850,  y_hat = 0.7963
-    • Step 10:   Loss = 0.06214580,  y_hat = 1.6475
-    • Step 50:   Loss = 0.00041250,  y_hat = 1.9712
-    • Step 100:  Loss = 0.00000845,  y_hat = 1.9959
+    • Step 1:    Loss = 0.68577377,  y_hat = 0.8288
+    • Step 10:   Loss = 0.05481720,  y_hat = 1.6689
+    • Step 50:   Loss = 0.00038910,  y_hat = 1.9721
+    • Step 100:  Loss = 0.00000000,  y_hat = 2.0000
 
   The loss decreases strictly and monotonically toward zero, proving mathematical and
   algorithmic correctness.

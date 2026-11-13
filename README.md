@@ -36,7 +36,7 @@ Double-click **`Launch.exe`** (or `Launch.bat`) in the root directory.
 │   ├── app.js                  # Main UI controller & lifecycle coordinator
 │   ├── fem-solver.js           # 1D thermal FEA numerical solver
 │   ├── chart.js                # Canvas high-DPI temperature & error plotter
-│   ├── cad-parsers.js          # Modular ASCII STL & ANSYS CSV parsers (50MB tested)
+│   ├── cad-parsers.js          # Modular ASCII STL & ANSYS CSV parsers (strict format validation)
 │   ├── cad-viewer.js           # Zero-dependency custom HTML5 Canvas 3D CAD/FEA viewer
 │   ├── multicore-view.js       # Multithreaded benchmark dashboard (with Cancel control)
 │   ├── embedded-view.js        # Deterministic embedded telemetry & fault recovery
@@ -57,7 +57,7 @@ Double-click **`Launch.exe`** (or `Launch.bat`) in the root directory.
 │   ├── invalid_ansys.csv       # Negative test CSV
 │   └── DATA_PROVENANCE.md      # Schemas, units, origins, and limits
 ├── tests/
-│   └── test_main.cpp           # Complete C++ unit test suite (27+ tests + 50MB stress)
+│   └── test_main.cpp           # Complete C++ unit test suite (27+ positive, negative, and numerical tests)
 ├── results/
 │   ├── mesh_convergence_plot.png       # High-res O(h²) error convergence plot
 │   ├── temperature_profile_N80.png     # High-res T(x) FEA vs analytical profile plot
@@ -85,26 +85,23 @@ Double-click **`Launch.exe`** (or `Launch.bat`) in the root directory.
 
 ---
 
-### Cold-Start Launch Benchmark
-- **Launch-to-Ready Time**: **142 ms** (instantaneous cold boot on Windows 11).
-- **Network Requests**: **0 bytes (100% offline self-contained)**. All icons, shaders, fonts, and assets are local.
+### Cold-Start Launch & Runtime Characteristics
+- **Offline Delivery**: **100% offline self-contained**. All icons, shaders, fonts, and assets are local with zero external CDN dependencies.
 - **Cancel Controls**: Explicit user cancel controls are provided for long-running FEA solves (`#btnCancelSolve`) and multicore batch benchmarks (`#btnCancelBenchmark`).
 
 ---
 
-## 3. Supported Formats & File Limits
+## 3. Supported Formats & File Specifications
 
 1. **ASCII STL (`.stl`)**:
    - Format: Standard 3D triangulated ASCII mesh (`solid ... facet normal ... vertex ... endsolid`).
    - Units: Meters ($\text{m}$).
-   - Tested Size Limit: **50 MB** (~250,000 triangles).
-   - Validation: Rejects binary STLs, non-finite coordinates ($\text{NaN}, \pm\infty$), and malformed loops.
+   - Validation: Rejects binary STLs, non-finite coordinates ($\text{NaN}, \pm\infty$), non-positive nodes, and malformed loops.
 
 2. **ANSYS Nodal Temperature CSV (`.csv`)**:
    - Schema: `node_id,x_m,y_m,z_m,temperature_C`.
    - Units: Coordinates in meters ($\text{m}$), temperature in degrees Celsius ($^\circ\text{C}$).
-   - Tested Size Limit: **50 MB** (~500,000 nodes).
-   - Validation: Strict header check, non-empty validation, finite number check.
+   - Validation: Strict header check, non-empty validation, finite number check, positive node IDs.
 
 ---
 

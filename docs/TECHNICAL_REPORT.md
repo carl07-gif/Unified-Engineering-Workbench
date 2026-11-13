@@ -37,7 +37,7 @@ The application strictly enforces **separation of concerns**: all heavy numerica
 
 ## 2. Task B: Existing CAD / ANSYS Data Visualization
 ### 2.1 File Parser Implementation
-- **ASCII STL Geometry**: Implemented in `CadAnsysParser::parse_ascii_stl_from_string`. Validates the `solid <name>` token, extracts facet outward normals, and parses three 3D vertex coordinates per facet. It strictly validates that all coordinates are finite ($\neg\text{NaN}, \neg\text{Inf}$), computes the 3D axis-aligned bounding box (AABB), and enforces a 50 MB tested file size limit.
+- **ASCII STL Geometry**: Implemented in `CadAnsysParser::parse_ascii_stl_from_string`. Validates the `solid <name>` token, extracts facet outward normals, and parses three 3D vertex coordinates per facet. It strictly validates that all coordinates are finite ($\neg\text{NaN}, \neg\text{Inf}$), computes the 3D axis-aligned bounding box (AABB), and enforces standard memory bounds.
 - **ANSYS Nodal Temperature CSV**: Expects `node_id,x_m,y_m,z_m,temperature_C`. Rejects non-finite values, malformed lines, or empty rows. Computes min, max, and mean temperatures for colormap normalization.
 
 ### 2.2 Interactive 3D Visualization

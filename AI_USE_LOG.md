@@ -10,7 +10,7 @@ All automated code assistance and scaffolding were logged with exact versioned m
 |---|---|---|---|
 | `anthropic/claude-3-5-sonnet-20241022` | Anthropic (API) | Initial FEA & C++ thread pool scaffolding | Unit tests (`tests/test_main.cpp`), GCC/Clang/MSVC builds |
 | `google/gemini-2.5-pro-exp` | Google DeepMind | Technical report synthesis & math verification | KaTeX derivations, finite-difference gradient checks |
-| `openai/gpt-4o` | OpenAI (API) | Cross-validation & edge-case stress prompts | Independent analytical checks, 50MB STL stress testing |
+| `openai/gpt-4o` | OpenAI (API) | Cross-validation & edge-case stress prompts | Independent analytical checks, ASCII STL parsing edge cases |
 
 ---
 
@@ -108,7 +108,7 @@ To independently verify mathematical rigor against automatic differentiation hal
 - **Original Code & Engineering Design**:
   - Full C++17 core numerical solver, Thomas tridiagonal algorithm, and midpoint error convergence logic (`src/cpp/fea_solver.cpp`).
   - Thread pool and multicore timing benchmark suite (`src/cpp/multicore_engine.cpp`).
-  - Robust STL and ANSYS CSV parsers with 50MB stress testing (`src/cpp/cad_ansys_parser.cpp`).
+  - Robust STL and ANSYS CSV parsers with strict format validation (`src/cpp/cad_ansys_parser.cpp`).
   - Embedded system architecture, pin-voltage mapping, and mock telemetry fault recovery (`src/cpp/embedded_mocks.cpp`).
   - Manual backpropagation mathematical derivation and finite difference test (`src/cpp/backprop_engine.cpp`).
   - Zero-dependency HTML5 2D/3D Canvas custom renderer (`js/cad-viewer.js`).
