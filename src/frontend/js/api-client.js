@@ -105,6 +105,12 @@ const ApiClient = (() => {
     return await res.json();
   }
 
+  async function cancelThermalSolve() {
+    try {
+      await fetch(`${API_BASE}/api/thermal/cancel`, { method: "POST" });
+    } catch (_) {}
+  }
+
   /* ─────────────────────────────────────────────────────────────
      Task B: ASCII STL Parser (POST /api/parse/stl)
      ───────────────────────────────────────────────────────────── */
@@ -144,7 +150,16 @@ const ApiClient = (() => {
     const res = await fetch(`${API_BASE}/api/benchmark/start`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cases, segments, seed })
+      body: JSON.stringify({
+        cases,
+        total_cases: cases,
+        segments,
+        mesh_size_N: segments,
+        mesh_size: segments,
+        N: segments,
+        seed,
+        random_seed: seed
+      })
     });
     return await res.json();
   }
@@ -204,6 +219,7 @@ const ApiClient = (() => {
     startHealthMonitoring,
     onHealthChange,
     solveThermal,
+    cancelThermalSolve,
     parseSTL,
     parseANSYS,
     startBenchmark,

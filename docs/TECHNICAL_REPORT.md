@@ -89,19 +89,23 @@ This confirms the asymptotic $\mathcal{O}(h^2)$ convergence rate of linear finit
 ### 4.1 Implementation & Workload Generator
 A bounded C++17 thread pool (`ThreadPool`) handles batch execution. A reproducible pseudo-random batch generator using `std::mt19937` with a fixed seed produces identical sets of thermal problems with varied $k \in [2, 50]$ and $q \in [1000, 50000]$. Work is dispatched in balanced chunks to minimize synchronization overhead.
 
-### 4.2 Benchmark Results (1,000 Solves × 8 passes, $N=80$)
-- **Host Hardware**: Intel(R) Core(TM) Ultra 5 226V (8 cores, 8 logical threads, 16 GB RAM), Windows 11 x64.
-- **Compiler**: C++17 Core with `/O2` / `-O3` thread pool execution.
-- **Warm-up Run**: 15.1 ms (serial, discarded).
+### 4.2 Benchmark Results (1,000 Solves, $N=40$ mesh, seed=42)
+- **Host Hardware**: Intel(R) Core(TM) Ultra 5 226V (8 logical threads, 16 GB RAM), Windows 11 x64.
+- **Compiler**: MinGW-w64 GCC 13.0 / C++17 Core with `-O2 -static -lpthread`.
+- **Warm-up Run**: 1.7411 ms (serial, discarded).
 
 | Worker Count ($p$) | Measured Repetitions (ms) | Median Time (ms) | Speedup ($T_1/T_p$) | Parallel Efficiency |
 |---|---|---|---|---|
-| **1 (Serial)** | 18.30, 18.54, 18.94, 17.88, 18.29 | 18.30 | $1.000\times$ | 100.0% |
-| **2 Workers** | 10.01, 10.22, 9.13, 10.90, 10.52 | 10.22 | $1.791\times$ | 89.5% |
-| **4 Workers** | 5.42, 5.56, 5.52, 5.50, 5.72 | 5.52 | $3.315\times$ | 82.9% |
+| **1 (Serial)** | 2.273, 1.333, 1.373, 1.371, 1.326 | 1.371 | $1.000\times$ | 100.0% |
+| **2 Workers** | 1.326, 2.151, 1.542, 1.549, 1.255 | 1.542 | $0.889\times$ | 44.5% |
+| **3 Workers** | 1.273, 1.491, 1.804, 1.330, 1.419 | 1.419 | $0.966\times$ | 32.2% |
+| **4 Workers** | 2.028, 1.368, 1.341, 1.121, 1.173 | 1.341 | $1.022\times$ | 25.6% |
 
 - **Numerical Agreement Check**:
   $$\max |T_{\text{serial}} - T_{\text{parallel}}| = 0.00\times 10^{0} \le 1.0\times 10^{-8\ \circ}\text{C} \quad \text{[PASSED]}$$
+
+### 4.3 Honest Concurrency & Amdahl Analysis
+For 1,000 solves with $N=40$, the entire serial batch completes in just 1.37 ms (~1.37 microseconds per solve). In this ultra-fast regime, OS thread wake-up latency, task queue dequeuing, and CPU context switching overhead are on the order of microseconds per task chunk. As predicted by Amdahl's Law when non-parallelizable synchronization overhead represents a significant fraction of execution time, scaling is dominated by thread management overhead. When problem size increases (e.g. larger $N$ or longer integration times), the compute-to-synchronization ratio increases and parallel efficiency climbs towards theoretical limits. Strict deterministic numerical equivalence ($\Delta T = 0.00^\circ\text{C}$) is maintained across all thread configurations without race conditions.
 
 ---
 

@@ -60,6 +60,9 @@ std::string get_json_string(const std::string& json, const std::string& key, con
     return json.substr(q1 + 1, q2 - q1 - 1);
 }
 
+// Thermal solve cancellation flag
+std::atomic<bool> g_thermal_cancelled{false};
+
 // Background benchmark state machine
 std::mutex g_bench_mutex;
 std::atomic<bool> g_bench_running{false};
@@ -186,6 +189,12 @@ int main(int argc, char* argv[]) {
         res.set_content(ss.str(), "application/json");
     });
 
+    svr.Post("/api/thermal/cancel", [](const httplib::Request&, httplib::Response& res) {
+        set_cors_headers(res);
+        g_thermal_cancelled = true;
+        res.set_content(R"({"status":"cancelled","success":true})", "application/json");
+    });
+
     // 4. ASCII STL Parser Endpoint (POST /api/parse/stl)
     svr.Post("/api/parse/stl", [](const httplib::Request& req, httplib::Response& res) {
         set_cors_headers(res);
@@ -228,9 +237,16 @@ int main(int argc, char* argv[]) {
             return;
         }
 
-        int cases = get_json_int(req.body, "cases", 1000);
-        int segments = get_json_int(req.body, "segments", 40);
-        int seed = get_json_int(req.body, "seed", 42);
+        int cases = get_json_int(req.body, "cases", -1);
+        if (cases <= 0) cases = get_json_int(req.body, "total_cases", 1000);
+
+        int segments = get_json_int(req.body, "segments", -1);
+        if (segments <= 0) segments = get_json_int(req.body, "mesh_size_N", -1);
+        if (segments <= 0) segments = get_json_int(req.body, "mesh_size", -1);
+        if (segments <= 0) segments = get_json_int(req.body, "N", 40);
+
+        int seed = get_json_int(req.body, "seed", -1);
+        if (seed <= 0) seed = get_json_int(req.body, "random_seed", 42);
 
         g_bench_running = true;
         g_bench_cancelled = false;
@@ -390,6 +406,10 @@ int main(int argc, char* argv[]) {
         std::cout << "   Static directory: " << root_dir << " (mounted to /)\n";
         svr.set_mount_point("/", root_dir.c_str());
     }
+    svr.set_mount_point("/assets", (root_dir + "/assets").c_str());
+    svr.set_mount_point("/docs", (root_dir + "/docs").c_str());
+    svr.set_mount_point("/data", (root_dir + "/data").c_str());
+    svr.set_mount_point("/results", (root_dir + "/results").c_str());
 
     // 10. Watchdog thread for client heartbeat auto-exit
     std::thread watchdog([&svr]() {

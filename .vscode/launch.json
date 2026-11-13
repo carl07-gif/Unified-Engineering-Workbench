@@ -2,30 +2,11 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "1. Run Packaged Workbench (Launch.bat)",
+            "name": "Run Unified Engineering Workbench",
             "type": "node-terminal",
             "request": "launch",
             "command": "\"${workspaceFolder}\\Launch.bat\"",
             "cwd": "${workspaceFolder}"
-        },
-        {
-            "name": "2. Run Packaged Application (Launch.exe)",
-            "type": "node-terminal",
-            "request": "launch",
-            "command": "\"${workspaceFolder}\\Launch.exe\"",
-            "cwd": "${workspaceFolder}"
-        },
-        {
-            "name": "3. Launch Workbench (Microsoft Edge - Windows 11)",
-            "type": "msedge",
-            "request": "launch",
-            "file": "${workspaceFolder}/index.html"
-        },
-        {
-            "name": "4. Launch Workbench (Google Chrome)",
-            "type": "chrome",
-            "request": "launch",
-            "file": "${workspaceFolder}/index.html"
         }
     ]
 }

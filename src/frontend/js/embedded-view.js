@@ -360,7 +360,7 @@ const EmbeddedViewController = (() => {
       card.innerHTML = `
         <div class="dev-card-header">
           <div style="display:flex; align-items:center; gap:10px;">
-            <img src="assets/devices/${d.image}" alt="${d.name}" class="dev-card-photo" onerror="this.style.display='none'" />
+            <img src="../../assets/devices/${d.image}" alt="${d.name}" class="dev-card-photo" onerror="if(!this.dataset.retry){this.dataset.retry='1'; this.src='assets/devices/${d.image}';}else{this.style.display='none';}" />
             <div>
               <div class="dev-name">${d.name}</div>
               <div style="font-size:10.5px; color:var(--color-text-secondary); margin-top:2px;">

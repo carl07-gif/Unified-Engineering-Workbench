@@ -9,8 +9,8 @@ echo ========================================================
 echo.
 
 set "APP_DIR=%~dp0"
-set "HTML_PATH=%APP_DIR%index.html"
 set "SERVER_EXE=%APP_DIR%workbench_server.exe"
+set "HTML_PATH=%APP_DIR%src\frontend\index.html"
 set "CHROME=C:\Program Files\Google\Chrome\Application\chrome.exe"
 set "EDGE=C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
 set "EDGE2=C:\Program Files\Microsoft\Edge\Application\msedge.exe"
@@ -22,7 +22,7 @@ if exist "%SERVER_EXE%" (
     timeout /t 1 /nobreak >nul 2>&1
     set "TARGET_URL=http://127.0.0.1:7474/index.html"
 ) else (
-    echo [Notice] workbench_server.exe not found; starting in direct offline mode.
+    echo [Notice] workbench_server.exe not found; opening in direct presentation mode.
     set "TARGET_URL=%HTML_PATH%"
 )
 

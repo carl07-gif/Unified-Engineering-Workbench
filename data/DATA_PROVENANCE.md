@@ -19,7 +19,21 @@
 - **Physical Basis**: Evaluated from $T(x) = 100 - 80\frac{x}{L} + \frac{q}{2k}x(L-x)$ with $L=1.0\text{ m}, k=10\text{ W/(m}\cdot\text{K)}, q=10000\text{ W/m}^3, T(0)=100^\circ\text{C}, T(L)=20^\circ\text{C}$, extruded across the 4 corners of the cross-section.
 - **Validation**: Checked for finite values ($\neg\text{NaN}, \neg\text{Inf}$), positive node IDs, and header integrity.
 
-## 3. Scope Boundaries & Assumptions
+## 3. Tested File-Size Limits & Parser Throughput Benchmarks
+The C++17 parsers (`src/cpp/cad_ansys_parser.cpp`) and API endpoints (`POST /api/parse/stl`, `POST /api/parse/ansys`) enforce strict buffer thresholds and have been empirically benchmarked:
+- **Maximum Buffer Limit**: **50 MB** safety cap. Payloads exceeding 50 MB are immediately rejected before parsing with HTTP 400 and actionable error: `"File exceeds maximum supported buffer size (50 MB)."`.
+- **Large STL Performance**: Stress-tested in `tests/test_main.cpp` with **10,000 triangular facets** (~1.8 MB ASCII payload):
+  - Parse time: **189.1 ms** (throughput: ~53,000 facets/sec).
+  - Validation: Validates facet count, normals, vertex coordinates, and boundary loops.
+- **Large ANSYS CSV Performance**: Stress-tested in `tests/test_main.cpp` with **25,000 nodal temperature rows** (~1.2 MB CSV payload):
+  - Parse time: **35.6 ms** (throughput: ~700,000 rows/sec).
+  - Validation: Validates unique positive integer `node_id`, finite IEEE-754 floats ($\neg\text{NaN}, \neg\pm\infty$), and valid comma separation.
+- **Malformed & Edge-Case Rejection**:
+  - Empty files (`0 bytes`) are rejected with `"File payload is empty"`.
+  - Malformed STL facets (missing `outer loop`, truncated lines) are rejected with exact error messages.
+  - Malformed CSV rows (missing columns, non-numeric strings, negative IDs) are rejected with line-numbered diagnostics.
+
+## 4. Scope Boundaries & Assumptions
 - **Native CAD & ANSYS Formats**: Native ANSYS project/result formats (`.wbpj`, `.rst`, `.rth`, `.cdb`) and native CAD solids (`.step`, `.stp`, `.iges`, `.sldprt`, `.prt`) are explicitly **outside scope** per assignment specification.
 - **Interchange Formats Supported**: Standard open ASCII StereoLithography (`.stl`) and comma-separated tabular text (`.csv`).
 - **Spatial Registration**: Mesh-to-result spatial registration is explicitly **not required** by specification; nodes and geometry are rendered in their respective global coordinate systems.

@@ -27,29 +27,40 @@ Double-click **`Launch.exe`** (or `Launch.bat`) in the root directory.
 
 ```
 ├── CMakeLists.txt              # Standard C++17 build definition
-├── Launch.bat                  # One-click standalone Windows launcher
-├── index.html                  # Responsive unified workbench interface
-├── css/
-│   ├── styles.css              # Custom design system (Light/Dark themes)
-│   └── icons.css               # 100% self-contained offline SVG icon masks (Zero CDN)
-├── js/
-│   ├── app.js                  # Main UI controller & lifecycle coordinator
-│   ├── fem-solver.js           # 1D thermal FEA numerical solver
-│   ├── chart.js                # Canvas high-DPI temperature & error plotter
-│   ├── cad-parsers.js          # Modular ASCII STL & ANSYS CSV parsers (strict format validation)
-│   ├── cad-viewer.js           # Zero-dependency custom HTML5 Canvas 3D CAD/FEA viewer
-│   ├── multicore-view.js       # Multithreaded benchmark dashboard (with Cancel control)
-│   ├── embedded-view.js        # Deterministic embedded telemetry & fault recovery
-│   └── backprop-view.js        # Backpropagation derivation & finite difference
+├── Launch.bat                  # One-click standalone Windows launcher script
+├── Launch.exe                  # Native Win32 C++ launcher (compiled from src/cpp/launcher_win.cpp)
+├── workbench_server.exe        # Pre-built Windows x64 native C++17 REST backend
+├── index.html                  # Forwarder redirect to src/frontend/index.html
 ├── src/
-│   └── cpp/                    # C++17 Core Engine
-│       ├── fea_solver.hpp/.cpp         # 1D Steady-state thermal FEA
-│       ├── cad_ansys_parser.hpp/.cpp   # ASCII STL & ANSYS CSV parsers
-│       ├── multicore_engine.hpp/.cpp   # Thread pool & parallel benchmark
-│       ├── embedded_mocks.hpp/.cpp     # MCU, FPGA, and JTAG adapters (with <cmath>)
-│       ├── backprop_engine.hpp/.cpp    # Analytical gradient backprop
-│       ├── launcher_win.cpp            # Win32 WinMain launcher source
-│       └── main.cpp                    # Standalone CLI & backend runner
+│   ├── frontend/               # Single canonical presentation layer
+│   │   ├── index.html          # Responsive unified workbench interface (4 views)
+│   │   ├── css/
+│   │   │   ├── styles.css      # Custom design system (Light/Dark themes)
+│   │   │   └── icons.css       # 100% self-contained offline SVG icon masks (Zero CDN)
+│   │   └── js/
+│   │       ├── api-client.js   # HTTP client communicating with C++ backend (127.0.0.1:7474)
+│   │       ├── app.js          # Main UI controller & lifecycle coordinator
+│   │       ├── fem-solver.js   # Thermal FEA view controller & numerical display
+│   │       ├── chart.js        # Canvas high-DPI temperature & error plotter
+│   │       ├── cad-parsers.js  # Client-side format validators (mirrors C++ parsers)
+│   │       ├── cad-viewer.js   # Zero-dependency custom HTML5 Canvas 3D CAD/FEA viewer
+│   │       ├── camera.js       # Orbit, pan, zoom 3D camera controls
+│   │       ├── cloud-view.js   # 3D ANSYS colored point cloud & surface rasterizer
+│   │       ├── tooltip.js      # Continuous raycast inspection tooltip
+│   │       ├── multicore-view.js # Multithreaded benchmark dashboard (with Cancel control)
+│   │       ├── embedded-view.js# Deterministic embedded telemetry & fault recovery
+│   │       └── backprop-view.js# Backpropagation derivation & finite difference view
+│   ├── cpp/                    # C++17 Pure Core Engine
+│   │   ├── fea_solver.hpp/.cpp         # 1D Steady-state thermal FEA (element loop assembly)
+│   │   ├── cad_ansys_parser.hpp/.cpp   # ASCII STL & ANSYS CSV parsers (50 MB limit)
+│   │   ├── multicore_engine.hpp/.cpp   # Thread pool & parallel benchmark (workers 1, 2, 3, 4)
+│   │   ├── embedded_mocks.hpp/.cpp     # MCU, FPGA, and JTAG adapters (with <cmath>)
+│   │   ├── backprop_engine.hpp/.cpp    # Analytical gradient backprop
+│   │   ├── launcher_win.cpp            # Win32 WinMain launcher source
+│   │   └── main.cpp                    # Standalone CLI & backend runner
+│   └── server/                 # C++17 HTTP REST Transport Layer
+│       ├── httplib.h           # cpp-httplib v0.66.0 (MIT License)
+│       └── server.cpp          # Multi-endpoint REST server with watchdog & heartbeat
 ├── data/
 │   ├── sample_geometry.stl     # Valid ASCII STL cuboid heat sink (12 facets)
 │   ├── sample_ansys_nodal_temps.csv # Synthetic ANSYS nodal temperature CSV (44 nodes)
@@ -57,22 +68,26 @@ Double-click **`Launch.exe`** (or `Launch.bat`) in the root directory.
 │   ├── invalid_ansys.csv       # Negative test CSV
 │   └── DATA_PROVENANCE.md      # Schemas, units, origins, and limits
 ├── tests/
-│   └── test_main.cpp           # Complete C++ unit test suite (27+ positive, negative, and numerical tests)
+│   └── test_main.cpp           # Complete C++ unit test suite (38 positive, negative, and numerical tests)
 ├── results/
 │   ├── mesh_convergence_plot.png       # High-res O(h²) error convergence plot
 │   ├── temperature_profile_N80.png     # High-res T(x) FEA vs analytical profile plot
-│   ├── multicore_scaling_speedup.png   # High-res thread speedup vs Amdahl plot
+│   ├── multicore_scaling_speedup.png   # High-res thread speedup & Amdahl scaling plot
 │   ├── backprop_loss_gradient_curve.png# High-res 100-step loss & gradient check plot
 │   ├── cad_ansys_thermal_verification.png # ANSYS 3D surface correlation plot
-│   ├── thermal_fea_N80.csv             # Raw nodal and midpoint FEA results
+│   ├── thermal_fea_N10.csv             # Full nodal results for N=10
+│   ├── thermal_fea_N20.csv             # Full nodal results for N=20
+│   ├── thermal_fea_N40.csv             # Full nodal results for N=40
+│   ├── thermal_fea_N80.csv             # Full nodal results for N=80
+│   ├── midpoint_errors.csv             # Midpoint errors (1.25 -> 0.0195 C)
 │   ├── mesh_convergence.csv            # N=10, 20, 40, 80 convergence table
-│   ├── multicore_benchmark.csv         # 1, 2, 4 worker thread timing & speedup
+│   ├── multicore_benchmark.csv         # 1, 2, 3, 4 worker thread timing & speedup
 │   └── backpropagation_training.csv    # 100-step verified training history
 ├── docs/
 │   ├── TECHNICAL_REPORT.md     # 6-page comprehensive technical report
-│   ├── HANDWRITTEN_BACKPROP.md # Scanned handwritten backprop derivation
-│   ├── handwritten_backprop_page1.png # Scanned Sheet 1 (Derivations & Graph)
-│   ├── handwritten_backprop_page2.png # Scanned Sheet 2 (Finite-Diff Checks & Update)
+│   ├── HANDWRITTEN_BACKPROP.md # Transcribed handwritten backprop derivation
+│   ├── handwritten_backprop_page1.png # Sheet 1 (Derivations & Graph)
+│   ├── handwritten_backprop_page2.png # Sheet 2 (Finite-Diff Checks & Update)
 │   └── screenshots/            # UI Verification Screenshots (All 4 Views + Modal)
 │       ├── 01_geometry_and_ansys_view.png
 │       ├── 02_thermal_analysis_view.png

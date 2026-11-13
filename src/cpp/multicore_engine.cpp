@@ -175,11 +175,11 @@ MulticoreBenchmarkReport MulticoreEngine::run_benchmark(int case_count, int mesh
     auto t_w1 = std::chrono::high_resolution_clock::now();
     report.warmup_time_ms = std::chrono::duration<double, std::milli>(t_w1 - t_w0).count();
 
-    // Thread worker counts to test: 1, 2, and up to 4 (capped at available logical CPUs)
+    // Thread worker counts to test: 1, 2, 3, and 4 (capped by logical CPUs)
     std::vector<int> workers_to_test = {1};
     if (report.logical_cores >= 2) workers_to_test.push_back(2);
+    if (report.logical_cores >= 3) workers_to_test.push_back(3);
     if (report.logical_cores >= 4) workers_to_test.push_back(4);
-    else if (report.logical_cores > 2 && report.logical_cores < 4) workers_to_test.push_back(report.logical_cores);
 
     double t1_median = 0.0;
     std::vector<ThermalSolveResult> baseline_serial_results;
@@ -267,23 +267,40 @@ std::string MulticoreEngine::to_json(const MulticoreBenchmarkReport& report) {
     ss << "\"launch_to_ready_ms\":" << report.launch_to_ready_ms << ",";
     ss << "\"max_serial_parallel_diff_C\":" << std::scientific << std::setprecision(2) 
        << report.max_serial_parallel_diff_C << std::fixed << std::setprecision(4) << ",";
+    ss << "\"max_serial_parallel_diff\":" << std::scientific << std::setprecision(2) 
+       << report.max_serial_parallel_diff_C << std::fixed << std::setprecision(4) << ",";
     ss << "\"numerical_agreement_passed\":" << (report.numerical_agreement_passed ? "true" : "false") << ",";
-    ss << "\"runs\":[";
-    for (size_t i = 0; i < report.thread_runs.size(); ++i) {
-        const auto& r = report.thread_runs[i];
-        ss << "{\"workers\":" << r.worker_count << ",";
-        ss << "\"median_ms\":" << r.median_time_ms << ",";
-        ss << "\"speedup\":" << r.speedup << ",";
-        ss << "\"efficiency\":" << r.efficiency << ",";
-        ss << "\"repetitions\":[";
-        for (size_t j = 0; j < r.repetition_times_ms.size(); ++j) {
-            ss << r.repetition_times_ms[j];
-            if (j + 1 < r.repetition_times_ms.size()) ss << ",";
+    
+    auto format_runs_json = [&](const std::string& key) {
+        ss << "\"" << key << "\":[";
+        for (size_t i = 0; i < report.thread_runs.size(); ++i) {
+            const auto& r = report.thread_runs[i];
+            ss << "{\"workers\":" << r.worker_count << ",";
+            ss << "\"p\":" << r.worker_count << ",";
+            ss << "\"median_ms\":" << r.median_time_ms << ",";
+            ss << "\"speedup\":" << r.speedup << ",";
+            ss << "\"efficiency\":" << r.efficiency << ",";
+            ss << "\"repetitions\":[";
+            for (size_t j = 0; j < r.repetition_times_ms.size(); ++j) {
+                ss << r.repetition_times_ms[j];
+                if (j + 1 < r.repetition_times_ms.size()) ss << ",";
+            }
+            ss << "],";
+            ss << "\"repTimes\":[";
+            for (size_t j = 0; j < r.repetition_times_ms.size(); ++j) {
+                ss << r.repetition_times_ms[j];
+                if (j + 1 < r.repetition_times_ms.size()) ss << ",";
+            }
+            ss << "]}";
+            if (i + 1 < report.thread_runs.size()) ss << ",";
         }
-        ss << "]}";
-        if (i + 1 < report.thread_runs.size()) ss << ",";
-    }
-    ss << "]}";
+        ss << "]";
+    };
+
+    format_runs_json("runs");
+    ss << ",";
+    format_runs_json("configurations");
+    ss << "}";
     return ss.str();
 }
 

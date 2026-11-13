@@ -4,15 +4,15 @@ set -e
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 SERVER_BIN=""
-if [ -f "$DIR/build/workbench_server" ]; then
+if [ -f "$DIR/workbench_server" ]; then
+    SERVER_BIN="$DIR/workbench_server"
+elif [ -f "$DIR/build/workbench_server" ]; then
     SERVER_BIN="$DIR/build/workbench_server"
 elif [ -f "$DIR/build_wsl/workbench_server" ]; then
     SERVER_BIN="$DIR/build_wsl/workbench_server"
-elif [ -f "$DIR/workbench_server" ]; then
-    SERVER_BIN="$DIR/workbench_server"
 fi
 
-TARGET_URL="file://$DIR/index.html"
+TARGET_URL="file://$DIR/src/frontend/index.html"
 if [ -n "$SERVER_BIN" ]; then
     echo "Starting C++17 REST backend on 127.0.0.1:7474..."
     "$SERVER_BIN" 7474 "$DIR" &

@@ -283,6 +283,9 @@ document.addEventListener("DOMContentLoaded", () => {
       btnCancelSolve.style.display = "inline-flex";
       btnCancelSolve.onclick = () => {
         solveCancelled = true;
+        if (typeof ApiClient !== "undefined") {
+          ApiClient.cancelThermalSolve();
+        }
         if (btnSolve) {
           btnSolve.classList.remove("btn--running");
           btnSolve.innerHTML = `<i class="ti ti-player-play" aria-hidden="true"></i>Run solver`;

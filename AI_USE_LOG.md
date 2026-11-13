@@ -96,6 +96,22 @@ All automated code assistance and scaffolding were logged with exact versioned m
 
 ---
 
+### Iteration 4: Hand-Collapsed Diagonal Shortcut vs. Formal Element Integration Loop (Task C)
+- **Initial Prompt to AI**:
+  ```text
+  "Assemble the 1D finite element stiffness matrix for linear 2-node elements."
+  ```
+- **Initial AI Response**:
+  The AI skipped element-level integration and directly filled the interior tridiagonal diagonals using a collapsed shortcut formula ($K_{ii} = 2 k_e, K_{i,i+1} = -k_e$).
+- **Developer Review & Flaw Identification**:
+  A collapsed algebraic shortcut completely bypasses the standard FEM variational formulation $\mathbf{K} = \sum_{e=0}^{N-1} \int_{\Omega_e} \mathbf{B}^T k A \mathbf{B} \, dx$. It violates modular FEA principles by preventing variable cross-section $A(x)$, piecewise thermal conductivity $k_e$, and general non-uniform meshes.
+- **Refinement & Implementation Override**:
+  The developer **rejected the collapsed shortcut** and wrote the canonical element assembly loop:
+  $$\mathbf{K}^e = \frac{k A}{h} \begin{bmatrix} 1 & -1 \\ -1 & 1 \end{bmatrix}, \quad \mathbf{f}^e = \frac{q A h}{2} \begin{bmatrix} 1 \\ 1 \end{bmatrix}$$
+  Looping across all $e \in [0, N-1]$ in `src/cpp/fea_solver.cpp`, adding local element entries into global stiffness $\mathbf{K}$ and load vector $\mathbf{F}$, followed by exact Dirichlet boundary condition substitution at nodes $0$ and $N$.
+
+---
+
 ## 4. Challenge Test & Numerical Verification
 To independently verify mathematical rigor against automatic differentiation hallucination:
 - **Challenge Prompt**:
@@ -120,7 +136,7 @@ To independently verify mathematical rigor against automatic differentiation hal
   - Robust STL and ANSYS CSV parsers with strict format validation (`src/cpp/cad_ansys_parser.cpp`).
   - Embedded system architecture, pin-voltage mapping, and mock telemetry fault recovery (`src/cpp/embedded_mocks.cpp`).
   - Manual backpropagation mathematical derivation and finite difference test (`src/cpp/backprop_engine.cpp`).
-  - Zero-dependency HTML5 2D/3D Canvas custom renderer (`js/cad-viewer.js`).
+  - Zero-dependency HTML5 2D/3D Canvas custom renderer (`src/frontend/js/cad-viewer.js`).
 - **Third-Party Transport Dependency**:
   - `cpp-httplib` v0.66.0 (MIT License, header-only located in `src/server/httplib.h`), pinned in `DEPENDENCIES.md` with license text in `LICENSE_CPP_HTTPLIB.txt`, used strictly as the HTTP server transport in `src/server/server.cpp`.
   - Zero npm/pip packages, zero CDN libraries, 100% self-contained offline execution.

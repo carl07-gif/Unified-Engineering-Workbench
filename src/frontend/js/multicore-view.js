@@ -13,13 +13,6 @@ const MulticoreViewController = (() => {
   let lastP = 0.942;
   let lastCaseCount = 1000;
 
-  // Calibrated reference benchmark dataset strictly matching TECHNICAL_REPORT.md and results/multicore_benchmark.csv
-  const defaultResults = [
-    { p: 1, repTimes: [18.30, 18.54, 18.94, 17.88, 18.29], median: 18.30, speedup: 1.000, efficiency: 1.000 },
-    { p: 2, repTimes: [10.01, 10.22, 9.13, 10.90, 10.52], median: 10.22, speedup: 1.791, efficiency: 0.895 },
-    { p: 4, repTimes: [5.42, 5.56, 5.52, 5.50, 5.72], median: 5.52, speedup: 3.315, efficiency: 0.829 }
-  ];
-
   function init() {
     const hwCores = document.getElementById("hwCores");
     if (hwCores) {
@@ -49,12 +42,33 @@ const MulticoreViewController = (() => {
         graphBtns.forEach(b => b.classList.remove("perf-graph-btn--active"));
         btn.classList.add("perf-graph-btn--active");
         activeGraphMode = btn.dataset.perfMode || "speedup";
-        renderSpeedupSvg(lastResults || defaultResults, lastP, lastCaseCount);
+        if (lastResults) {
+          renderSpeedupSvg(lastResults, lastP, lastCaseCount);
+        }
       });
     });
 
-    // Render baseline benchmark view on load so the interface is never empty
-    renderAll(defaultResults, 1000, 0.0);
+    // Initial clean empty state - no fabricated data displayed before run
+    renderInitialState();
+  }
+
+  function renderInitialState() {
+    const agreementBadge = document.getElementById("agreementBadge");
+    const agreementText = document.getElementById("agreementText");
+    if (agreementText) {
+      agreementText.textContent = "C++17 ThreadPool Benchmark Ready (Click 'Run Multicore Test' to measure native threads)";
+    }
+    const svg = document.getElementById("speedupSvgChart");
+    if (svg) {
+      svg.innerHTML = `
+        <text x="50%" y="48%" text-anchor="middle" fill="#64748b" font-size="13" font-family="sans-serif">
+          No benchmark data yet. Click &quot;Run Multicore Test&quot; above to measure native C++17 thread scaling.
+        </text>
+        <text x="50%" y="58%" text-anchor="middle" fill="#475569" font-size="11" font-family="monospace">
+          (Tests 1, 2, 4 worker threads &times; 5 repetitions with bitwise numerical invariance check)
+        </text>
+      `;
+    }
   }
 
   /* Linear Congruential Generator for reproducible pseudo-random numbers with seed */
@@ -101,17 +115,28 @@ const MulticoreViewController = (() => {
 
   async function runBenchmark() {
     if (isRunning) return;
+
+    const btnRun = document.getElementById("btnRunBenchmark");
+    const btnCancel = document.getElementById("btnCancelBenchmark");
+    const agreementBadge = document.getElementById("agreementBadge");
+    const agreementText = document.getElementById("agreementText");
+
+    // Require native C++ backend for multicore benchmarking - never fabricate results
+    if (typeof ApiClient === "undefined" || !ApiClient.isOnline()) {
+      if (agreementBadge && agreementText) {
+        agreementBadge.className = "agreement-badge";
+        agreementBadge.style.color = "var(--color-danger)";
+        agreementText.innerHTML = `<span style="color:var(--color-danger); font-weight:600;"><i class="ti ti-alert-triangle"></i> C++ Backend Offline (127.0.0.1:7474):</span> Cannot benchmark threads without C++ engine. Start <code>workbench_server.exe</code> or run <code>Launch.bat</code>.`;
+      }
+      return;
+    }
+
     isRunning = true;
     cancelRequested = false;
 
     const caseCount = parseInt(document.getElementById("benchCaseCount")?.value, 10) || 1000;
     const meshN = parseInt(document.getElementById("benchMeshN")?.value, 10) || 40;
     const seed = parseInt(document.getElementById("benchSeed")?.value, 10) || 42;
-
-    const btnRun = document.getElementById("btnRunBenchmark");
-    const btnCancel = document.getElementById("btnCancelBenchmark");
-    const agreementBadge = document.getElementById("agreementBadge");
-    const agreementText = document.getElementById("agreementText");
 
     if (btnRun) {
       btnRun.disabled = true;
@@ -122,147 +147,62 @@ const MulticoreViewController = (() => {
     }
     if (agreementBadge && agreementText) {
       agreementBadge.className = "agreement-badge";
-      agreementText.textContent = `Starting benchmark for ${caseCount.toLocaleString()} cases...`;
+      agreementText.textContent = `Starting native C++ ThreadPool benchmark (${caseCount.toLocaleString()} cases, N=${meshN})...`;
     }
 
-    // 1. If C++ REST Backend is online, execute on native C++17 ThreadPool
-    if (typeof ApiClient !== "undefined" && ApiClient.isOnline()) {
-      try {
-        const startRes = await ApiClient.startBenchmark(caseCount, meshN, seed);
-        if (startRes.status === "already_running" || startRes.status === "started") {
-          let done = false;
-          while (!done) {
-            await new Promise(r => setTimeout(r, 180));
-            if (cancelRequested) {
-              await ApiClient.cancelBenchmark();
+    try {
+      const startRes = await ApiClient.startBenchmark(caseCount, meshN, seed);
+      if (startRes.status === "already_running" || startRes.status === "started") {
+        let done = false;
+        while (!done) {
+          await new Promise(r => setTimeout(r, 180));
+          if (cancelRequested) {
+            await ApiClient.cancelBenchmark();
+            finalizeBenchmark(null, true);
+            return;
+          }
+          const st = await ApiClient.getBenchmarkStatus();
+          if (agreementText) {
+            agreementText.textContent = `C++ ThreadPool benchmark running... ${st.progress}%`;
+          }
+          if (!st.running) {
+            done = true;
+            if (st.cancelled) {
               finalizeBenchmark(null, true);
               return;
             }
-            const st = await ApiClient.getBenchmarkStatus();
-            if (agreementText) {
-              agreementText.textContent = `C++ ThreadPool benchmark running... ${st.progress}%`;
-            }
-            if (!st.running) {
-              done = true;
-              if (st.cancelled) {
-                finalizeBenchmark(null, true);
-                return;
-              }
-              const rep = (typeof st.result === "string") ? JSON.parse(st.result) : st.result;
-              if (rep && rep.configurations) {
-                const results = rep.configurations.map(c => ({
-                  p: c.workers,
-                  repTimes: c.repetitions,
-                  median: c.median_ms,
-                  speedup: c.speedup,
-                  efficiency: c.efficiency
-                }));
+            const rep = (typeof st.result === "string") ? JSON.parse(st.result) : st.result;
+            const runList = rep ? (rep.runs || rep.configurations || []) : [];
+            if (runList.length > 0) {
+              const results = runList.map(c => ({
+                p: c.workers || c.p,
+                repTimes: c.repetitions || c.repTimes,
+                median: c.median_ms,
+                speedup: c.speedup,
+                efficiency: c.efficiency
+              }));
 
-                // Update hardware specs in DOM if available
-                const hwCpu = document.getElementById("hwCpuModel");
-                if (hwCpu && rep.cpu_model) hwCpu.textContent = rep.cpu_model;
-                const hwRam = document.getElementById("hwRamInfo");
-                if (hwRam && rep.ram_gb) hwRam.textContent = `${rep.ram_gb} GB RAM`;
+              // Update hardware specs in DOM if available
+              const hwCpu = document.getElementById("hwCpuModel");
+              if (hwCpu && rep.cpu_model) hwCpu.textContent = rep.cpu_model;
+              const hwRam = document.getElementById("hwRamInfo");
+              if (hwRam && rep.ram_gb) hwRam.textContent = `${rep.ram_gb} GB RAM`;
 
-                finalizeBenchmark(results, false, rep.max_serial_parallel_diff || 0.0, caseCount);
-                return;
-              }
+              const maxDiff = rep.max_serial_parallel_diff_C ?? rep.max_serial_parallel_diff ?? 0.0;
+              finalizeBenchmark(results, false, maxDiff, caseCount);
+              return;
             }
           }
         }
-      } catch (err) {
-        console.warn("[MulticoreView] C++ benchmark error, falling back to local runner:", err);
       }
-    }
-
-    // 2. Local Fallback Execution (if backend offline)
-    if (agreementText) {
-      agreementText.textContent = `Benchmarking ${caseCount.toLocaleString()} cases across threads (local fallback)...`;
-    }
-    await new Promise(r => setTimeout(r, 20));
-
-    // Generate reproducible test cases
-    const testCases = generateCases(caseCount, meshN, seed);
-
-    // Warm-up run (100 cases) to prime JIT compiler and cache
-    for (let w = 0; w < Math.min(100, caseCount); w++) {
-      solveSingleCase(testCases[w]);
-    }
-
-    if (cancelRequested) {
+    } catch (err) {
+      console.error("[MulticoreView] C++ benchmark error:", err);
+      if (agreementText) {
+        agreementText.innerHTML = `<span style="color:var(--color-danger);">Benchmark error: ${err.message || err}</span>`;
+      }
       finalizeBenchmark(null, true);
-      return;
     }
-
-    // Measure real execution times for 1, 2, and 4 workers across 5 repetitions each
-    const workerConfigs = [1, 2, 4];
-    const results = [];
-
-    // Solve batch to verify numerical invariance across serial and parallel runs
-    let maxDiffC = 0.0;
-    const sampleSize = Math.min(100, caseCount);
-    for (let c = 0; c < sampleSize; c++) {
-      const s1 = solveSingleCase(testCases[c]);
-      const s2 = solveSingleCase(testCases[c]);
-      for (let n = 0; n < s1.T.length; n++) {
-        const diff = Math.abs(s1.T[n] - s2.T[n]);
-        if (diff > maxDiffC) maxDiffC = diff;
-      }
-    }
-
-    for (let pIdx = 0; pIdx < workerConfigs.length; pIdx++) {
-      const p = workerConfigs[pIdx];
-      const repTimes = [];
-
-      for (let rep = 0; rep < 5; rep++) {
-        if (cancelRequested) {
-          finalizeBenchmark(null, true);
-          return;
-        }
-
-        const t0 = performance.now();
-
-        // Real work execution chunking across p worker partitions
-        const chunkSize = Math.ceil(caseCount / p);
-        for (let wId = 0; wId < p; wId++) {
-          const start = wId * chunkSize;
-          const end = Math.min(caseCount, start + chunkSize);
-          for (let i = start; i < end; i++) {
-            solveSingleCase(testCases[i]);
-          }
-        }
-
-        const t1 = performance.now();
-        const elapsed = Math.max(0.01, t1 - t0);
-        repTimes.push(+elapsed.toFixed(2));
-
-        // Yield to browser thread
-        await new Promise(r => setTimeout(r, 8));
-      }
-
-      const sorted = [...repTimes].sort((a, b) => a - b);
-      const median = sorted[2];
-      results.push({
-        p,
-        repTimes,
-        median,
-        speedup: 1.0,
-        efficiency: 1.0
-      });
-    }
-
-    // Compute empirical speedup and efficiency from measured medians
-    const med1 = results[0].median;
-    results[0].speedup = 1.00;
-    results[0].efficiency = 1.000;
-
-    for (let i = 1; i < results.length; i++) {
-      const sp = med1 / results[i].median;
-      results[i].speedup = +Math.max(1.0, sp).toFixed(2);
-      results[i].efficiency = +(results[i].speedup / results[i].p).toFixed(3);
-    }
-
-    finalizeBenchmark(results, false, maxDiffC, caseCount);
+  }
   }
 
   function finalizeBenchmark(results, wasCancelled, maxDiffC = 0.0, caseCount = 1000) {
