@@ -4,6 +4,7 @@
 #include <string>
 #include <cmath>
 #include <chrono>
+#include <atomic>
 
 namespace workbench {
 
@@ -43,8 +44,8 @@ class ThermalRodSolver {
 public:
     static double exact_temperature(double x, const ThermalRodParams& p) noexcept;
     
-    // Solves the 1D steady-state heat equation with uniform 2-node linear elements
-    static ThermalSolveResult solve(const ThermalRodParams& p);
+    // Solves the 1D steady-state heat equation with uniform 2-node linear elements (supports cancellation)
+    static ThermalSolveResult solve(const ThermalRodParams& p, const std::atomic<bool>* cancel_token = nullptr);
 
     // Runs mesh convergence across N in {10, 20, 40, 80}
     static std::vector<ConvergenceDataPoint> run_convergence_study(const ThermalRodParams& base_params, 

@@ -2,7 +2,9 @@
 
 ## Appendix: Mathematical Proof & Verification
 
-> **Scanned Handwritten Derivation Sheets (2-Page Deliverable)**:
+> **Handwritten-Style Derivation Sheets (2-Page Deliverable)**:
+> 
+> *Notice & Provenance Disclosure: The images below are AI-assisted note renderings generated from candidate notes; all mathematical calculus, reverse chain-rule derivations, forward pass numbers, and finite-difference verifications are the candidate's own work.*
 > 
 > ![Page 1: Network Architecture, Computational Graph & Reverse Chain-Rule Derivation](handwritten_backprop_page1.png)
 > 

@@ -15,7 +15,7 @@ This document provides the complete, equivalent **timestamped walkthrough with c
 | **02:20** | 1D Thermal FEA Solve | Thermal Analysis (Tab 2) | Enter $L=1.0, k=10, q=10000$, click *Run Solver* | Solves in 0.18 ms; exact blue curve + orange dots; status bar displays `Ready`. | **PASS** |
 | **02:50** | Mesh Convergence | Thermal Analysis (Tab 2) | Review convergence cards ($N=10, 20, 40, 80$) | Cards report $1.2500^\circ\text{C} \to 0.3125^\circ\text{C} \to 0.0781^\circ\text{C} \to 0.0195^\circ\text{C}$ ($\mathcal{O}(h^2)$ rate). | **PASS** |
 | **03:15** | CSV Result Export | Thermal Analysis (Tab 2) | Click *Export CSV* button | Browser downloads `thermal_rod_fea_N80.csv` with full 4-column nodal data. | **PASS** |
-| **03:45** | Multicore Benchmark | Performance (Tab 3) | Click *Run Multicore Test* (1,000 cases, $N=40$) | 5 reps per thread count; speedup bars update: $1.00\times \to 1.83\times \to 3.31\times$. | **PASS** |
+| **03:45** | Multicore Benchmark | Performance (Tab 3) | Click *Run Multicore Test* (1,000 cases, $N=40$) | 5 reps per thread count; measured scaling: 1 worker (1.37 ms, 1.00x), 2 workers (1.54 ms, 0.89x), 4 workers (1.34 ms, 1.02x). | **PASS** |
 | **04:15** | Numerical Agreement | Performance (Tab 3) | Automatic verification across all 1,000 cases | Badge reports: $\Delta T = 0.00\text{e}+0\,^\circ\text{C} \le 10^{-8}\,^\circ\text{C}$ (**PASSED**). | **PASS** |
 | **04:40** | Hardware Integration | Hardware (Tab 4) | Switch to Device Manager; review telemetry | Real-time telemetry streams for MCU (3.3V), FPGA (1.0V/1.8V), and JTAG Probe. | **PASS** |
 | **05:00** | Simulated Fault Recovery | Hardware (Tab 4) | Click *Simulate Recoverable Timeout* | Device enters amber degraded state; auto-retry queue triggers; self-heals after 3.5s. | **PASS** |
@@ -27,11 +27,10 @@ This document provides the complete, equivalent **timestamped walkthrough with c
 
 ### Step 1: One-Click Windows 11 Launch
 ```text
-[LAUNCHER] Initializing WorkbenchLauncher v1.0 (Windows 11 x64)...
-[LAUNCHER] Application path: .\index.html
-[LAUNCHER] Executing ProcessStartInfo with UseShellExecute=true
-[BROWSER]  Loaded index.html (DOM Ready: 14.2 ms)
-[ENGINE]   C++17 Numerical Core initialized. Status: READY.
+Double-click Launch.exe (Win32 GUI launcher compiled from src/cpp/launcher_win.cpp).
+The launcher starts workbench_server.exe on port 7474 in background, polls /api/ping until ready,
+and launches the default system browser (Chrome/Edge) to http://127.0.0.1:7474/index.html.
+Client UI successfully connects to native C++17 REST backend. Status dot displays green (Active).
 ```
 
 ### Step 2: Task B CAD / ANSYS Visualization
@@ -61,15 +60,20 @@ This document provides the complete, equivalent **timestamped walkthrough with c
 
 ### Step 4: Task D Multicore Execution & Scaling
 ```text
-[MULTICORE] Generating reproducible batch: 1000 cases, N=40, seed=42.
+[MULTICORE] Workload: 1000 independent 1D thermal solves, N=40 mesh, seed=42.
 [MULTICORE] Host hardware detected: 8 logical threads, x86_64 architecture.
-[MULTICORE] Executing serial warm-up run (100 cases): 32.4 ms (discarded).
+[MULTICORE] Executing serial warm-up run (100 cases): 1.74 ms (discarded).
 [MULTICORE] Benchmark 1 Worker (Serial):
-             Repetitions: 31.84 ms, 31.95 ms, 31.80 ms, 32.10 ms, 31.78 ms | Median: 31.84 ms
+             Repetitions: 2.27 ms, 1.33 ms, 1.37 ms, 1.37 ms, 1.33 ms | Median: 1.37 ms | Speedup: 1.00x | Efficiency: 100.0%
 [MULTICORE] Benchmark 2 Workers:
-             Repetitions: 17.40 ms, 17.25 ms, 17.38 ms, 17.52 ms, 17.30 ms | Median: 17.38 ms | Speedup: 1.83x | Efficiency: 91.6%
+             Repetitions: 1.33 ms, 2.15 ms, 1.54 ms, 1.55 ms, 1.26 ms | Median: 1.54 ms | Speedup: 0.89x | Efficiency: 44.5%
+[MULTICORE] Benchmark 3 Workers:
+             Repetitions: 1.27 ms, 1.49 ms, 1.80 ms, 1.33 ms, 1.42 ms | Median: 1.42 ms | Speedup: 0.97x | Efficiency: 32.2%
 [MULTICORE] Benchmark 4 Workers:
-             Repetitions: 9.65 ms, 9.58 ms, 9.72 ms, 9.62 ms, 9.60 ms      | Median: 9.62 ms  | Speedup: 3.31x | Efficiency: 82.8%
+             Repetitions: 2.03 ms, 1.37 ms, 1.34 ms, 1.12 ms, 1.17 ms | Median: 1.34 ms | Speedup: 1.02x | Efficiency: 25.6%
+[MULTICORE] Note on Workload Granularity:
+             Because individual 1D solves take only ~1.3 microseconds each, thread creation,
+             context-switching, and atomic scheduling overhead dominate total execution time.
 [MULTICORE] Checking serial vs parallel agreement across all 41,000 comparative points:
              Max Absolute Difference Delta T = 0.00e+00 °C (Threshold <= 1.00e-08 °C).
              Numerical Agreement Status: PASSED.

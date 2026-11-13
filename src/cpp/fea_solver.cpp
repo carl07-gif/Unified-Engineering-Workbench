@@ -35,9 +35,15 @@ bool ThermalRodSolver::solve_tridiagonal(int n, const double* a, const double* b
     return true;
 }
 
-ThermalSolveResult ThermalRodSolver::solve(const ThermalRodParams& p) {
+ThermalSolveResult ThermalRodSolver::solve(const ThermalRodParams& p, const std::atomic<bool>* cancel_token) {
     auto t_start = std::chrono::high_resolution_clock::now();
     ThermalSolveResult res;
+
+    if (cancel_token && cancel_token->load()) {
+        res.success = false;
+        res.error_message = "Thermal solve cancelled by user.";
+        return res;
+    }
 
     // Parameter validation
     if (p.N < 1) {
@@ -97,6 +103,11 @@ ThermalSolveResult ThermalRodSolver::solve(const ThermalRodParams& p) {
 
     // Loop over each 2-node linear element e in [0, N-1]
     for (int e = 0; e < N; ++e) {
+        if (cancel_token && (e % 1024 == 0) && cancel_token->load()) {
+            res.success = false;
+            res.error_message = "Thermal solve cancelled by user.";
+            return res;
+        }
         int n1 = e;
         int n2 = e + 1;
 

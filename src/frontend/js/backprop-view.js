@@ -6,18 +6,25 @@
 
 const BackpropViewController = (() => {
   let modal;
+  let initialized = false;
 
   function init() {
+    if (initialized) return;
+
     modal = document.getElementById("backpropModal");
     const btnOpen = document.getElementById("btnOpenBackprop");
     const btnClose = document.getElementById("btnCloseBackprop");
 
-    if (btnOpen) {
-      btnOpen.addEventListener("click", () => {
-        modal.hidden = false;
-        runBackpropDemo();
-      });
+    if (!modal || !btnOpen) {
+      console.error("[BackpropView] Could not initialize: modal or open button is missing.");
+      return;
     }
+
+    initialized = true;
+    btnOpen.addEventListener("click", () => {
+      modal.hidden = false;
+      runBackpropDemo();
+    });
 
     if (btnClose) {
       btnClose.addEventListener("click", () => {
@@ -25,11 +32,9 @@ const BackpropViewController = (() => {
       });
     }
 
-    if (modal) {
-      modal.addEventListener("click", (e) => {
-        if (e.target === modal) modal.hidden = true;
-      });
-    }
+    modal.addEventListener("click", (e) => {
+      if (e.target === modal) modal.hidden = true;
+    });
 
     // Run initial calculation once
     runBackpropDemo();
@@ -217,3 +222,9 @@ const BackpropViewController = (() => {
 
   return { init };
 })();
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", BackpropViewController.init, { once: true });
+} else {
+  BackpropViewController.init();
+}

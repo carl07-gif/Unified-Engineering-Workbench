@@ -201,12 +201,6 @@ document.addEventListener("DOMContentLoaded", () => {
     console.error("EmbeddedViewController init error:", e);
   }
 
-  try {
-    BackpropViewController.init();
-  } catch (e) {
-    console.error("BackpropViewController init error:", e);
-  }
-
   const paramErrorBox = document.getElementById("thermalParamError");
 
   function validateThermalParams() {

@@ -79,10 +79,12 @@ public:
     static std::vector<ThermalSolveResult> solve_batch_parallel(const std::vector<BatchCase>& cases, 
                                                                 int num_workers);
 
-    // Full benchmark suite executing warmup + 5 reps across 1, 2, 4 threads
+    // Full benchmark suite executing warmup + 5 reps across 1, 2, 4 threads (supports cancellation & real progress)
     static MulticoreBenchmarkReport run_benchmark(int case_count = 1000, 
                                                   int mesh_size_N = 40, 
-                                                  uint32_t seed = 42);
+                                                  uint32_t seed = 42,
+                                                  const std::atomic<bool>* cancel_token = nullptr,
+                                                  std::function<void(int)> progress_cb = nullptr);
 
     // JSON export helper
     static std::string to_json(const MulticoreBenchmarkReport& report);
