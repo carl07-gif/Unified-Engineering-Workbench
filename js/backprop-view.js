@@ -57,10 +57,51 @@ const BackpropViewController = (() => {
     return { dJ_dw, dJ_db, dJ_dv, dJ_dc };
   }
 
-  function runBackpropDemo() {
+  async function runBackpropDemo() {
     const x = 1.0, y = 2.0, lr = 0.1, eps = 1e-6;
     let weights = { w: 0.5, b: 0.0, v: 1.0, c: 0.0 };
 
+    // 1. If C++ backend is online, fetch from native C++17 BackpropEngine
+    if (typeof ApiClient !== "undefined" && ApiClient.isOnline()) {
+      try {
+        const cppData = await ApiClient.getBackpropagation(100, lr);
+        if (cppData && cppData.gradient_checks) {
+          const tbody = document.getElementById("gradCheckTableBody");
+          if (tbody) {
+            tbody.innerHTML = "";
+            cppData.gradient_checks.forEach(c => {
+              const err = c.abs_error;
+              const passed = c.passed;
+              const tr = document.createElement("tr");
+              tr.innerHTML = `
+                <td><strong>&part;J / &part;${c.param}</strong></td>
+                <td>${c.analytical.toFixed(8)}</td>
+                <td>${c.numerical.toFixed(8)}</td>
+                <td style="font-family:var(--font-mono);">${err.toExponential(2)}</td>
+                <td style="color:${passed ? "var(--color-success)" : "var(--color-danger)"}; font-weight:600;">
+                  <i class="ti ti-${passed ? "check" : "x"}"></i> ${passed ? "PASSED (&le; 1e-5)" : "FAILED"}
+                </td>
+              `;
+              tbody.appendChild(tr);
+            });
+          }
+
+          if (cppData.training_history) {
+            const hist = cppData.training_history.map(h => ({
+              step: h.step,
+              loss: h.loss,
+              yHat: h.y_hat
+            }));
+            renderLossSvg(hist);
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn("[BackpropView] C++ engine error, falling back to local calculation:", err);
+      }
+    }
+
+    // 2. Local fallback calculation
     const ana = analyticalGradients(x, y, weights);
 
     // Central finite difference verification

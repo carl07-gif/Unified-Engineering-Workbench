@@ -5,6 +5,9 @@
 #include "backprop_engine.hpp"
 
 #include <iostream>
+#include <sstream>
+#include <vector>
+#include <iomanip>
 #include <cassert>
 #include <cmath>
 #include <string>
@@ -145,6 +148,13 @@ void test_cad_ansys_parser() {
         "10,0.5,0.0,0.0,150.0\n";
     auto dup_csv_res = workbench::CadAnsysParser::parse_ansys_csv_from_string(dup_csv);
     TEST_ASSERT(!dup_csv_res.success, "CSV with duplicate node_id must be rejected");
+
+    // Negative Test: Oversized buffer exceeding 50 MB limit
+    std::string oversized_buffer(51 * 1024 * 1024, 'x');
+    auto over_stl_res = workbench::CadAnsysParser::parse_ascii_stl_from_string(oversized_buffer);
+    TEST_ASSERT(!over_stl_res.success, "STL exceeding 50 MB limit must be rejected");
+    auto over_csv_res = workbench::CadAnsysParser::parse_ansys_csv_from_string(oversized_buffer);
+    TEST_ASSERT(!over_csv_res.success, "CSV exceeding 50 MB limit must be rejected");
 
     // Stress & File Boundary Test (10,000 generated facets with time recorded)
     std::cout << "  Testing Large STL & CSV Parsing Throughput (Time Recorded)...\n";

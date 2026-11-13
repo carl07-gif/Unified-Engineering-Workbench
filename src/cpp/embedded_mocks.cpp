@@ -231,6 +231,16 @@ std::vector<std::shared_ptr<IEmbeddedDeviceAdapter>> EmbeddedWorkbenchManager::g
     return devices;
 }
 
+std::shared_ptr<IEmbeddedDeviceAdapter> EmbeddedWorkbenchManager::get_device_by_id(const std::string& id) const {
+    for (const auto& dev : devices) {
+        auto caps = dev->get_capabilities();
+        if (caps.hardware_id == id || caps.device_name == id) {
+            return dev;
+        }
+    }
+    return nullptr;
+}
+
 std::string EmbeddedWorkbenchManager::to_json_all_devices() {
     std::ostringstream ss;
     ss << std::fixed << std::setprecision(2);

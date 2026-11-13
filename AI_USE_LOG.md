@@ -73,8 +73,8 @@ All automated code assistance and scaffolding were logged with exact versioned m
   ```text
   "Design a persistent worker ThreadPool with static contiguous chunking. Each worker must write into pre-allocated indexed slots results[i] without locking, guaranteeing deterministic order and zero thread contention."
   ```
-- **Final Outcome**:
-  Implemented persistent `ThreadPool` in `src/cpp/multicore_engine.cpp` with deterministic chunking. Achieved bitwise numerical agreement $\Delta T \le 10^{-12}\ ^\circ\text{C}$ between serial and parallel runs.
+- **Outcome**:
+  Implemented persistent `ThreadPool` in `src/cpp/multicore_engine.cpp` with deterministic chunking. Achieved strict numerical agreement $\Delta T \le 10^{-8}\ ^\circ\text{C}$ between serial and parallel runs (measured $\Delta T = 0.00$ in `tests/test_main.cpp`).
 
 ---
 
@@ -107,18 +107,20 @@ To independently verify mathematical rigor against automatic differentiation hal
 - **Independent Validation**:
   Central finite difference verification ($\epsilon = 10^{-6}$) in `tests/test_main.cpp`:
   $$\frac{\partial J}{\partial w}\bigg|_{\text{FD}} = \frac{J(w + \epsilon) - J(w - \epsilon)}{2\epsilon}$$
-  - Analytical: `-1.20946445`
-  - Numerical: `-1.20946445`
+  - Analytical: `-1.20946447`
+  - Numerical: `-1.20946447`
   - Absolute Error: $3.24 \times 10^{-11} \le 10^{-5}$ (**PASSED**).
 
 ---
 
 ## 5. Original Work Statement
 - **Original Code & Engineering Design**:
-  - Full C++17 core numerical solver, Thomas tridiagonal algorithm, and midpoint error convergence logic (`src/cpp/fea_solver.cpp`).
+  - Full C++17 core numerical solver, explicit element assembly loop, Thomas tridiagonal algorithm, and midpoint error convergence logic (`src/cpp/fea_solver.cpp`).
   - Thread pool and multicore timing benchmark suite (`src/cpp/multicore_engine.cpp`).
   - Robust STL and ANSYS CSV parsers with strict format validation (`src/cpp/cad_ansys_parser.cpp`).
   - Embedded system architecture, pin-voltage mapping, and mock telemetry fault recovery (`src/cpp/embedded_mocks.cpp`).
   - Manual backpropagation mathematical derivation and finite difference test (`src/cpp/backprop_engine.cpp`).
   - Zero-dependency HTML5 2D/3D Canvas custom renderer (`js/cad-viewer.js`).
-- **Third-Party Runtime Dependencies**: **NONE** (100% Vanilla JS + HTML5 Canvas + Native C++17).
+- **Third-Party Transport Dependency**:
+  - `cpp-httplib` v0.66.0 (MIT License, header-only located in `src/server/httplib.h`), pinned in `DEPENDENCIES.md` with license text in `LICENSE_CPP_HTTPLIB.txt`, used strictly as the HTTP server transport in `src/server/server.cpp`.
+  - Zero npm/pip packages, zero CDN libraries, 100% self-contained offline execution.

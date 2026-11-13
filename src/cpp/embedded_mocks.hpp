@@ -125,6 +125,7 @@ class EmbeddedWorkbenchManager {
 public:
     EmbeddedWorkbenchManager();
     std::vector<std::shared_ptr<IEmbeddedDeviceAdapter>> get_all_devices() const;
+    std::shared_ptr<IEmbeddedDeviceAdapter> get_device_by_id(const std::string& id) const;
     std::string to_json_all_devices();
 
 private:

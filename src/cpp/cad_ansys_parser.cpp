@@ -49,7 +49,12 @@ STLParseResult CadAnsysParser::parse_ascii_stl_from_string(const std::string& co
     STLParseResult res;
     if (content.empty()) {
         res.success = false;
-        res.error_message = "STL content is empty.";
+        res.error_message = "STL content is empty (0 bytes).";
+        return res;
+    }
+    if (content.size() > MAX_STL_FILE_SIZE_BYTES) {
+        res.success = false;
+        res.error_message = "STL content exceeds maximum supported buffer size of 50 MB.";
         return res;
     }
 
@@ -197,7 +202,12 @@ AnsysCSVParseResult CadAnsysParser::parse_ansys_csv_from_string(const std::strin
     AnsysCSVParseResult res;
     if (content.empty()) {
         res.success = false;
-        res.error_message = "CSV content is empty.";
+        res.error_message = "CSV content is empty (0 bytes).";
+        return res;
+    }
+    if (content.size() > MAX_CSV_FILE_SIZE_BYTES) {
+        res.success = false;
+        res.error_message = "CSV content exceeds maximum supported buffer size of 50 MB.";
         return res;
     }
 

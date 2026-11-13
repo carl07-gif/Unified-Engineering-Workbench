@@ -88,30 +88,64 @@ ThermalSolveResult ThermalRodSolver::solve(const ThermalRodParams& p) {
         return res;
     }
 
-    // Free internal DOFs: nodes 1 to N-1 (size = N - 1)
+    // Standard FEM Global Assembly via Explicit Element Loop
+    // Allocate global system for all nodes 0 to N (size = num_nodes)
+    std::vector<double> K_diag(num_nodes, 0.0);
+    std::vector<double> K_sub(num_nodes, 0.0);
+    std::vector<double> K_sup(num_nodes, 0.0);
+    std::vector<double> F_global(num_nodes, 0.0);
+
+    // Loop over each 2-node linear element e in [0, N-1]
+    for (int e = 0; e < N; ++e) {
+        int n1 = e;
+        int n2 = e + 1;
+
+        // Local element stiffness matrix K^e (2x2):
+        // K^e = (k * A / h) * [  1, -1 ]
+        //                     [ -1,  1 ]
+        const double ke = (p.k * p.A) / h;
+        const double k_elem[2][2] = {
+            {  ke, -ke },
+            { -ke,  ke }
+        };
+
+        // Local element load vector F^e (2x1) for uniform volumetric heat generation q:
+        // F^e = (q * A * h / 2) * [ 1 ]
+        //                         [ 1 ]
+        const double fe = (p.q * p.A * h) / 2.0;
+        const double f_elem[2] = { fe, fe };
+
+        // Assemble element stiffness into global tridiagonal entries
+        K_diag[n1] += k_elem[0][0];
+        K_diag[n2] += k_elem[1][1];
+        K_sup[n1]   = k_elem[0][1]; // Coupling from n1 to n2
+        K_sub[n2]   = k_elem[1][0]; // Coupling from n2 to n1
+
+        // Assemble element load into global RHS vector
+        F_global[n1] += f_elem[0];
+        F_global[n2] += f_elem[1];
+    }
+
+    // Reduce to interior free degrees of freedom (nodes 1 to N-1)
     const int num_free = N - 1;
     std::vector<double> a(num_free, 0.0); // subdiagonal
     std::vector<double> b(num_free, 0.0); // main diagonal
     std::vector<double> c(num_free, 0.0); // superdiagonal
     std::vector<double> d(num_free, 0.0); // RHS load vector
 
-    // Element stiffness: K^e = (k*A/h) * [ 1, -1; -1, 1 ]
-    // Element load:      F^e = (q*A*h / 2) * [ 1; 1 ]
-    const double ke = (p.k * p.A) / h;
-    const double fe = (p.q * p.A * h) / 2.0;
-
     for (int i = 0; i < num_free; ++i) {
-        b[i] = 2.0 * ke;
-        a[i] = -ke;
-        c[i] = -ke;
-        d[i] = 2.0 * fe; // Sum of load contributions from element i and i+1
+        int global_node = i + 1;
+        b[i] = K_diag[global_node];
+        a[i] = K_sub[global_node];
+        c[i] = K_sup[global_node];
+        d[i] = F_global[global_node];
     }
 
-    // Impose prescribed boundary temperatures into RHS
-    // At node 1: -ke * T_0 moved to RHS as +ke * T_0
-    d[0] += ke * p.T0;
-    // At node N-1: -ke * T_L moved to RHS as +ke * T_L
-    d[num_free - 1] += ke * p.TL;
+    // Apply essential Dirichlet boundary conditions at endpoints
+    // Node 0: T(0) = T0, transfer coupling -ke * T0 to RHS as +ke * T0
+    d[0]            -= K_sub[1] * p.T0;
+    // Node N: T(L) = TL, transfer coupling -ke * TL to RHS as +ke * TL
+    d[num_free - 1] -= K_sup[N - 1] * p.TL;
 
     std::vector<double> T_free(num_free, 0.0);
     if (!solve_tridiagonal(num_free, a.data(), b.data(), c.data(), d.data(), T_free.data())) {

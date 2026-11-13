@@ -2,18 +2,18 @@
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
-#include <windows.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
+#include <windows.h>
 #pragma comment(lib, "ws2_32.lib")
 #endif
 
 #include "httplib.h"
-#include "../cpp/fea_solver.hpp"
-#include "../cpp/cad_ansys_parser.hpp"
-#include "../cpp/multicore_engine.hpp"
-#include "../cpp/embedded_mocks.hpp"
-#include "../cpp/backprop_engine.hpp"
+#include "fea_solver.hpp"
+#include "cad_ansys_parser.hpp"
+#include "multicore_engine.hpp"
+#include "embedded_mocks.hpp"
+#include "backprop_engine.hpp"
 
 #include <iostream>
 #include <sstream>
@@ -378,8 +378,18 @@ int main(int argc, char* argv[]) {
         }
     });
 
-    // 9. Static Files Mount (relative to root_dir)
-    svr.set_mount_point("/", root_dir.c_str());
+    // 9. Static Files Mount (Serve src/frontend if present, fallback to root_dir)
+    std::string frontend_dir = root_dir + "/src/frontend";
+    std::ifstream test_fe(frontend_dir + "/index.html");
+    if (test_fe.is_open()) {
+        test_fe.close();
+        std::cout << "   Static directory: " << frontend_dir << " (mounted to /)\n";
+        svr.set_mount_point("/", frontend_dir.c_str());
+        svr.set_mount_point("/src/frontend", frontend_dir.c_str());
+    } else {
+        std::cout << "   Static directory: " << root_dir << " (mounted to /)\n";
+        svr.set_mount_point("/", root_dir.c_str());
+    }
 
     // 10. Watchdog thread for client heartbeat auto-exit
     std::thread watchdog([&svr]() {
@@ -406,3 +416,4 @@ int main(int argc, char* argv[]) {
     std::cout << "Server stopped.\n";
     return 0;
 }
+

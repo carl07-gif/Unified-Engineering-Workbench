@@ -4,7 +4,9 @@ powershell.cmd
 # Packaging archives
 *.zip
 *.bundle
+# Build directories
 build/
+build_wsl/
 bin/
 *.obj
 *.pdb

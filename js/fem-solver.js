@@ -81,20 +81,44 @@ const FEMSolver = (() => {
       };
     }
 
-    // Tridiagonal coefficients for interior nodes (indices 1 … N-1)
+    // Standard FEM Global Assembly via Explicit Element Loop
+    // Allocate global system for all nodes 0 to N (size = n)
+    const K_diag = new Float64Array(n);
+    const K_sub  = new Float64Array(n);
+    const K_sup  = new Float64Array(n);
+    const F_global = new Float64Array(n);
+
+    // Loop over each 2-node linear element e in [0, N-1]
+    const ke = k / h;
+    const fe = (q * h) / 2.0;
+
+    for (let e = 0; e < N; e++) {
+      const n1 = e;
+      const n2 = e + 1;
+
+      // Local element stiffness K^e = ke * [ [1, -1], [-1, 1] ]
+      // Local element load F^e = fe * [ 1, 1 ]
+      K_diag[n1] += ke;
+      K_diag[n2] += ke;
+      K_sup[n1]   = -ke;
+      K_sub[n2]   = -ke;
+
+      F_global[n1] += fe;
+      F_global[n2] += fe;
+    }
+
+    // Reduce to interior free degrees of freedom (nodes 1 to N-1)
     const a = new Float64Array(nf);  // sub-diagonal
     const b = new Float64Array(nf);  // main diagonal
     const c = new Float64Array(nf);  // super-diagonal
     const d = new Float64Array(nf);  // RHS
 
-    const ke = k / h;               // element stiffness factor
-    const fe = q * h / 2;           // element load factor
-
     for (let i = 0; i < nf; i++) {
-      b[i] = 2 * ke;                // two elements share interior node
-      a[i] = -ke;
-      c[i] = -ke;
-      d[i] = 2 * fe;                // load from two elements
+      const globalNode = i + 1;
+      b[i] = K_diag[globalNode];
+      a[i] = K_sub[globalNode];
+      c[i] = K_sup[globalNode];
+      d[i] = F_global[globalNode];
     }
 
     // Adjust RHS for Dirichlet BCs

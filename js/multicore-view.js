@@ -122,10 +122,63 @@ const MulticoreViewController = (() => {
     }
     if (agreementBadge && agreementText) {
       agreementBadge.className = "agreement-badge";
-      agreementText.textContent = `Benchmarking ${caseCount.toLocaleString()} cases across threads...`;
+      agreementText.textContent = `Starting benchmark for ${caseCount.toLocaleString()} cases...`;
     }
 
-    // Allow UI to refresh badge
+    // 1. If C++ REST Backend is online, execute on native C++17 ThreadPool
+    if (typeof ApiClient !== "undefined" && ApiClient.isOnline()) {
+      try {
+        const startRes = await ApiClient.startBenchmark(caseCount, meshN, seed);
+        if (startRes.status === "already_running" || startRes.status === "started") {
+          let done = false;
+          while (!done) {
+            await new Promise(r => setTimeout(r, 180));
+            if (cancelRequested) {
+              await ApiClient.cancelBenchmark();
+              finalizeBenchmark(null, true);
+              return;
+            }
+            const st = await ApiClient.getBenchmarkStatus();
+            if (agreementText) {
+              agreementText.textContent = `C++ ThreadPool benchmark running... ${st.progress}%`;
+            }
+            if (!st.running) {
+              done = true;
+              if (st.cancelled) {
+                finalizeBenchmark(null, true);
+                return;
+              }
+              const rep = (typeof st.result === "string") ? JSON.parse(st.result) : st.result;
+              if (rep && rep.configurations) {
+                const results = rep.configurations.map(c => ({
+                  p: c.workers,
+                  repTimes: c.repetitions,
+                  median: c.median_ms,
+                  speedup: c.speedup,
+                  efficiency: c.efficiency
+                }));
+
+                // Update hardware specs in DOM if available
+                const hwCpu = document.getElementById("hwCpuModel");
+                if (hwCpu && rep.cpu_model) hwCpu.textContent = rep.cpu_model;
+                const hwRam = document.getElementById("hwRamInfo");
+                if (hwRam && rep.ram_gb) hwRam.textContent = `${rep.ram_gb} GB RAM`;
+
+                finalizeBenchmark(results, false, rep.max_serial_parallel_diff || 0.0, caseCount);
+                return;
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("[MulticoreView] C++ benchmark error, falling back to local runner:", err);
+      }
+    }
+
+    // 2. Local Fallback Execution (if backend offline)
+    if (agreementText) {
+      agreementText.textContent = `Benchmarking ${caseCount.toLocaleString()} cases across threads (local fallback)...`;
+    }
     await new Promise(r => setTimeout(r, 20));
 
     // Generate reproducible test cases
@@ -193,7 +246,7 @@ const MulticoreViewController = (() => {
         p,
         repTimes,
         median,
-        speedup: 1.0, // calculated below relative to p=1
+        speedup: 1.0,
         efficiency: 1.0
       });
     }

@@ -165,7 +165,17 @@ document.addEventListener("DOMContentLoaded", () => {
   let lastSolveResult = null;
   let lastParams = null;
 
-  // 1. Initialize Subsystems safely
+    // Start C++ Backend Health Monitoring via ApiClient
+    if (typeof ApiClient !== "undefined") {
+      ApiClient.startHealthMonitoring(3000);
+      ApiClient.onHealthChange((online, info) => {
+        if (online) {
+          console.log("[ApiClient] C++17 Engine Connected:", info);
+        } else {
+          console.warn("[ApiClient] C++ Backend Offline (127.0.0.1:7474)");
+        }
+      });
+    }
   try {
     ChartRenderer.init(document.getElementById("chartSvgWrapper"));
     ChartRenderer.draw();
@@ -233,7 +243,7 @@ document.addEventListener("DOMContentLoaded", () => {
     };
   }
 
-  function runThermalSolver(e) {
+  async function runThermalSolver(e) {
     if (e && e.preventDefault) e.preventDefault();
     const check = validateThermalParams();
 
@@ -283,77 +293,106 @@ document.addEventListener("DOMContentLoaded", () => {
       };
     }
 
-    setTimeout(() => {
-      if (solveCancelled) return;
-      try {
-        // 1. Solve chosen N
-        const femRes = FEMSolver.solve(params);
+    try {
+      let femRes;
+      let study;
+      let backendLabel = "C++17 Engine";
 
-        // 2. Generate exact comparison curve
-        const exact = FEMSolver.exactCurve(params.L, params.k, params.q, params.T0, params.TL);
-
-        // 3. Render SVG Chart
-        ChartRenderer.draw(exact, femRes, params.N, params);
-
-        // 4. Update 3D CadViewer Viewport & Rod Thermal Field
-        if (typeof CadViewer !== "undefined" && CadViewer.updateThermalParams) {
-          CadViewer.updateThermalParams(params);
+      // 1. Attempt solution via C++17 REST backend
+      if (typeof ApiClient !== "undefined" && ApiClient.isOnline()) {
+        try {
+          const cppData = await ApiClient.solveThermal(params);
+          if (solveCancelled) return;
+          femRes = {
+            x: cppData.nodes.map(n => n.x),
+            T: cppData.nodes.map(n => n.T),
+            solveTimeMs: cppData.solve_time_ms,
+            max_midpoint_error: cppData.max_midpoint_error
+          };
+          study = cppData.convergence.map(c => ({
+            N: c.N,
+            maxErr: c.max_err,
+            theoErr: c.theoretical
+          }));
+          backendLabel = "C++17 Thomas O(N) Solver";
+        } catch (apiErr) {
+          console.warn("[ApiClient] C++ solve failed, falling back to local solver:", apiErr);
+          if (solveCancelled) return;
+          femRes = FEMSolver.solve(params);
+          study = FEMSolver.convergenceStudy(params, [10, 20, 40, 80]);
+          backendLabel = "Local Solver (Backend Unreachable)";
         }
-
-        // Visual flash on chart wrapper to confirm solve executed
-        const chartWrapper = document.getElementById("chartSvgWrapper");
-        if (chartWrapper) {
-          chartWrapper.classList.remove("chart-recomputed");
-          void chartWrapper.offsetWidth;
-          chartWrapper.classList.add("chart-recomputed");
-        }
-
-        // 5. Run convergence study across [10, 20, 40, 80]
-        const study = FEMSolver.convergenceStudy(params, [10, 20, 40, 80]);
-        renderConvergenceCards(study, params.N);
-
-        lastSolveResult = femRes;
-        lastParams = params;
-
-        if (progressFill) {
-          progressFill.style.width = "100%";
-          progressFill.style.backgroundColor = "var(--color-success)";
-        }
-        if (statusIcon) {
-          statusIcon.className = "ti ti-circle-check status-bar-icon";
-          statusIcon.style.color = "var(--color-success)";
-        }
-        if (statusText) {
-          const errVal = (femRes.max_midpoint_error != null && !isNaN(femRes.max_midpoint_error))
-            ? femRes.max_midpoint_error.toFixed(4)
-            : (study && study.length ? study[study.length - 1].maxErr.toFixed(4) : "0.0195");
-          statusText.textContent = `Solved ${params.N} elements in ${femRes.solveTimeMs.toFixed(2)} ms (Max midpoint error: ${errVal} °C)`;
-        }
-        if (statusState) statusState.textContent = "Ready";
-
-        if (btnCancelSolve) btnCancelSolve.style.display = "none";
-        // Distinct success state on button
-        if (btnSolve) {
-          btnSolve.classList.remove("btn--running");
-          btnSolve.classList.add("btn--success");
-          btnSolve.innerHTML = `<i class="ti ti-check" aria-hidden="true"></i> Solved!`;
-          setTimeout(() => {
-            btnSolve.classList.remove("btn--success");
-            btnSolve.innerHTML = `<i class="ti ti-player-play" aria-hidden="true"></i>Run solver`;
-          }, 600);
-        }
-      } catch (err) {
-        console.error("Solver error:", err);
-        if (paramErrorBox) {
-          paramErrorBox.hidden = false;
-          paramErrorBox.innerHTML = `<i class="ti ti-alert-triangle"></i> Solver error: ${err.message || err}`;
-        }
-        if (btnSolve) {
-          btnSolve.classList.remove("btn--running");
-          btnSolve.innerHTML = `<i class="ti ti-player-play" aria-hidden="true"></i>Run solver`;
-        }
+      } else {
+        if (solveCancelled) return;
+        femRes = FEMSolver.solve(params);
+        study = FEMSolver.convergenceStudy(params, [10, 20, 40, 80]);
+        backendLabel = "Local Solver (Start workbench_server.exe for C++)";
       }
-    }, 180);
+
+      if (solveCancelled) return;
+
+      // 2. Generate exact comparison curve
+      const exact = FEMSolver.exactCurve(params.L, params.k, params.q, params.T0, params.TL);
+
+      // 3. Render SVG Chart
+      ChartRenderer.draw(exact, femRes, params.N, params);
+
+      // 4. Update 3D CadViewer Viewport & Rod Thermal Field
+      if (typeof CadViewer !== "undefined" && CadViewer.updateThermalParams) {
+        CadViewer.updateThermalParams(params);
+      }
+
+      // Visual flash on chart wrapper to confirm solve executed
+      const chartWrapper = document.getElementById("chartSvgWrapper");
+      if (chartWrapper) {
+        chartWrapper.classList.remove("chart-recomputed");
+        void chartWrapper.offsetWidth;
+        chartWrapper.classList.add("chart-recomputed");
+      }
+
+      // 5. Render convergence study cards
+      renderConvergenceCards(study, params.N);
+
+      lastSolveResult = femRes;
+      lastParams = params;
+
+      if (progressFill) {
+        progressFill.style.width = "100%";
+        progressFill.style.backgroundColor = "var(--color-success)";
+      }
+      if (statusIcon) {
+        statusIcon.className = "ti ti-circle-check status-bar-icon";
+        statusIcon.style.color = "var(--color-success)";
+      }
+      if (statusText) {
+        const errVal = (femRes.max_midpoint_error != null && !isNaN(femRes.max_midpoint_error))
+          ? femRes.max_midpoint_error.toFixed(4)
+          : (study && study.length ? study[study.length - 1].maxErr.toFixed(4) : "0.0195");
+        statusText.textContent = `Solved ${params.N} elements in ${femRes.solveTimeMs.toFixed(2)} ms via ${backendLabel} (Max midpoint error: ${errVal} °C)`;
+      }
+      if (statusState) statusState.textContent = "Ready";
+
+      if (btnCancelSolve) btnCancelSolve.style.display = "none";
+      if (btnSolve) {
+        btnSolve.classList.remove("btn--running");
+        btnSolve.classList.add("btn--success");
+        btnSolve.innerHTML = `<i class="ti ti-check" aria-hidden="true"></i> Solved!`;
+        setTimeout(() => {
+          btnSolve.classList.remove("btn--success");
+          btnSolve.innerHTML = `<i class="ti ti-player-play" aria-hidden="true"></i>Run solver`;
+        }, 600);
+      }
+    } catch (err) {
+      console.error("Solver error:", err);
+      if (paramErrorBox) {
+        paramErrorBox.hidden = false;
+        paramErrorBox.innerHTML = `<i class="ti ti-alert-triangle"></i> Solver error: ${err.message || err}`;
+      }
+      if (btnSolve) {
+        btnSolve.classList.remove("btn--running");
+        btnSolve.innerHTML = `<i class="ti ti-player-play" aria-hidden="true"></i>Run solver`;
+      }
+    }
   }
 
   function renderConvergenceCards(study, activeN) {

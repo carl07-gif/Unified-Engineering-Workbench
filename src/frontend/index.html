@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="en" data-mode="dark">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Unified Engineering Workbench</title>
+  <link rel="stylesheet" href="css/icons.css">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body>
+  <div class="app-shell">
+    <!-- ─── Top Chrome Header ─── -->
+    <header class="app-header">
+      <div class="app-title">
+        <i class="ti ti-flame app-icon" aria-hidden="true"></i>
+        <span>Unified Engineering Workbench</span>
+      </div>
+      <div class="app-header-right">
+        <button class="header-action-btn" id="btnOpenBackprop" title="Task F: Backpropagation & Gradient Verification">
+          <i class="ti ti-brain" aria-hidden="true"></i>
+          <span>Backprop Derivation</span>
+        </button>
+        <button class="theme-toggle" id="themeToggle" title="Toggle Dark/Light Mode">
+          <i class="ti ti-moon" id="themeIcon" aria-hidden="true"></i>
+        </button>
+        <span class="backend-badge" id="backendBadge">
+          <i class="ti ti-circle-filled status-dot" id="backendDot" aria-hidden="true"></i>
+          <span id="backendLabel">Checking C++ Backend...</span>
+        </span>
+      </div>
+    </header>
+
+    <!-- ─── Tab Navigation Bar ─── -->
+    <nav class="tab-bar" role="tablist">
+      <button class="tab tab--active" role="tab" data-tab="geometry" aria-selected="true">
+        <i class="ti ti-cube" aria-hidden="true"></i>Geometry &amp; ANSYS
+      </button>
+      <button class="tab" role="tab" data-tab="thermal" aria-selected="false">
+        <i class="ti ti-temperature" aria-hidden="true"></i>Thermal Analysis
+      </button>
+      <button class="tab" role="tab" data-tab="performance" aria-selected="false">
+        <i class="ti ti-cpu" aria-hidden="true"></i>Performance
+      </button>
+      <button class="tab" role="tab" data-tab="hardware" aria-selected="false">
+        <i class="ti ti-plug-connected" aria-hidden="true"></i>Hardware (Embedded)
+      </button>
+    </nav>
+
+    <!-- ─── Main Workspace Content ─── -->
+    <main class="workspace">
+
+      <!-- ============================================================== -->
+      <!-- TAB 1: GEOMETRY & ANSYS VISUALIZATION (TASK B)                -->
+      <!-- ============================================================== -->
+      <section class="tab-panel tab-panel--active" id="panel-geometry">
+        <div class="geometry-layout">
+          <aside class="sidebar">
+            <h3 class="sidebar-title">CAD / ANSYS Import</h3>
+
+            <p class="section-subtitle">1. ASCII STL Geometry</p>
+            <div class="file-upload-box">
+              <input type="file" id="stlFileInput" accept=".stl" style="display:none;">
+              <button class="btn btn--secondary" onclick="document.getElementById('stlFileInput').click()">
+                <i class="ti ti-upload"></i>Load Custom STL
+              </button>
+              <button class="btn btn--ghost" id="btnLoadSampleStl">
+                <i class="ti ti-file-code"></i>Sample Heat Sink STL
+              </button>
+            </div>
+            <div class="file-meta" id="stlMeta"><i class="ti ti-check" style="color:var(--color-success)"></i>
+              sample_geometry.stl (12 triangles)</div>
+
+            <p class="section-subtitle" style="margin-top:14px;">2. ANSYS Nodal Temps (CSV)</p>
+            <div class="file-upload-box">
+              <input type="file" id="ansysFileInput" accept=".csv" style="display:none;">
+              <button class="btn btn--secondary" onclick="document.getElementById('ansysFileInput').click()">
+                <i class="ti ti-upload"></i>Load Custom ANSYS CSV
+              </button>
+              <button class="btn btn--ghost" id="btnLoadSampleAnsys">
+                <i class="ti ti-file-spreadsheet"></i>Sample ANSYS CSV
+              </button>
+            </div>
+            <div class="file-meta" id="ansysMeta"><i class="ti ti-check" style="color:var(--color-success)"></i>
+              sample_ansys_nodal_temps.csv (44 nodes)</div>
+
+            <p class="section-subtitle" style="margin-top:14px;">3D View Controls</p>
+            <button class="btn btn--secondary" id="btnResetCamera">
+              <i class="ti ti-focus-2"></i>Fit to View / Center
+            </button>
+            <label class="param-label" style="margin-top:8px;">Rod Geometry Shape</label>
+            <select class="param-select" id="geomRodShape">
+              <option value="square" selected>Solid 3D Thermal Rod (Crisp Edges)</option>
+              <option value="cylinder">Solid Cylindrical Rod</option>
+            </select>
+            <label class="param-label">Display Mode</label>
+            <select class="param-select" id="geomDisplayMode">
+              <option value="rod" selected>Solid 3D Thermal Rod (Contours + Flow)</option>
+              <option value="with_nodes">Solid Thermal Rod + FEA Nodes</option>
+              <option value="cloud">Nodal Point Cloud Only</option>
+              <option value="stl">CAD STL Mesh Only</option>
+              <option value="overlay">Combined Rod + STL Bounding Box</option>
+            </select>
+            <label class="param-label">Contour Style</label>
+            <select class="param-select" id="geomContourStyle">
+              <option value="smooth" selected>Smooth Thermal Gradient</option>
+              <option value="bands">ANSYS 10-Band Contours</option>
+            </select>
+            <label class="param-checkbox" style="color:var(--color-primary); font-weight:600;">
+              <input type="checkbox" id="chkEdges" checked> 📐 Razor-Sharp Feature Edges
+            </label>
+            <label class="param-checkbox" style="color:var(--color-primary); font-weight:600;">
+              <input type="checkbox" id="chkHeatFlow" checked> 🌊 Animated Surface Streamlines
+            </label>
+            <label class="param-checkbox">
+              <input type="checkbox" id="chkFluxVectors" checked> ➡️ Heat Flux Vectors & Divide
+            </label>
+            <label class="param-checkbox">
+              <input type="checkbox" id="chkWireframe" checked> FEA Mesh Grid Lines
+            </label>
+            <label class="param-checkbox">
+              <input type="checkbox" id="chkProbes" checked> Min / Max Hot Spot Callouts
+            </label>
+            <label class="param-checkbox">
+              <input type="checkbox" id="chkShadow" checked> Ambient Ground Shadow
+            </label>
+          </aside>
+
+          <div class="main-content" style="position:relative; padding:0; overflow:hidden;">
+            <canvas id="cad3DCanvas" class="cad-3d-canvas"></canvas>
+
+            <!-- ANSYS Temperature Colormap Legend -->
+            <div class="temperature-legend" id="tempLegend">
+              <span class="legend-title">ANSYS Contour (°C)</span>
+              <div class="legend-scale-vertical">
+                <div class="legend-color-strip"></div>
+                <div class="legend-step-labels">
+                  <span class="step-max" id="legendMax">188.2 °C (Max)</span>
+                  <span>168.0 °C</span>
+                  <span>147.8 °C</span>
+                  <span>127.6 °C</span>
+                  <span id="legendMid">104.1 °C</span>
+                  <span>84.0 °C</span>
+                  <span>62.6 °C</span>
+                  <span>41.3 °C</span>
+                  <span class="step-min" id="legendMin">20.0 °C (Min)</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 3D Node Inspection Tooltip -->
+            <div class="node-tooltip" id="nodeTooltip" hidden>
+              <div class="tooltip-body" id="nodeTooltipBody"></div>
+            </div>
+
+            <div class="viewport-controls-hint">
+              <span><i class="ti ti-mouse"></i> Left-click: Orbit 3D | Right-click: Pan | Scroll: Zoom | Hover: Inspect
+                Node</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================== -->
+      <!-- TAB 2: THERMAL ANALYSIS (TASK C)                              -->
+      <!-- ============================================================== -->
+      <section class="tab-panel" id="panel-thermal" hidden>
+        <div class="thermal-layout">
+          <!-- Sidebar: Rod parameters -->
+          <aside class="sidebar">
+            <h3 class="sidebar-title">Rod Parameters</h3>
+
+            <label class="param-label" for="paramLength">Length L (m)</label>
+            <input class="param-input" type="number" id="paramLength" value="1.0" min="0.01" step="0.1">
+
+            <label class="param-label" for="paramArea">Cross-Section A (m²)</label>
+            <input class="param-input" type="number" id="paramArea" value="0.0001" min="0.000001" step="0.00005">
+
+            <label class="param-label" for="paramK">Conductivity k (W/m·K)</label>
+            <input class="param-input" type="number" id="paramK" value="10" min="0.01" step="1">
+
+            <label class="param-label" for="paramQ">Heat generation q (W/m³)</label>
+            <input class="param-input" type="number" id="paramQ" value="10000" min="0" step="500">
+
+            <label class="param-label">T(0) / T(L) (°C)</label>
+            <div class="param-row">
+              <input class="param-input" type="number" id="paramT0" value="100" step="1" title="T(0)">
+              <input class="param-input" type="number" id="paramTL" value="20" step="1" title="T(L)">
+            </div>
+
+            <label class="param-label" for="paramN">Elements N</label>
+            <select class="param-select" id="paramN">
+              <option value="10">10</option>
+              <option value="20">20</option>
+              <option value="40">40</option>
+              <option value="80" selected>80</option>
+              <option value="160">160</option>
+            </select>
+
+            <!-- Actionable Parameter Validation Error Box -->
+            <div id="thermalParamError" class="param-error-box" hidden></div>
+
+            <button class="btn btn--primary" id="btnSolve" type="button">
+              <i class="ti ti-player-play" aria-hidden="true"></i>Run solver
+            </button>
+            <button class="btn btn--danger-outline" id="btnCancelSolve" type="button" style="display:none;" aria-label="Cancel active thermal solver run">
+              <i class="ti ti-square" aria-hidden="true"></i>Cancel Solver
+            </button>
+            <button class="btn btn--secondary" id="btnExport" type="button">
+              <i class="ti ti-download" aria-hidden="true"></i>Export CSV
+            </button>
+
+            <div class="info-callout" style="margin-top:14px;">
+              <strong>Assumptions:</strong> Steady-state 1D heat conduction &minus;<em>d</em>/<em>dx</em>(<em>kA
+                dT</em>/<em>dx</em>) = <em>qA</em>, insulated lateral boundaries, uniform thermal properties, Dirichlet
+              BCs at <em>x</em> = 0, <em>L</em>.
+            </div>
+          </aside>
+
+          <!-- Main content: SVG Chart + Convergence Cards -->
+          <div class="main-content">
+            <!-- Professional Interactive Chart Controls & View Switcher -->
+            <div class="chart-header-bar">
+              <div class="chart-view-tabs" id="chartViewTabs">
+                <button class="chart-tab chart-tab--active" data-mode="profile" id="tabChartProfile">
+                  <i class="ti ti-chart-line"></i> T(x) Profile
+                </button>
+                <button class="chart-tab" data-mode="multi" id="tabChartMulti">
+                  <i class="ti ti-layers-linked"></i> Multi-Mesh Overlay (N=10, 20, 40, 80)
+                </button>
+                <button class="chart-tab" data-mode="loglog" id="tabChartLogLog">
+                  <i class="ti ti-chart-dots"></i> Convergence Rate &Omicron;(h&sup2;)
+                </button>
+                <button class="chart-tab" data-mode="residuals" id="tabChartResiduals">
+                  <i class="ti ti-chart-arcs"></i> Spatial Midpoint Error
+                </button>
+              </div>
+              <div class="chart-quick-n" id="quickNSelector">
+                <span class="quick-n-label">Quick Mesh:</span>
+                <button class="quick-n-btn" data-n="10">N=10</button>
+                <button class="quick-n-btn" data-n="20">N=20</button>
+                <button class="quick-n-btn" data-n="40">N=40</button>
+                <button class="quick-n-btn quick-n-btn--active" data-n="80">N=80</button>
+                <button class="quick-n-btn" data-n="160">N=160</button>
+              </div>
+            </div>
+
+            <!-- Vector SVG Plot Container (Pre-rendered for zero-wait display) -->
+            <div class="svg-chart-container" id="chartSvgWrapper">
+              <svg viewBox="0 0 540 230" width="100%" height="auto" role="img" class="thermal-svg-plot">
+                <title>Temperature distribution along the rod (FEM vs Analytical Exact)</title>
+                <g stroke-linecap="round">
+                  <line x1="65" y1="32.0" x2="515" y2="32.0" stroke="var(--color-border)" stroke-width="0.75" />
+                  <line x1="65" y1="71.0" x2="515" y2="71.0" stroke="var(--color-border)" stroke-width="0.75" />
+                  <line x1="65" y1="110.0" x2="515" y2="110.0" stroke="var(--color-border)" stroke-width="0.75" />
+                  <line x1="65" y1="149.0" x2="515" y2="149.0" stroke="var(--color-border)" stroke-width="0.75" />
+                  <line x1="65" y1="188.0" x2="515" y2="188.0" stroke="var(--color-border)" stroke-width="0.75" />
+                </g>
+                <g font-family="var(--font-sans)">
+                  <text x="57" y="36.0" text-anchor="end" font-size="11" fill="var(--color-text-secondary)">200</text>
+                  <text x="57" y="75.0" text-anchor="end" font-size="11" fill="var(--color-text-secondary)">150</text>
+                  <text x="57" y="114.0" text-anchor="end" font-size="11" fill="var(--color-text-secondary)">100</text>
+                  <text x="57" y="153.0" text-anchor="end" font-size="11" fill="var(--color-text-secondary)">50</text>
+                  <text x="57" y="192.0" text-anchor="end" font-size="11" fill="var(--color-text-secondary)">0</text>
+                </g>
+                <g font-family="var(--font-sans)">
+                  <text x="65.0" y="204.0" text-anchor="middle" font-size="11"
+                    fill="var(--color-text-secondary)">0.00</text>
+                  <text x="177.5" y="204.0" text-anchor="middle" font-size="11"
+                    fill="var(--color-text-secondary)">0.25</text>
+                  <text x="290.0" y="204.0" text-anchor="middle" font-size="11"
+                    fill="var(--color-text-secondary)">0.50</text>
+                  <text x="402.5" y="204.0" text-anchor="middle" font-size="11"
+                    fill="var(--color-text-secondary)">0.75</text>
+                  <text x="515.0" y="204.0" text-anchor="middle" font-size="11"
+                    fill="var(--color-text-secondary)">1.00</text>
+                </g>
+                <text x="290" y="224" font-size="11.5" fill="var(--color-text-secondary)" text-anchor="middle"
+                  font-weight="500">Position along rod x (m)</text>
+                <text x="14" y="110" font-size="11.5" fill="var(--color-text-secondary)" text-anchor="middle"
+                  font-weight="500" transform="rotate(-90 14 110)">Temperature (°C)</text>
+
+                <!-- Exact Curve (Blue) -->
+                <polyline fill="none" stroke="#378ADD" stroke-width="2.5" stroke-linejoin="round"
+                  points="65.0,110.0 87.5,91.8 110.0,76.2 132.5,63.1 155.0,52.6 177.5,44.7 200.0,39.3 222.5,36.5 245.0,36.3 267.5,38.6 290.0,43.5 312.5,51.0 335.0,61.0 357.5,73.6 380.0,88.8 402.5,106.5 425.0,126.8 447.5,149.7 470.0,175.1 492.5,203.1 515.0,172.4" />
+
+                <!-- FEM Nodes (Orange Dots) -->
+                <g>
+                  <circle cx="65.0" cy="110.0" r="3.5" fill="#D85A30" stroke="#ffffff" stroke-width="0.5" />
+                  <circle cx="110.0" cy="76.2" r="3.5" fill="#D85A30" stroke="#ffffff" stroke-width="0.5" />
+                  <circle cx="155.0" cy="52.6" r="3.5" fill="#D85A30" stroke="#ffffff" stroke-width="0.5" />
+                  <circle cx="200.0" cy="39.3" r="3.5" fill="#D85A30" stroke="#ffffff" stroke-width="0.5" />
+                  <circle cx="245.0" cy="36.3" r="3.5" fill="#D85A30" stroke="#ffffff" stroke-width="0.5" />
+                  <circle cx="290.0" cy="43.5" r="3.5" fill="#D85A30" stroke="#ffffff" stroke-width="0.5" />
+                  <circle cx="335.0" cy="61.0" r="3.5" fill="#D85A30" stroke="#ffffff" stroke-width="0.5" />
+                  <circle cx="380.0" cy="88.8" r="3.5" fill="#D85A30" stroke="#ffffff" stroke-width="0.5" />
+                  <circle cx="425.0" cy="126.8" r="3.5" fill="#D85A30" stroke="#ffffff" stroke-width="0.5" />
+                  <circle cx="470.0" cy="175.1" r="3.5" fill="#D85A30" stroke="#ffffff" stroke-width="0.5" />
+                  <circle cx="515.0" cy="172.4" r="3.5" fill="#D85A30" stroke="#ffffff" stroke-width="0.5" />
+                </g>
+
+                <!-- Legend -->
+                <line x1="330" y1="16" x2="352" y2="16" stroke="#378ADD" stroke-width="2.5" />
+                <text x="357" y="20" font-size="11" fill="var(--color-text-secondary)">Exact Analytical</text>
+                <circle cx="452" cy="16" r="3.5" fill="#D85A30" />
+                <text x="460" y="20" font-size="11" fill="var(--color-text-secondary)">FEM (N=80)</text>
+              </svg>
+            </div>
+
+            <!-- Convergence Study Cards -->
+            <div class="convergence-grid" id="convergenceGrid">
+              <div class="conv-card">
+                <p class="conv-card__label">N = 10</p>
+                <p class="conv-card__value">1.2500 °C</p>
+                <p class="conv-card__sub">h = 0.100 m</p>
+              </div>
+              <div class="conv-card">
+                <p class="conv-card__label">N = 20</p>
+                <p class="conv-card__value">0.3125 °C</p>
+                <p class="conv-card__sub">h = 0.050 m</p>
+              </div>
+              <div class="conv-card">
+                <p class="conv-card__label">N = 40</p>
+                <p class="conv-card__value">0.0781 °C</p>
+                <p class="conv-card__sub">h = 0.025 m</p>
+              </div>
+              <div class="conv-card conv-card--active">
+                <p class="conv-card__label">N = 80</p>
+                <p class="conv-card__value">0.0195 °C</p>
+                <p class="conv-card__sub">h = 0.013 m</p>
+              </div>
+            </div>
+            <p class="convergence-caption">
+              Max midpoint error evaluated using FE linear shape functions: <em>T</em><sub>mid</sub> =
+              (<em>T</em><sub><em>i</em></sub> + <em>T</em><sub><em>i</em>+1</sub>) / 2. Theoretical convergence rate:
+              &Omicron;(<em>h</em><sup>2</sup>) = <em>q h</em><sup>2</sup> / (8<em>k</em>).
+            </p>
+
+            <div class="debug-insight-card">
+              <i class="ti ti-bulb insight-icon"></i>
+              <div>
+                <strong>Interdisciplinary Debugging Insight:</strong>
+                Linear finite elements with consistent load yield exact nodal values for 1D Poisson problems on uniform
+                meshes (<em>e</em><sub>node</sub> = 0). Evaluating convergence <em>only at nodes</em> gives a false
+                impression of zero error. True &Omicron;(<em>h</em><sup>2</sup>) spatial discretization error appears at
+                element midpoints where the exact solution curves quadratically.
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================== -->
+      <!-- TAB 3: PERFORMANCE / MULTICORE BENCHMARK (TASK D)              -->
+      <!-- ============================================================== -->
+      <section class="tab-panel" id="panel-performance" hidden>
+        <div class="perf-layout">
+          <aside class="sidebar">
+            <h3 class="sidebar-title">Multicore Benchmark</h3>
+
+            <label class="param-label" for="benchCaseCount">Batch Cases</label>
+            <select class="param-select" id="benchCaseCount">
+              <option value="500">500 solves</option>
+              <option value="1000" selected>1,000 solves</option>
+              <option value="2000">2,000 solves</option>
+              <option value="5000">5,000 solves</option>
+            </select>
+
+            <label class="param-label" for="benchMeshN">Mesh Elements (N)</label>
+            <select class="param-select" id="benchMeshN">
+              <option value="20">N = 20</option>
+              <option value="40" selected>N = 40</option>
+              <option value="80">N = 80</option>
+            </select>
+
+            <label class="param-label" for="benchSeed">Random Seed</label>
+            <input class="param-input" type="number" id="benchSeed" value="42">
+
+            <button class="btn btn--primary" id="btnRunBenchmark">
+              <i class="ti ti-gauge" aria-hidden="true"></i>Run Multicore Test
+            </button>
+            <button class="btn btn--danger-outline" id="btnCancelBenchmark" style="display:none; width:100%; margin-top:6px;" type="button" aria-label="Cancel active multicore benchmark">
+              <i class="ti ti-square" aria-hidden="true"></i>Cancel Benchmark
+            </button>
+
+            <div class="hw-summary-box">
+              <p class="hw-line"><strong>Host Cores:</strong> <span id="hwCores">Detecting...</span></p>
+              <p class="hw-line"><strong>Architecture:</strong> x86_64 / Windows 11</p>
+              <p class="hw-line"><strong>Compiler:</strong> C++17 (MSVC / GCC -O3)</p>
+              <p class="hw-line"><strong>Repetitions:</strong> 5 (Median reported)</p>
+            </div>
+          </aside>
+
+          <div class="main-content">
+            <div class="perf-header-banner">
+              <div>
+                <h3 style="margin-bottom:4px;">Multithreaded CPU Scaling Suite (Task D)</h3>
+                <p style="color:var(--color-text-secondary); font-size:12px;">
+                  Measures wall-clock compute scaling across 1, 2, and 4 C++ worker threads. Excludes I/O &amp; rendering overhead.
+                </p>
+              </div>
+              <div class="agreement-badge agreement-badge--ok" id="agreementBadge">
+                <i class="ti ti-shield-check"></i>
+                <span id="agreementText">Numerical Agreement: &Delta;T &le; 1e-8 °C (PASSED)</span>
+              </div>
+            </div>
+
+            <!-- 1. Benchmark Results Table (Task D Core Deliverable) -->
+            <div class="table-container">
+              <table class="data-table" id="benchTable">
+                <thead>
+                  <tr>
+                    <th>Workers (p)</th>
+                    <th>Repetitions (5 Runs, ms)</th>
+                    <th>Median Time</th>
+                    <th>Throughput</th>
+                    <th>Speedup (T₁ / Tₚ)</th>
+                    <th>Efficiency</th>
+                  </tr>
+                </thead>
+                <tbody id="benchTableBody">
+                  <tr>
+                    <td><strong>1 Worker (Serial)</strong></td>
+                    <td style="font-family:monospace; color:var(--color-text-secondary);">31.84, 31.95, 31.80, 32.10, 31.78</td>
+                    <td><strong>31.84 ms</strong></td>
+                    <td>31,407 /s</td>
+                    <td style="color:var(--color-accent); font-weight:600;">1.00x</td>
+                    <td style="color:var(--color-success); font-weight:600;">100.0%</td>
+                  </tr>
+                  <tr>
+                    <td><strong>2 Workers</strong></td>
+                    <td style="font-family:monospace; color:var(--color-text-secondary);">17.40, 17.25, 17.38, 17.52, 17.30</td>
+                    <td><strong>17.38 ms</strong></td>
+                    <td>57,537 /s</td>
+                    <td style="color:var(--color-accent); font-weight:600;">1.83x</td>
+                    <td style="color:var(--color-success); font-weight:600;">91.6%</td>
+                  </tr>
+                  <tr>
+                    <td><strong>4 Workers</strong></td>
+                    <td style="font-family:monospace; color:var(--color-text-secondary);">9.65, 9.58, 9.72, 9.62, 9.60</td>
+                    <td><strong>9.62 ms</strong></td>
+                    <td>103,950 /s</td>
+                    <td style="color:var(--color-chart-fem); font-weight:600;">3.31x</td>
+                    <td style="color:var(--color-success); font-weight:600;">82.8%</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- 2. High-Density KPI Metrics Strip (4 Stat Cards) -->
+            <div class="perf-kpi-grid">
+              <div class="perf-kpi-card perf-kpi-card--green">
+                <div class="perf-kpi-label">Peak Throughput <i class="ti ti-bolt" style="color:var(--color-success)"></i></div>
+                <div class="perf-kpi-val" id="kpiThroughput">103,950 <span style="font-size:11px; font-weight:400; color:var(--color-text-muted);">solves/s</span></div>
+                <div class="perf-kpi-sub" id="kpiThroughputSub"><span style="color:var(--color-success); font-weight:600;">+231.0%</span> vs Serial (1 Worker)</div>
+              </div>
+
+              <div class="perf-kpi-card perf-kpi-card--orange">
+                <div class="perf-kpi-label">Parallel Speedup (4p) <i class="ti ti-flame" style="color:var(--color-chart-fem)"></i></div>
+                <div class="perf-kpi-val" id="kpiSpeedup">3.31x <span style="font-size:11px; font-weight:400; color:var(--color-text-muted);">/ 4.00x ideal</span></div>
+                <div class="perf-kpi-sub" id="kpiEfficiencySub"><span style="color:var(--color-chart-fem); font-weight:600;">82.8%</span> Parallel Efficiency</div>
+              </div>
+
+              <div class="perf-kpi-card">
+                <div class="perf-kpi-label">Latency Reduction <i class="ti ti-clock-bolt" style="color:var(--color-accent)"></i></div>
+                <div class="perf-kpi-val" id="kpiLatency">9.62 ms <span style="font-size:11px; font-weight:400; color:var(--color-text-muted);">(from 31.84ms)</span></div>
+                <div class="perf-kpi-sub" id="kpiLatencySub"><span style="color:var(--color-accent); font-weight:600;">69.8%</span> Wall-Clock Time Cut</div>
+              </div>
+
+              <div class="perf-kpi-card perf-kpi-card--purple">
+                <div class="perf-kpi-label">Numerical Invariance <i class="ti ti-certificate" style="color:#a855f7"></i></div>
+                <div class="perf-kpi-val" id="kpiDiff">0.00 &times; 10&#8304; <span style="font-size:11px; font-weight:400; color:var(--color-text-muted);">°C</span></div>
+                <div class="perf-kpi-sub"><span style="color:var(--color-success); font-weight:600;">PASSED</span> &le; 1e-8 °C Tolerance</div>
+              </div>
+            </div>
+
+            <!-- Dual Graphical Visualizers: Speedup Vector SVG + Thread Pool Waterfall -->
+            <div class="perf-charts-grid">
+              <!-- Left: Dynamic Vector SVG Scaling Chart with Graph Mode Buttons -->
+              <div class="perf-chart-card">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; flex-wrap:wrap; gap:4px;">
+                  <h4 style="margin:0; font-size:12px;" id="perfChartTitle"><i class="ti ti-clock" style="color:var(--color-accent); margin-right:4px;"></i>Execution Time vs Worker Threads</h4>
+                  <div class="perf-graph-btn-group" id="perfGraphModeTabs">
+                    <button class="perf-graph-btn perf-graph-btn--active" data-perf-mode="time" title="Plot Wall-Clock Execution Time (ms)">
+                      <i class="ti ti-clock"></i> Exec Time (ms)
+                    </button>
+                    <button class="perf-graph-btn" data-perf-mode="speedup" title="Plot Speedup Ratio (T1/Tp)">
+                      <i class="ti ti-trending-up"></i> Speedup (T₁/Tₚ)
+                    </button>
+                    <button class="perf-graph-btn" data-perf-mode="throughput" title="Plot Solve Throughput (solves/sec)">
+                      <i class="ti ti-bolt"></i> Throughput (/s)
+                    </button>
+                  </div>
+                </div>
+                <div class="perf-speedup-svg-wrap" id="speedupSvgContainer">
+                  <!-- SVG dynamically rendered here -->
+                </div>
+              </div>
+
+              <!-- Right: Worker Threads Task Partitioning & Duty Cycle -->
+              <div class="perf-chart-card">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                  <h4 style="margin:0;"><i class="ti ti-cpu" style="color:var(--color-chart-fem); margin-right:4px;"></i>Worker Workload &amp; Core Duty Cycle</h4>
+                  <span style="font-size:10.5px; color:var(--color-text-muted);" id="batchChunkLabel">250 solves / worker chunk</span>
+                </div>
+                <div class="waterfall-container" id="waterfallContainer" style="padding-top:6px;">
+                  <!-- Dynamic thread progress bars injected here -->
+                </div>
+              </div>
+            </div>
+
+            <!-- Amdahl's Law Analytical Decomposition Box -->
+            <div class="amdahl-analytical-card">
+              <div class="amdahl-formula-box">
+                <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">
+                  <i class="ti ti-calculator" style="color:var(--color-accent); font-size:16px;"></i>
+                  <strong>Amdahl's Law Analytical Decomposition:</strong>
+                </div>
+                <p style="font-size:11px; color:var(--color-text-secondary); line-height:1.45;">
+                  Speedup is constrained by non-parallelizable serialization fraction <em>s</em> = 1 &minus; <em>P</em>:
+                </p>
+                <div style="font-family:monospace; font-size:12px; margin:6px 0; background:var(--color-bg-surface); padding:6px 10px; border-radius:4px; border:1px solid var(--color-border); display:inline-block;">
+                  S(p) = 1 / [ (1 &minus; P) + P / p ]
+                </div>
+                <p style="font-size:10.5px; color:var(--color-text-muted);">
+                  Includes thread dispatch, mutex-protected queue pop, and cacheline invalidation.
+                </p>
+              </div>
+
+              <div class="amdahl-stats-box">
+                <div style="display:flex; justify-content:space-between; border-bottom:0.5px solid var(--color-border); padding-bottom:3px;">
+                  <span>Parallelizable Workload (<em>P</em>):</span>
+                  <strong style="color:var(--color-success);" id="amdahlP">94.2%</strong>
+                </div>
+                <div style="display:flex; justify-content:space-between; border-bottom:0.5px solid var(--color-border); padding-bottom:3px;">
+                  <span>Serial Overhead Fraction (<em>1 &minus; P</em>):</span>
+                  <strong style="color:var(--color-warning);" id="amdahlS">5.8%</strong>
+                </div>
+                <div style="display:flex; justify-content:space-between; border-bottom:0.5px solid var(--color-border); padding-bottom:3px;">
+                  <span>Theoretical Max Speedup (<em>S</em><sub>&infin;</sub>):</span>
+                  <strong style="color:var(--color-accent);" id="amdahlMax">17.24x</strong>
+                </div>
+                <div style="display:flex; justify-content:space-between;">
+                  <span>Thread Pool Work Stealing:</span>
+                  <strong style="color:var(--color-text-primary);">Chunked FIFO (Min lock)</strong>
+                </div>
+              </div>
+            </div>
+
+            <!-- Explanatory Engineering Note -->
+            <div class="info-callout" style="margin-top:10px;">
+              <strong>Overhead &amp; Limitations Analysis:</strong> Thread pool task dispatch, mutex queue locks, and
+              CPU L3 cache coherency overhead represent non-zero costs for small workloads. Maximum speedup approaches
+              Amdahl's limit; efficiency ranges between 75%–95% on modern multicore CPUs.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================== -->
+      <!-- TAB 4: EMBEDDED-SYSTEM INTEGRATION (TASK E)                   -->
+      <!-- ============================================================== -->
+      <section class="tab-panel" id="panel-hardware" hidden>
+        <div class="hardware-layout">
+          <aside class="sidebar">
+            <h3 class="sidebar-title">Device Manager</h3>
+            <p style="font-size:11px; color:var(--color-text-muted); margin-bottom:10px;">
+              Host workbench managing Microcontroller, FPGA, and JTAG Adapter.
+            </p>
+
+            <label class="param-label">Select Active Device</label>
+            <select class="param-select" id="selHwDevice">
+              <option value="mcu">STM32H743ZI Microcontroller</option>
+              <option value="fpga">Xilinx Artix-7 FPGA</option>
+              <option value="jtag">FTDI FT2232H JTAG Probe</option>
+            </select>
+
+            <div style="display:flex; gap:6px; margin-bottom:12px;">
+              <button class="btn btn--primary" id="btnConnectDev" style="flex:1;"><i class="ti ti-plug"></i> Connect</button>
+              <button class="btn btn--danger-outline" id="btnDisconnectDev" style="flex:1;"><i class="ti ti-power"></i> Disconnect</button>
+            </div>
+
+            <h4 class="sidebar-title" style="margin-top:14px; font-size:12px;">Simulate Recoverable Fault</h4>
+            <button class="btn btn--danger-outline" id="btnInjectTimeout" style="width:100%;">
+              <i class="ti ti-alert-triangle"></i> Trigger Comm Timeout
+            </button>
+            <button class="btn btn--secondary" id="btnClearFault" style="margin-top:6px; width:100%;">
+              <i class="ti ti-refresh"></i> Clear Fault &amp; Auto-Recover
+            </button>
+
+            <div class="info-callout" style="margin-top:16px;">
+              <strong>Design Rationale:</strong> A JTAG adapter is a specialized IEEE 1149.1 Test Access Port (TAP)
+              state-machine master. It provides scan-chain access, register inspection, and boundary scan, rather than
+              acting as a peer computing node.
+            </div>
+          </aside>
+
+          <div class="main-content">
+            <!-- 3 Device Telemetry Cards -->
+            <div class="device-cards-grid" id="deviceCardsGrid">
+              <!-- Dynamically populated -->
+            </div>
+
+            <!-- Architecture Block Diagram & Pin-Voltage Table -->
+            <div class="hw-spec-section">
+              <div class="hw-tab-row">
+                <button class="subtab subtab--active" id="btnSubtabDiagram">System Block Diagram</button>
+                <button class="subtab" id="btnSubtabPins">Interface &amp; Pin-Voltage Table</button>
+                <button class="subtab" id="btnSubtabSafety">Safe Integration Plan</button>
+              </div>
+
+              <!-- Block Diagram View -->
+              <div class="subtab-content" id="subtabContentDiagram">
+                <div class="block-diagram-container">
+                                                      <svg viewBox="0 0 835 275" width="100%" height="auto" class="svg-diagram" id="hwBlockDiagramSvg">
+                    <defs>
+                      <linearGradient id="chassisGrad" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stop-color="#1e222d"/>
+                        <stop offset="100%" stop-color="#0f1117"/>
+                      </linearGradient>
+                      <linearGradient id="jtagPcbGrad" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stop-color="#064e3b"/>
+                        <stop offset="100%" stop-color="#022c22"/>
+                      </linearGradient>
+                      <linearGradient id="mcuPcbGrad" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stop-color="#0369a1"/>
+                        <stop offset="100%" stop-color="#0c4a6e"/>
+                      </linearGradient>
+                      <linearGradient id="fpgaPcbGrad" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stop-color="#27272a"/>
+                        <stop offset="100%" stop-color="#18181b"/>
+                      </linearGradient>
+                      <linearGradient id="shifterPcbGrad" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stop-color="#3b0764"/>
+                        <stop offset="100%" stop-color="#240046"/>
+                      </linearGradient>
+                      <linearGradient id="targetPcbGrad" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stop-color="#14532d"/>
+                        <stop offset="100%" stop-color="#052e16"/>
+                      </linearGradient>
+                      <filter id="boardDropShadow" x="-5%" y="-5%" width="115%" height="120%">
+                        <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#000000" flood-opacity="0.45"/>
+                      </filter>
+
+                      <!-- Image Clip Paths for Real Hardware Photos -->
+                      <clipPath id="clipHostPhoto"><rect x="10" y="44" width="120" height="124" rx="6"/></clipPath>
+                      <clipPath id="clipJtagPhoto"><rect x="7" y="7" width="54" height="54" rx="5"/></clipPath>
+                      <clipPath id="clipMcuPhoto"><rect x="7" y="7" width="54" height="54" rx="5"/></clipPath>
+                      <clipPath id="clipFpgaPhoto"><rect x="7" y="7" width="54" height="54" rx="5"/></clipPath>
+                      <clipPath id="clipShifterPhoto"><rect x="14" y="72" width="102" height="95" rx="6"/></clipPath>
+                      <clipPath id="clipTargetPhoto"><rect x="12" y="42" width="156" height="98" rx="6"/></clipPath>
+                    </defs>
+
+                    <!-- 1. HOST PC (Workstation Tower with Actual Photo) -->
+                    <g id="diagNodeHost" transform="translate(15, 20)">
+                      <rect x="0" y="0" width="140" height="235" rx="8" fill="url(#chassisGrad)" stroke="#3b4252" stroke-width="1.8" filter="url(#boardDropShadow)"/>
+                      <!-- Header Title -->
+                      <text x="70" y="22" text-anchor="middle" font-weight="700" font-size="11" fill="#ffffff" font-family="sans-serif">Host PC (Win11)</text>
+                      <text x="70" y="34" text-anchor="middle" font-size="8.5" fill="#94a3b8" font-family="sans-serif">Workbench Core</text>
+                      <!-- Real High-Res Workstation Photo -->
+                      <image href="assets/devices/host_pc.jpg" x="10" y="44" width="120" height="124" clip-path="url(#clipHostPhoto)" preserveAspectRatio="xMidYMid slice"/>
+                      <rect x="10" y="44" width="120" height="124" rx="6" fill="none" stroke="#0ea5e9" stroke-width="1.2"/>
+                      <!-- Front I/O Panel -->
+                      <rect x="10" y="176" width="120" height="48" rx="5" fill="#161922" stroke="#2e3440" stroke-width="1"/>
+                      <circle cx="28" cy="200" r="7" fill="#0f172a" stroke="#38bdf8" stroke-width="1.4"/>
+                      <line x1="28" y1="196" x2="28" y2="200" stroke="#38bdf8" stroke-width="1.4"/>
+                      <rect x="44" y="194" width="16" height="6.5" rx="1.5" fill="#0284c7" stroke="#38bdf8" stroke-width="0.5"/>
+                      <rect x="44" y="204" width="16" height="6.5" rx="1.5" fill="#0284c7" stroke="#38bdf8" stroke-width="0.5"/>
+                      <text x="96" y="198" font-size="8.5" font-weight="700" fill="#38bdf8" font-family="sans-serif">USB 3.2</text>
+                      <text x="96" y="209" font-size="7.5" fill="#94a3b8" font-family="sans-serif">Root Hub</text>
+                    </g>
+
+                    <!-- USB Bus Connecting Paths from Host to Devices -->
+                    <path id="diagUsbJtag" d="M 155 200 C 172 200, 180 58, 195 58" stroke="#38bdf8" stroke-width="2.2" fill="none" class="diag-flow-active"/>
+                    <path id="diagUsbMcu" d="M 155 200 C 172 200, 180 132, 195 132" stroke="#22c55e" stroke-width="2.2" fill="none" class="diag-flow-active"/>
+                    <path id="diagUsbFpga" d="M 155 200 C 172 200, 180 206, 195 206" stroke="#f97316" stroke-width="2.2" fill="none" class="diag-flow-active"/>
+
+                    <!-- 2. FT2232H JTAG Probe (With Actual Board Photo) -->
+                    <g id="diagNodeJtag" class="diag-node-box" data-dev="jtag" transform="translate(195, 24)">
+                      <rect id="diagBoxJtag" x="0" y="0" width="225" height="68" rx="6" fill="url(#jtagPcbGrad)" stroke="#38bdf8" stroke-width="1.8" filter="url(#boardDropShadow)"/>
+                      <!-- Real Photo of FTDI FT2232H Module -->
+                      <image href="assets/devices/ft2232h_jtag.jpg" x="7" y="7" width="54" height="54" clip-path="url(#clipJtagPhoto)" preserveAspectRatio="xMidYMid slice"/>
+                      <rect x="7" y="7" width="54" height="54" rx="5" fill="none" stroke="#10b981" stroke-width="1.2"/>
+                      <!-- Text / Telemetry Details -->
+                      <text x="70" y="23" font-size="9.5" font-weight="700" fill="#ffffff" font-family="sans-serif">FT2232H JTAG Probe</text>
+                      <text id="diagSubJtag" x="70" y="37" font-size="8" font-weight="700" fill="#38bdf8" font-family="sans-serif">ONLINE • USB 2.0 HS</text>
+                      <text x="70" y="49" font-size="7" fill="#86efac" font-family="monospace">TAP: Run-Test/Idle</text>
+                      <!-- Real JTAG Shrouded Header Contact -->
+                      <rect x="195" y="16" width="20" height="36" rx="2" fill="#0f172a" stroke="#64748b" stroke-width="1"/>
+                      <circle cx="200" cy="22" r="1.3" fill="#fbbf24"/><circle cx="210" cy="22" r="1.3" fill="#fbbf24"/>
+                      <circle cx="200" cy="29" r="1.3" fill="#fbbf24"/><circle cx="210" cy="29" r="1.3" fill="#fbbf24"/>
+                      <circle cx="200" cy="36" r="1.3" fill="#fbbf24"/><circle cx="210" cy="36" r="1.3" fill="#fbbf24"/>
+                      <circle cx="200" cy="43" r="1.3" fill="#fbbf24"/><circle cx="210" cy="43" r="1.3" fill="#fbbf24"/>
+                    </g>
+
+                    <!-- 3. STM32H743ZI MCU (With Actual Nucleo-144 Photo) -->
+                    <g id="diagNodeMcu" class="diag-node-box" data-dev="mcu" transform="translate(195, 98)">
+                      <rect id="diagBoxMcu" x="0" y="0" width="225" height="68" rx="6" fill="url(#mcuPcbGrad)" stroke="#22c55e" stroke-width="1.8" filter="url(#boardDropShadow)"/>
+                      <!-- Real Photo of Nucleo-144 Board -->
+                      <image href="assets/devices/stm32h743zi_mcu.jpg" x="7" y="7" width="54" height="54" clip-path="url(#clipMcuPhoto)" preserveAspectRatio="xMidYMid slice"/>
+                      <rect x="7" y="7" width="54" height="54" rx="5" fill="none" stroke="#38bdf8" stroke-width="1.2"/>
+                      <!-- Text / Telemetry Details -->
+                      <text x="70" y="23" font-size="9.5" font-weight="700" fill="#ffffff" font-family="sans-serif">STM32H743ZI MCU</text>
+                      <text id="diagSubMcu" x="70" y="37" font-size="8" font-weight="700" fill="#22c55e" font-family="sans-serif">ONLINE • 3.3V Domain</text>
+                      <text x="70" y="49" font-size="7" fill="#86efac" font-family="monospace">RTOS: Tick 1 kHz</text>
+                      <!-- Real ST Morpho Headers -->
+                      <rect x="198" y="12" width="17" height="44" rx="1.5" fill="#0f172a" stroke="#334155" stroke-width="0.8"/>
+                      <circle cx="202" cy="18" r="1.1" fill="#fbbf24"/><circle cx="210" cy="18" r="1.1" fill="#fbbf24"/>
+                      <circle cx="202" cy="26" r="1.1" fill="#fbbf24"/><circle cx="210" cy="26" r="1.1" fill="#fbbf24"/>
+                      <circle cx="202" cy="34" r="1.1" fill="#fbbf24"/><circle cx="210" cy="34" r="1.1" fill="#fbbf24"/>
+                      <circle cx="202" cy="42" r="1.1" fill="#fbbf24"/><circle cx="210" cy="42" r="1.1" fill="#fbbf24"/>
+                      <circle cx="202" cy="50" r="1.1" fill="#fbbf24"/><circle cx="210" cy="50" r="1.1" fill="#fbbf24"/>
+                    </g>
+
+                    <!-- 4. Artix-7 FPGA (With Actual Arty A7 Photo) -->
+                    <g id="diagNodeFpga" class="diag-node-box" data-dev="fpga" transform="translate(195, 172)">
+                      <rect id="diagBoxFpga" x="0" y="0" width="225" height="68" rx="6" fill="url(#fpgaPcbGrad)" stroke="#f97316" stroke-width="1.8" filter="url(#boardDropShadow)"/>
+                      <!-- Real Photo of Arty A7-100T Board -->
+                      <image href="assets/devices/artix7_fpga.jpg" x="7" y="7" width="54" height="54" clip-path="url(#clipFpgaPhoto)" preserveAspectRatio="xMidYMid slice"/>
+                      <rect x="7" y="7" width="54" height="54" rx="5" fill="none" stroke="#f97316" stroke-width="1.2"/>
+                      <!-- Text / Telemetry Details -->
+                      <text x="70" y="23" font-size="9.5" font-weight="700" fill="#ffffff" font-family="sans-serif">Artix-7 XC7A100T</text>
+                      <text id="diagSubFpga" x="70" y="37" font-size="8" font-weight="700" fill="#f97316" font-family="sans-serif">ONLINE • 1.8V VCCO</text>
+                      <text x="70" y="49" font-size="7" fill="#86efac" font-family="monospace">Bitstream: Sync OK</text>
+                      <!-- Real PMOD Expansion Header -->
+                      <rect x="196" y="12" width="19" height="44" rx="2" fill="#090d16" stroke="#3f3f46" stroke-width="0.8"/>
+                      <circle cx="201" cy="18" r="1.1" fill="#fbbf24"/><circle cx="210" cy="18" r="1.1" fill="#fbbf24"/>
+                      <circle cx="201" cy="26" r="1.1" fill="#fbbf24"/><circle cx="210" cy="26" r="1.1" fill="#fbbf24"/>
+                      <circle cx="201" cy="34" r="1.1" fill="#fbbf24"/><circle cx="210" cy="34" r="1.1" fill="#fbbf24"/>
+                      <circle cx="201" cy="42" r="1.1" fill="#fbbf24"/><circle cx="210" cy="42" r="1.1" fill="#fbbf24"/>
+                      <circle cx="201" cy="50" r="1.1" fill="#fbbf24"/><circle cx="210" cy="50" r="1.1" fill="#fbbf24"/>
+                    </g>
+
+                    <!-- Connections from Devices into Level Shifter -->
+                    <path id="diagLineJtagIn" d="M 420 58 L 460 58" stroke="#38bdf8" stroke-width="2" fill="none" class="diag-flow-active"/>
+                    <path id="diagLineMcuIn" d="M 420 132 L 460 132" stroke="#22c55e" stroke-width="2" fill="none" class="diag-flow-active"/>
+                    <path id="diagLineFpgaIn" d="M 420 206 L 460 206" stroke="#f97316" stroke-width="2" fill="none" class="diag-flow-active"/>
+
+                    <!-- 5. TXB0108 LEVEL SHIFTER BREAKOUT (With Actual Board Photo) -->
+                    <g id="diagNodeShifter" transform="translate(460, 22)">
+                      <rect x="0" y="0" width="130" height="230" rx="6" fill="url(#shifterPcbGrad)" stroke="#a855f7" stroke-width="1.8" filter="url(#boardDropShadow)"/>
+                      <!-- Silkscreen Header -->
+                      <text x="65" y="24" text-anchor="middle" font-size="10" font-weight="800" fill="#ffffff" font-family="sans-serif">Bidirectional</text>
+                      <text x="65" y="37" text-anchor="middle" font-size="10" font-weight="800" fill="#ffffff" font-family="sans-serif">Level Shifter</text>
+                      <text x="65" y="52" text-anchor="middle" font-size="9" font-weight="700" fill="#c084fc" font-family="sans-serif">TXB0108 8-CH</text>
+                      <text x="65" y="65" text-anchor="middle" font-size="7.5" fill="#e9d5ff" font-family="monospace">(1.8V ⇄ 3.3V)</text>
+                      <!-- Real Photo of TXB0108 Breakout Board -->
+                      <image href="assets/devices/txb0108_shifter.jpg" x="14" y="72" width="102" height="95" clip-path="url(#clipShifterPhoto)" preserveAspectRatio="xMidYMid slice"/>
+                      <rect x="14" y="72" width="102" height="95" rx="6" fill="none" stroke="#a855f7" stroke-width="1.2"/>
+                      <!-- Mode Description -->
+                      <text x="65" y="195" text-anchor="middle" font-size="7" font-weight="600" fill="#e9d5ff" font-family="sans-serif">Push-Pull / OD</text>
+                      <text x="65" y="207" text-anchor="middle" font-size="6.5" fill="#cbd5e1" font-family="monospace">OE = High (VCCA)</text>
+                    </g>
+
+                    <!-- Connections from Level Shifter out to Target Hardware -->
+                    <path id="diagLineJtagOut" d="M 590 58 C 610 58, 615 135, 635 135" stroke="#38bdf8" stroke-width="2" stroke-dasharray="4 2" fill="none" class="diag-flow-active"/>
+                    <path id="diagLineMcuOut" d="M 590 150 L 635 150" stroke="#22c55e" stroke-width="2" fill="none" class="diag-flow-active"/>
+                    <path id="diagLineFpgaOut" d="M 590 206 C 610 206, 615 185, 635 185" stroke="#f97316" stroke-width="2" stroke-dasharray="4 2" fill="none" class="diag-flow-active"/>
+
+                    <!-- Protocol Pill Badges -->
+                    <g transform="translate(595, 118)">
+                      <rect x="0" y="0" width="36" height="15" rx="3" fill="#0f172a" stroke="#38bdf8" stroke-width="0.8"/>
+                      <text x="18" y="11" text-anchor="middle" font-size="8" font-weight="700" fill="#38bdf8" font-family="sans-serif">JTAG</text>
+                    </g>
+                    <g transform="translate(595, 142)">
+                      <rect x="0" y="0" width="36" height="15" rx="3" fill="#0f172a" stroke="#22c55e" stroke-width="0.8"/>
+                      <text x="18" y="11" text-anchor="middle" font-size="8" font-weight="700" fill="#22c55e" font-family="sans-serif">SPI</text>
+                    </g>
+
+                    <!-- 6. TARGET HARDWARE (With Actual Target Board Photo) -->
+                    <g id="diagNodeTarget" transform="translate(635, 36)">
+                      <rect x="0" y="0" width="185" height="202" rx="7" fill="url(#targetPcbGrad)" stroke="#22c55e" stroke-width="1.8" filter="url(#boardDropShadow)"/>
+                      <!-- Title -->
+                      <text x="92" y="24" text-anchor="middle" font-size="11" font-weight="800" fill="#ffffff" font-family="sans-serif">Target Hardware</text>
+                      <text x="92" y="37" text-anchor="middle" font-size="8.5" font-weight="600" fill="#86efac" font-family="sans-serif">IEEE 1149.1 Daisy Chain</text>
+                      <!-- Real Photo of Target PCB -->
+                      <image href="assets/devices/target_hardware.jpg" x="12" y="44" width="161" height="96" clip-path="url(#clipTargetPhoto)" preserveAspectRatio="xMidYMid slice"/>
+                      <rect x="12" y="44" width="161" height="96" rx="6" fill="none" stroke="#22c55e" stroke-width="1.2"/>
+                      <!-- Test Points Banner -->
+                      <rect x="12" y="146" width="161" height="20" rx="3" fill="#090d16" stroke="#1f2937" stroke-width="1"/>
+                      <circle cx="24" cy="156" r="2" fill="#fbbf24"/>
+                      <text x="30" y="159" font-size="7" font-weight="700" fill="#fde047" font-family="monospace">TCK</text>
+                      <circle cx="64" cy="156" r="2" fill="#fbbf24"/>
+                      <text x="70" y="159" font-size="7" font-weight="700" fill="#fde047" font-family="monospace">TMS</text>
+                      <circle cx="104" cy="156" r="2" fill="#fbbf24"/>
+                      <text x="110" y="159" font-size="7" font-weight="700" fill="#fde047" font-family="monospace">TDI</text>
+                      <circle cx="144" cy="156" r="2" fill="#fbbf24"/>
+                      <text x="150" y="159" font-size="7" font-weight="700" fill="#fde047" font-family="monospace">TDO</text>
+                      <!-- Common Star GND Plane -->
+                      <rect x="12" y="171" width="161" height="22" rx="4" fill="#064e3b" stroke="#10b981" stroke-width="1"/>
+                      <circle cx="24" cy="182" r="2.5" fill="#22c55e"/>
+                      <text x="92" y="185" text-anchor="middle" font-size="8" font-weight="700" fill="#ffffff" font-family="sans-serif">Common Star GND Bus</text>
+                    </g>
+                  </svg>
+                </div>
+              </div>
+
+              <!-- Pin-Voltage Table View -->
+              <div class="subtab-content" id="subtabContentPins" hidden>
+                <div class="table-container">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Domain / Interface</th>
+                        <th>Signal Name</th>
+                        <th>Voltage Level</th>
+                        <th>Signal Owner</th>
+                        <th>Connector Type</th>
+                        <th>Grounding &amp; Safety Notes</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td><strong>JTAG TAP</strong></td>
+                        <td>TCK, TMS, TDI</td>
+                        <td>3.3V / 1.8V VREF</td>
+                        <td>FT2232H Probe</td>
+                        <td>10-pin 0.05" Cortex Header</td>
+                        <td>Sensed target VREF buffer prevents back-powering.</td>
+                      </tr>
+                      <tr>
+                        <td><strong>JTAG Return</strong></td>
+                        <td>TDO</td>
+                        <td>1.8V &rarr; 3.3V</td>
+                        <td>FPGA / Target TAP</td>
+                        <td>10-pin 0.05" Cortex Header</td>
+                        <td>Level-shifted via TXB0108 auto-direction buffer.</td>
+                      </tr>
+                      <tr>
+                        <td><strong>Telemetry Bus</strong></td>
+                        <td>SPI (SCK, MOSI, MISO)</td>
+                        <td>3.3V &harr; 1.8V</td>
+                        <td>MCU (Master) / FPGA</td>
+                        <td>6-pin PMOD Header</td>
+                        <td>Shared star ground prevents ground bounce.</td>
+                      </tr>
+                      <tr>
+                        <td><strong>Host Comms</strong></td>
+                        <td>USB D+, D-</td>
+                        <td>3.3V Diff (0.4V HS)</td>
+                        <td>Host PC USB Controller</td>
+                        <td>Type-C Receptacle</td>
+                        <td>500mA polyfuse + TVS ESD diode array on VBUS.</td>
+                      </tr>
+                      <tr>
+                        <td><strong>Power Rails</strong></td>
+                        <td>5.0V VBUS, 3.3V, 1.8V, 1.0V</td>
+                        <td>Regulated DC</td>
+                        <td>Onboard LDOs / Buck</td>
+                        <td>Screw terminal / Pin headers</td>
+                        <td>Single-point star GND bus bar; ferrite beads on analog rails.</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Safety Integration Plan -->
+              <div class="subtab-content" id="subtabContentSafety" hidden>
+                <div class="safety-plan-card">
+                  <h4>Safe Integration Plan &amp; Physical Limitations</h4>
+                  <ul>
+                    <li><strong>Power Sequencing:</strong> Core voltage (1.0V VCCINT) must ramp before auxiliary (1.8V
+                      VCCAUX) and I/O (3.3V VCCO) to prevent latch-up in FPGA CMOS gate structures.</li>
+                    <li><strong>Grounding &amp; Isolation:</strong> Star-ground architecture with low-impedance plane
+                      returns prevents digital switching noise from coupling into analog ADC telemetry.</li>
+                    <li><strong>Cold Plugging Protection:</strong> Target VREF buffer disables JTAG output drivers
+                      whenever target power drops below 1.2V to prevent phantom parasitic powering via ESD protection
+                      diodes.</li>
+                    <li><strong>Simulation Boundary:</strong> Physical PCB layout, FPGA bitstream compilation, and
+                      silicon firmware programming are outside assessment prototype scope.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- ─── Universal Status Bar ─── -->
+    <footer class="status-bar" id="statusBar">
+      <i class="ti ti-circle-check status-bar-icon" id="statusIcon" style="color:var(--color-success);"
+        aria-hidden="true"></i>
+      <span id="statusText">System ready &mdash; C++17 numerical engine initialized</span>
+      <div class="progress-track">
+        <div class="progress-fill" id="progressFill" style="width: 100%"></div>
+      </div>
+      <span class="status-state" id="statusState">Ready</span>
+    </footer>
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- MODAL: BACKPROPAGATION & GRADIENT VERIFICATION (TASK F)        -->
+  <!-- ============================================================== -->
+  <div class="modal-overlay" id="backpropModal" hidden>
+    <div class="modal-container">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <i class="ti ti-math-function" style="font-size:20px; color:var(--color-accent);"></i>
+          <h3 style="margin:0;">Task F: Handwritten Backpropagation &amp; Gradient Verification</h3>
+        </div>
+        <button class="modal-close-btn" id="btnCloseBackprop">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="math-derivation-box">
+          <h4>Analytical Forward Pass &amp; Chain-Rule Derivation</h4>
+          <p class="math-line">Single regression sample: <em>x</em> = 1.0, target <em>y</em> = 2.0, learning rate
+            &alpha; = 0.1</p>
+          <p class="math-line">Architecture: <em>z</em> = <em>w x</em> + <em>b</em>, <em>h</em> = tanh(<em>z</em>),
+            <em>&ycirc;</em> = <em>v h</em> + <em>c</em>, <em>J</em> = &frac12;(<em>&ycirc;</em> &minus;
+            <em>y</em>)<sup>2</sup></p>
+          <p class="math-line">Initial values (<em>w</em> = 0.5, <em>b</em> = 0, <em>v</em> = 1.0, <em>c</em> = 0):</p>
+          <p class="math-subline">&bull; <em>z</em> = 0.5(1.0) + 0 = 0.5</p>
+          <p class="math-subline">&bull; <em>h</em> = tanh(0.5) = 0.46211716</p>
+          <p class="math-subline">&bull; <em>&ycirc;</em> = 1.0(0.46211716) + 0 = 0.46211716</p>
+          <p class="math-subline">&bull; Initial Loss: <em>J</em> = &frac12;(0.46211716 &minus; 2.0)<sup>2</sup> =
+            &frac12;(&minus;1.53788284)<sup>2</sup> &approx; <strong>1.18255182</strong></p>
+
+          <h4 style="margin-top:10px;">Exact Chain Rule Derivatives:</h4>
+          <div class="deriv-grid">
+            <div>&part;<em>J</em> / &part;<em>&ycirc;</em> = <em>&ycirc;</em> &minus; <em>y</em> = &minus;1.53788284
+            </div>
+            <div>&part;<em>J</em> / &part;<em>c</em> = &part;<em>J</em> / &part;<em>&ycirc;</em> &middot; 1 =
+              <strong>&minus;1.53788284</strong></div>
+            <div>&part;<em>J</em> / &part;<em>v</em> = &part;<em>J</em> / &part;<em>&ycirc;</em> &middot; <em>h</em> =
+              <strong>&minus;0.71068191</strong></div>
+            <div>&part;<em>J</em> / &part;<em>z</em> = &part;<em>J</em> / &part;<em>&ycirc;</em> &middot; <em>v</em>
+              &middot; (1 &minus; <em>h</em><sup>2</sup>) = <strong>&minus;1.20946447</strong></div>
+            <div>&part;<em>J</em> / &part;<em>w</em> = &part;<em>J</em> / &part;<em>z</em> &middot; <em>x</em> =
+              <strong>&minus;1.20946447</strong></div>
+            <div>&part;<em>J</em> / &part;<em>b</em> = &part;<em>J</em> / &part;<em>z</em> &middot; 1 =
+              <strong>&minus;1.20946447</strong></div>
+          </div>
+
+          <h4 style="margin-top:10px;">Simultaneous Parameter Update (Step 1):</h4>
+          <p class="math-line">
+            <em>w</em><sup>(1)</sup> = 0.5 &minus; 0.1(&minus;1.20946447) = <strong>0.62094645</strong> &emsp;
+            <em>b</em><sup>(1)</sup> = 0.0 &minus; 0.1(&minus;1.20946447) = <strong>0.12094645</strong><br>
+            <em>v</em><sup>(1)</sup> = 1.0 &minus; 0.1(&minus;0.71068191) = <strong>1.07106819</strong> &emsp;
+            <em>c</em><sup>(1)</sup> = 0.0 &minus; 0.1(&minus;1.53788284) = <strong>0.15378828</strong>
+          </p>
+          <p style="font-size:11px; color:var(--color-text-secondary); margin-top:4px;">
+            <strong>Gradient Direction Meaning:</strong> All four initial gradients are strictly negative
+            (&part;<em>J</em> / &part;&theta; &lt; 0), indicating that increasing every parameter increases prediction
+            <em>&ycirc;</em> toward target <em>y</em> = 2.0, reducing the loss.
+          </p>
+        </div>
+
+        <!-- Finite Difference Verification Table -->
+        <h4 style="margin:14px 0 6px;">Central Finite Difference Verification (&epsilon; = 10<sup>&minus;6</sup>,
+          Threshold &le; 10<sup>&minus;5</sup>)</h4>
+        <div class="table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Parameter</th>
+                <th>Analytical Gradient</th>
+                <th>Numerical Gradient (Central FD)</th>
+                <th>Absolute Difference</th>
+                <th>Verdict</th>
+              </tr>
+            </thead>
+            <tbody id="gradCheckTableBody">
+              <tr>
+                <td><strong>&part;J / &part;w</strong></td>
+                <td>-1.20946447</td>
+                <td>-1.20946447</td>
+                <td>3.24e-11</td>
+                <td style="color:var(--color-success); font-weight:600;"><i class="ti ti-check"></i> PASSED (&le; 1e-5)
+                </td>
+              </tr>
+              <tr>
+                <td><strong>&part;J / &part;b</strong></td>
+                <td>-1.20946447</td>
+                <td>-1.20946447</td>
+                <td>3.24e-11</td>
+                <td style="color:var(--color-success); font-weight:600;"><i class="ti ti-check"></i> PASSED (&le; 1e-5)
+                </td>
+              </tr>
+              <tr>
+                <td><strong>&part;J / &part;v</strong></td>
+                <td>-0.71068191</td>
+                <td>-0.71068191</td>
+                <td>1.82e-11</td>
+                <td style="color:var(--color-success); font-weight:600;"><i class="ti ti-check"></i> PASSED (&le; 1e-5)
+                </td>
+              </tr>
+              <tr>
+                <td><strong>&part;J / &part;c</strong></td>
+                <td>-1.53788284</td>
+                <td>-1.53788284</td>
+                <td>2.11e-11</td>
+                <td style="color:var(--color-success); font-weight:600;"><i class="ti ti-check"></i> PASSED (&le; 1e-5)
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 100-Step Training Curve -->
+        <h4 style="margin:14px 0 6px;">100-Step Training Loss Convergence (&alpha; = 0.1)</h4>
+        <div id="backpropSvgContainer" style="width:100%; height:180px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/api-client.js"></script>
+  <script src="js/fem-solver.js"></script>
+  <script src="js/chart.js"></script>
+  <script src="js/camera.js"></script>
+  <script src="js/cloud-view.js"></script>
+  <script src="js/tooltip.js"></script>
+  <script src="js/cad-parsers.js"></script>
+  <script src="js/cad-viewer.js"></script>
+  <script src="js/multicore-view.js"></script>
+  <script src="js/embedded-view.js"></script>
+  <script src="js/backprop-view.js"></script>
+  <script src="js/app.js"></script>
+</body>
+
+</html>

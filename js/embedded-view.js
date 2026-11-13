@@ -66,13 +66,19 @@ const EmbeddedViewController = (() => {
     const btnTimeout = document.getElementById("btnInjectTimeout");
     const btnClearFault = document.getElementById("btnClearFault");
 
+    const devMap = { mcu: "STM32H743ZI", fpga: "ARTIX7_XC7A100T", jtag: "FTDI_FT2232H" };
+
     if (btnConnect) {
-      btnConnect.addEventListener("click", () => {
+      btnConnect.addEventListener("click", async () => {
         const id = selDev ? selDev.value : "mcu";
+        const cppId = devMap[id] || id;
+        if (typeof ApiClient !== "undefined" && ApiClient.isOnline()) {
+          try { await ApiClient.clearFault(cppId); } catch (_) {}
+        }
         const dev = devicesState.find(d => d.id === id);
         if (dev) {
           dev.status = "connected";
-          dev.statusMsg = "Connected and streaming telemetry (1 kHz).";
+          dev.statusMsg = "Connected and streaming telemetry from C++ mock adapter.";
           renderDeviceCards();
         }
       });
@@ -91,19 +97,31 @@ const EmbeddedViewController = (() => {
     }
 
     if (btnTimeout) {
-      btnTimeout.addEventListener("click", () => {
+      btnTimeout.addEventListener("click", async () => {
         const id = selDev ? selDev.value : "mcu";
+        const cppId = devMap[id] || id;
+        if (typeof ApiClient !== "undefined" && ApiClient.isOnline()) {
+          try {
+            const res = await ApiClient.triggerFault(cppId, "USB_BUS_POWER_SAG");
+            console.log("[EmbeddedView] C++ fault triggered:", res);
+          } catch (e) {
+            console.warn(e);
+          }
+        }
         const dev = devicesState.find(d => d.id === id);
         if (dev) {
           dev.status = "timeout";
-          dev.statusMsg = "COMM TIMEOUT: No ACK received within 1200 ms! Initiating auto-retry queue...";
+          dev.statusMsg = "COMM TIMEOUT: C++ mock adapter triggered USB_BUS_POWER_SAG! Initiating auto-retry queue...";
           renderDeviceCards();
 
           // Auto-recovery demonstration after 3.5 seconds
-          setTimeout(() => {
+          setTimeout(async () => {
             if (dev.status === "timeout") {
+              if (typeof ApiClient !== "undefined" && ApiClient.isOnline()) {
+                try { await ApiClient.clearFault(cppId); } catch (_) {}
+              }
               dev.status = "connected";
-              dev.statusMsg = "Auto-recovery succeeded: Resynchronized via secondary packet handshake.";
+              dev.statusMsg = "Auto-recovery succeeded: Resynchronized via C++ handshake.";
               renderDeviceCards();
             }
           }, 3500);
@@ -112,11 +130,16 @@ const EmbeddedViewController = (() => {
     }
 
     if (btnClearFault) {
-      btnClearFault.addEventListener("click", () => {
+      btnClearFault.addEventListener("click", async () => {
+        if (typeof ApiClient !== "undefined" && ApiClient.isOnline()) {
+          for (const k in devMap) {
+            try { await ApiClient.clearFault(devMap[k]); } catch (_) {}
+          }
+        }
         devicesState.forEach(d => {
           if (d.status === "timeout") {
             d.status = "connected";
-            d.statusMsg = "Fault manually cleared. Communication resynchronized.";
+            d.statusMsg = "Fault manually cleared on C++ adapter. Communication resynchronized.";
           }
         });
         renderDeviceCards();
@@ -179,7 +202,39 @@ const EmbeddedViewController = (() => {
 
   function startPolling() {
     if (pollInterval) clearInterval(pollInterval);
-    pollInterval = setInterval(() => {
+    pollInterval = setInterval(async () => {
+      // 1. If C++ backend is online, poll real telemetry from C++ mock adapters
+      if (typeof ApiClient !== "undefined" && ApiClient.isOnline()) {
+        try {
+          const cppTelemetry = await ApiClient.getEmbeddedTelemetry();
+          if (Array.isArray(cppTelemetry)) {
+            cppTelemetry.forEach(t => {
+              let dev;
+              if (t.hardware_id.includes("0483") || t.hardware_id.includes("STM32")) {
+                dev = devicesState.find(d => d.id === "mcu");
+              } else if (t.hardware_id.includes("03FD") || t.hardware_id.includes("ARTIX")) {
+                dev = devicesState.find(d => d.id === "fpga");
+              } else if (t.hardware_id.includes("0403") || t.hardware_id.includes("FTDI")) {
+                dev = devicesState.find(d => d.id === "jtag");
+              }
+              if (dev && dev.status === "connected") {
+                dev.seq = t.seq;
+                dev.voltage = +t.voltage_V.toFixed(3);
+                dev.temp = +t.temp_C.toFixed(1);
+                dev.current = +t.current_mA.toFixed(1);
+                dev.statusMsg = t.status || dev.statusMsg;
+                dev.crc16 = computeCrc16(`${dev.id}-${dev.seq}-${dev.voltage}-${dev.temp}`);
+              }
+            });
+            renderDeviceCards();
+            return;
+          }
+        } catch (err) {
+          console.warn("[EmbeddedView] C++ telemetry polling error:", err);
+        }
+      }
+
+      // 2. Local Fallback Polling (if backend offline)
       const elapsedSec = (Date.now() - pollStartTime) / 1000.0;
       devicesState.forEach(d => {
         if (d.status === "connected") {

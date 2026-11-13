@@ -8,43 +8,54 @@ echo        UNIFIED ENGINEERING WORKBENCH (Windows 11)
 echo ========================================================
 echo.
 
-:: Resolve index.html path relative to this bat file (handles spaces in path)
-set "HTML_PATH=%~dp0index.html"
+set "APP_DIR=%~dp0"
+set "HTML_PATH=%APP_DIR%index.html"
+set "SERVER_EXE=%APP_DIR%workbench_server.exe"
 set "CHROME=C:\Program Files\Google\Chrome\Application\chrome.exe"
 set "EDGE=C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
 set "EDGE2=C:\Program Files\Microsoft\Edge\Application\msedge.exe"
 
-echo Starting workbench at: %HTML_PATH%
+:: 1. Start C++17 HTTP Server if available
+if exist "%SERVER_EXE%" (
+    echo Starting native C++17 REST backend on 127.0.0.1:7474...
+    start "" /B "%SERVER_EXE%" 7474 "%APP_DIR%"
+    timeout /t 1 /nobreak >nul 2>&1
+    set "TARGET_URL=http://127.0.0.1:7474/index.html"
+) else (
+    echo [Notice] workbench_server.exe not found; starting in direct offline mode.
+    set "TARGET_URL=%HTML_PATH%"
+)
+
+echo Opening workbench at: %TARGET_URL%
 echo.
 
-:: Try Chrome first
+:: Try Chrome
 if exist "%CHROME%" (
     echo Launching in Google Chrome...
-    start "" "%CHROME%" "%HTML_PATH%"
+    start "" "%CHROME%" "%TARGET_URL%"
     goto :done
 )
 
 :: Try Edge (x86 path)
 if exist "%EDGE%" (
     echo Launching in Microsoft Edge...
-    start "" "%EDGE%" "%HTML_PATH%"
+    start "" "%EDGE%" "%TARGET_URL%"
     goto :done
 )
 
 :: Try Edge (default path)
 if exist "%EDGE2%" (
     echo Launching in Microsoft Edge...
-    start "" "%EDGE2%" "%HTML_PATH%"
+    start "" "%EDGE2%" "%TARGET_URL%"
     goto :done
 )
 
-:: Final fallback: Windows shell open (default browser)
+:: Final fallback: Default system browser
 echo Launching in default browser...
-start "" "%HTML_PATH%"
+start "" "%TARGET_URL%"
 
 :done
 echo.
 echo Workbench launched successfully!
-echo You can close this window.
 timeout /t 2 /nobreak >nul 2>&1
 exit /b 0
