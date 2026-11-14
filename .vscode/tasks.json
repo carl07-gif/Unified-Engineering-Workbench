@@ -2,14 +2,18 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "One-Click Launch Workbench",
+            "label": "Run Unified Engineering Workbench",
             "type": "shell",
             "command": "cmd.exe /c Launch.bat",
             "group": {
                 "kind": "build",
                 "isDefault": true
             },
-            "problemMatcher": []
+            "problemMatcher": [],
+            "inAgents": true,
+            "runOptions": {
+                "runOn": "worktreeCreated"
+            }
         },
         {
             "label": "Run All 49 C++ Unit Tests",
@@ -36,9 +40,28 @@
             "problemMatcher": []
         },
         {
-            "label": "CMake: Configure & Build All",
-            "type": "shell",
-            "command": "cmake -B build -S . && cmake --build build --config Release",
+            "label": "CMake: Configure",
+            "type": "process",
+            "command": "cmake",
+            "args": [
+                "-S",
+                "${workspaceFolder}",
+                "-B",
+                "${workspaceFolder}\\build"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "CMake: Build All",
+            "type": "process",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "${workspaceFolder}\\build",
+                "--config",
+                "Release"
+            ],
+            "dependsOn": "CMake: Configure",
             "group": "build",
             "problemMatcher": []
         }

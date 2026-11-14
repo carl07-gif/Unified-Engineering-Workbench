@@ -13,11 +13,12 @@ Double-click **`Launch.exe`** (or `Launch.bat`) in the root directory.
 - Requires **no** PowerShell, **no** terminal commands, **no** administrator rights, **no** package installations, **no** first-run build, and **no** internet connection.
 - Self-contained, portable Windows 11 x64 binary execution directly upon ZIP extraction.
 
-### VS Code / Antigravity Run Configuration
-1. Open this repository folder in VS Code or Antigravity IDE.
-2. Press **F5** or go to the **Run & Debug** panel (`Ctrl+Shift+D`) and select:
-   - **`Launch Workbench (Microsoft Edge - Windows 11)`** (uses the built-in browser debugger; opens Edge with `index.html` immediately in one action).
-   - Alternatively, select **`Launch Workbench (Google Chrome)`**.
+### VS Code One-Click Run
+1. Open this repository folder in VS Code.
+2. Press **F5** and select **`Run Unified Engineering Workbench`**, or press **Ctrl+Shift+B** to run the default workbench task.
+3. The launcher starts the available native backend and opens the workbench in your browser.
+
+To rebuild the C++ backend from source, run **`CMake: Build All`** from **Terminal > Run Task**. This requires CMake and a configured C++17 compiler.
 
 > **Note on Standalone Launcher:** Double-clicking `Launch.bat` (or `Launch.exe`) does not require VS Code, any editor extension, or internet access.
 
@@ -174,5 +175,4 @@ Total development effort: **46.0 hours**:
 | **Task F: Handwritten Backpropagation** | Reverse-mode calculus derivation, finite-difference verification | **5.0 hrs** | `src/cpp/backprop_engine.*`, `docs/HANDWRITTEN_BACKPROP.md` |
 | **C++ REST Server & Testing** | `cpp-httplib` v0.66.0 transport (`src/server/server.cpp`), 49 CTest unit tests (100% passing) | **6.0 hrs** | `src/server/server.cpp`, `CMakeLists.txt`, `tests/test_main.cpp` |
 | **TOTAL VERIFIED EFFORT** | **Multi-disciplinary engineering workbench prototype** | **46.0 hrs** | **100% Offline, Self-Contained Deliverable** |
-
 

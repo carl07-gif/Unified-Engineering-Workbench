@@ -10,7 +10,9 @@ echo.
 
 set "APP_DIR=%~dp0"
 if "%APP_DIR:~-1%"=="\" set "APP_DIR=%APP_DIR:~0,-1%"
-set "SERVER_EXE=%APP_DIR%\workbench_server.exe"
+set "SERVER_EXE=%APP_DIR%\build\Release\workbench_server.exe"
+if not exist "%SERVER_EXE%" set "SERVER_EXE=%APP_DIR%\build\workbench_server.exe"
+if not exist "%SERVER_EXE%" set "SERVER_EXE=%APP_DIR%\workbench_server.exe"
 set "HTML_PATH=%APP_DIR%\src\frontend\index.html"
 set "CHROME=C:\Program Files\Google\Chrome\Application\chrome.exe"
 set "EDGE=C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
