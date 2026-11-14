@@ -1,0 +1,8 @@
+solid broken_model
+  facet normal 0.0 0.0 1.0
+    outer loop
+      vertex 0.0 0.0 NaN
+      vertex 1.0 0.0 0.0
+      # Missing vertex and malformed structure
+endsolid broken_model
+

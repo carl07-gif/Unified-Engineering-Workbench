@@ -1,0 +1,10 @@
+# Multicore / Multithreaded Thermal Solve Benchmark Results
+# Workload: 10000 independent 1D thermal solves, N=40 mesh, seed=42
+# Host: Intel(R) Core(TM) Ultra 5 226V (8 physical cores, 8 logical threads), RAM: 15.5 GB (Win32 API: GlobalMemoryStatusEx (&memInfo.ullTotalPhys)), GCC 13.0 -O3 -Wall -pthread
+# Five measured repetitions per worker count (warm-up: 18.246 ms)
+workers_p,rep1_ms,rep2_ms,rep3_ms,rep4_ms,rep5_ms,median_ms,speedup_T1_over_Tp,efficiency_percent
+1,27.248,17.236,16.692,25.737,15.722,17.236,1.000,100.0
+2,14.422,11.312,10.851,10.272,10.910,10.910,1.580,79.0
+3,10.691,7.786,10.031,10.487,9.026,10.031,1.718,57.3
+4,8.809,7.200,8.194,7.225,7.328,7.328,2.352,58.8
+# Serial vs Parallel Maximum Absolute Temperature Difference: 0.00e+00 C
