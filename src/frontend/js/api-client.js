@@ -8,6 +8,7 @@
 const ApiClient = (() => {
   // Determine API base URL: relative if served via HTTP on 7474; absolute if file://
   const isHostedOnServer = (window.location.protocol === "http:" || window.location.protocol === "https:") &&
+                           (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") &&
                            (window.location.port === "7474" || window.location.port === "");
   const API_BASE = isHostedOnServer ? "" : "http://127.0.0.1:7474";
 
@@ -59,14 +60,15 @@ const ApiClient = (() => {
           badge.style.color = "#10b981";
         }
       } else {
-        label.textContent = "Backend Offline (127.0.0.1:7474)";
+        const isRemoteWeb = (window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1" && window.location.protocol !== "file:");
+        label.textContent = isRemoteWeb ? "Client Presentation Mode (Web Hosted)" : "Backend Offline (127.0.0.1:7474)";
         if (dot) {
-          dot.style.color = "#ef4444";
+          dot.style.color = isRemoteWeb ? "#38bdf8" : "#ef4444";
           dot.className = "ti ti-circle-filled status-dot";
         }
         if (badge) {
-          badge.style.borderColor = "rgba(239, 68, 68, 0.4)";
-          badge.style.color = "#ef4444";
+          badge.style.borderColor = isRemoteWeb ? "rgba(56, 189, 248, 0.4)" : "rgba(239, 68, 68, 0.4)";
+          badge.style.color = isRemoteWeb ? "#38bdf8" : "#ef4444";
         }
       }
     }
